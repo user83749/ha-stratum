@@ -139,7 +139,7 @@ volumes:
 
 ```bash
 # Clone and install
-git clone https://github.com/yourname/ha-stratum.git
+git clone https://github.com/user83749/ha-stratum.git
 cd ha-stratum
 npm install
 
