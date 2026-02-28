@@ -43,6 +43,44 @@
 		stopWatchingScheme?.();
 	});
 
+	// ── Add-on ingress auto-connect ──────────────────────────────────────────
+	// When running as an HA add-on via ingress, HA handles auth at the proxy
+	// level. We detect this and use the ingress path as the WebSocket URL so
+	// the user never has to manually enter a URL or token.
+	async function tryAddonAutoConnect(): Promise<boolean> {
+		if (!browser) return false;
+		try {
+			const res = await fetch('/api/ha/info');
+			if (!res.ok) return false;
+			const info = await res.json();
+			if (!info.addon) return false;
+
+			// In ingress mode the browser talks to HA through the same origin.
+			// The ingress path is already the HA base URL from the browser's
+			// perspective so we use window.location.origin.
+			const hassUrl = window.location.origin;
+
+			// Fetch a long-lived token using the ingress auth endpoint.
+			// HA injects a one-time token we can exchange for a bearer token.
+			const tokenRes = await fetch('/api/hassio_ingress/validate_session', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' }
+			});
+
+			// If session validation works, use the ingress connection directly.
+			// Otherwise fall back to connecting via the origin with no token —
+			// HA's ingress proxy automatically attaches the auth headers.
+			const token = tokenRes.ok
+				? ((await tokenRes.json()) as { token?: string }).token ?? ''
+				: '';
+
+			configStore.set({ hassUrl, token });
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
 	$effect(() => {
 		if (!browser) return;
 		void syncAppState();
@@ -67,10 +105,14 @@
 		}
 
 		if (!configStore.isConfigured()) {
-			dashboardLoaded = false;
-			loadedMode = null;
-			if (!isPublic) await goto('/connect');
-			return;
+			// Try add-on ingress auto-connect first
+			const autoConnected = await tryAddonAutoConnect();
+			if (!autoConnected) {
+				dashboardLoaded = false;
+				loadedMode = null;
+				if (!isPublic) await goto('/connect');
+				return;
+			}
 		}
 
 		if ($connectionStatus === 'error') {
