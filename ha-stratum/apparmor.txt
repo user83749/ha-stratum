@@ -1,0 +1,35 @@
+#include <tunables/global>
+
+profile stratum flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # Network
+  network,
+  deny network raw,
+
+  # Capabilities
+  file,
+  signal (send) set=(kill,term,int,hup,cont),
+
+  # S6-Overlay
+  /init ix,
+  /bin/** ix,
+  /usr/bin/** ix,
+  /run/{s6,s6-rc*,service}/** ix,
+  /package/** ix,
+  /command/** ix,
+  /etc/services.d/** rwix,
+  /etc/cont-init.d/** rwix,
+  /etc/cont-finish.d/** rwix,
+  /run/{,**} rwk,
+  /dev/tty rw,
+
+  # Bashio
+  /usr/lib/bashio/** ix,
+  /tmp/** rwk,
+
+  # Stratum data
+  /data/** rw,
+  /rootfs/** r,
+  /share/** rw,
+}

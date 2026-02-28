@@ -1,26 +1,7 @@
-#!/usr/bin/env sh
-set -e
+#!/usr/bin/with-contenv bashio
 
-echo "[Stratum] Starting Home Assistant Add-on..."
+export HASS_PORT=$(bashio::core.port)
+export EXPOSED_PORT=$(bashio::addon.port "5173/tcp")
 
-# ── Persistent storage ───────────────────────────────────────────────────────
-if [ ! -f "/data/dashboard.json" ]; then
-    echo "[Stratum] /data/dashboard.json not found. Initializing storage..."
-fi
-
-# ── Environment ──────────────────────────────────────────────────────────────
-export ADDON=true
-export PORT=5173
-export NODE_ENV=production
-
-# The Supervisor automatically injects SUPERVISOR_TOKEN when
-# homeassistant_api: true is set in config.yaml.
-# We just forward it so server.js can use it.
-if [ -n "$SUPERVISOR_TOKEN" ]; then
-    echo "[Stratum] Supervisor API token detected."
-    export SUPERVISOR_TOKEN
-fi
-
-# ── Boot ─────────────────────────────────────────────────────────────────────
-echo "[Stratum] Booting server.js..."
-exec node server.js
+echo "[Stratum] Starting..."
+node /rootfs/server.js
