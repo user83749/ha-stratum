@@ -1,24 +1,28 @@
-ARG BUILD_FROM=homeassistant/amd64-base-node:20
-FROM $BUILD_FROM AS build-stage
+# Build stage — use full node:20 for reliable npm install on all arches
+FROM node:20 AS builder
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
+
+# Copy all files and build
 COPY . .
-RUN npm run build
+RUN npm install --verbose && \
+    npm run build && \
+    npm prune --omit=dev
 
-# Final stage
-FROM $BUILD_FROM
+# Production stage — slim alpine image
+FROM node:20-alpine
 WORKDIR /app
 
-# Copy built assets and dependencies
-COPY --from=build-stage /app/build ./build
-COPY --from=build-stage /app/node_modules ./node_modules
-COPY package.json server.js ./
+# Copy only what's needed to run
+COPY --from=builder /app/build ./build
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/server.js .
+COPY --from=builder /app/package.json .
 
-# HA Add-on support
-ENV ADDON=true
-ENV NODE_ENV=production
-ENV PORT=5173
+# Environment
+ENV PORT=5173 \
+    NODE_ENV=production \
+    ADDON=true
+
 EXPOSE 5173
 
 # Entry point
