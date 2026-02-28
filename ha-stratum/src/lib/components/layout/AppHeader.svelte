@@ -44,7 +44,7 @@
 	const editing       = $derived($isEditing);
 	let isMac = $state(false);
 	onMount(() => {
-		if (browser) {
+		if (typeof navigator !== 'undefined' && navigator.platform) {
 			isMac = navigator.platform.includes('Mac');
 		}
 	});
