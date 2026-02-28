@@ -1,5 +1,5 @@
 name: "Stratum"
-version: "0.0.26"
+version: "0.0.27"
 slug: "ha-stratum"
 description: "A fully customizable Home Assistant dashboard."
 url: "https://github.com/user83749/ha-stratum"
