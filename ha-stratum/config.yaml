@@ -1,5 +1,5 @@
 name: "Stratum"
-version: "0.0.6"
+version: "0.0.7"
 slug: "ha-stratum"
 description: "A fully customizable Home Assistant dashboard."
 url: "https://github.com/user83749/ha-stratum"
@@ -11,15 +11,31 @@ arch:
   - i386
 startup: "services"
 boot: "auto"
+init: false
+
+# ── Ingress ──────────────────────────────────────────────────────────────────
 ingress: true
 ingress_port: 5173
 panel_icon: "mdi:view-dashboard"
 panel_title: "Stratum"
+
+# ── HA Integration ───────────────────────────────────────────────────────────
+# Grants the add-on a long-lived token via $SUPERVISOR_TOKEN so it can
+# talk directly to HA Core without the user configuring anything.
+homeassistant_api: true
+auth_api: true
+hassio_api: true
+
+# ── Watchdog ─────────────────────────────────────────────────────────────────
+# HA will ping this URL periodically; if it fails, the add-on is restarted.
+watchdog: "http://[HOST]:[PORT:5173]/api/health"
+
+# ── Storage ──────────────────────────────────────────────────────────────────
 map:
   - "config:rw"
   - "share:rw"
   - "ssl"
-options:
-  hass_url: "http://homeassistant.local:8123"
-schema:
-  hass_url: str?
+
+# ── User options (shown in the add-on config UI) ─────────────────────────────
+options: {}
+schema: {}

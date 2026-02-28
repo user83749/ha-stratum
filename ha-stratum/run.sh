@@ -3,16 +3,24 @@ set -e
 
 echo "[Stratum] Starting Home Assistant Add-on..."
 
-# The Home Assistant add-on environment provides persistent storage at /data
-# Check if /data/dashboard.json exists; if not, initialize with an empty config if needed
+# ── Persistent storage ───────────────────────────────────────────────────────
 if [ ! -f "/data/dashboard.json" ]; then
     echo "[Stratum] /data/dashboard.json not found. Initializing storage..."
-    # You might want to copy a default dashboard.json here if one exists
 fi
 
+# ── Environment ──────────────────────────────────────────────────────────────
 export ADDON=true
 export PORT=5173
 export NODE_ENV=production
 
+# The Supervisor automatically injects SUPERVISOR_TOKEN when
+# homeassistant_api: true is set in config.yaml.
+# We just forward it so server.js can use it.
+if [ -n "$SUPERVISOR_TOKEN" ]; then
+    echo "[Stratum] Supervisor API token detected."
+    export SUPERVISOR_TOKEN
+fi
+
+# ── Boot ─────────────────────────────────────────────────────────────────────
 echo "[Stratum] Booting server.js..."
-node server.js
+exec node server.js
