@@ -1,5 +1,5 @@
-# Build stage
-FROM node:20-alpine AS build-stage
+ARG BUILD_FROM=homeassistant/amd64-base-node:20
+FROM $BUILD_FROM AS build-stage
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -7,7 +7,7 @@ COPY . .
 RUN npm run build
 
 # Final stage
-FROM node:20-alpine
+FROM $BUILD_FROM
 WORKDIR /app
 
 # Copy built assets and dependencies
