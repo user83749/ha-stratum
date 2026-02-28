@@ -89,7 +89,7 @@
     <div class="layout-md">
       <button class="md-left" onclick={toggle} aria-label="Toggle Power">
         <div class="md-icon" style="background: {isOn ? 'color-mix(in srgb, var(--mc) 20%, transparent)' : 'color-mix(in srgb, var(--fg) 8%, transparent)'}; color: {isOn ? 'var(--mc)' : 'var(--fg-muted)'}">
-          <Icon name="droplets" size={sizePreset === 'xl' ? 44 : 32} />
+          <Icon name="droplets" size={32} />
         </div>
         <div class="md-status">
           <div class="status-val" style="color: {isOn ? activeColor : 'var(--fg-muted)'}">{isOn ? 'Humidifying' : 'Off'}</div>
