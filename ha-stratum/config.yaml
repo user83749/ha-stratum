@@ -1,11 +1,11 @@
 name: "Stratum"
-version: "0.0.12"
+version: "0.0.13"
 slug: "ha-stratum"
 description: "A fully customizable Home Assistant dashboard."
 url: "https://github.com/user83749/ha-stratum"
 
-# Pre-built image from GHCR — pulled on install, no build on your hardware
-image: "ghcr.io/user83749/ha-stratum/{arch}-addon-ha-stratum"
+# Docker Hub image — built by home-assistant/builder, pulled on install
+image: "user83749/addon-ha-stratum-{arch}"
 
 arch:
   - aarch64
@@ -23,6 +23,7 @@ panel_icon: "mdi:view-dashboard"
 panel_title: "Stratum"
 panel_admin: false
 
+apparmor: true
 hassio_api: true
 
 ports:

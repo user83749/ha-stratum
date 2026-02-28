@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount, onDestroy } from 'svelte';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore, activePageId } from '$lib/stores/ui';
 	import { editMode, isEditing } from '$lib/stores/editMode';
@@ -43,7 +44,9 @@
 	const editing       = $derived($isEditing);
 	let isMac = $state(false);
 	onMount(() => {
-		isMac = navigator.platform.includes('Mac');
+		if (browser) {
+			isMac = navigator.platform.includes('Mac');
+		}
 	});
 
 	const activePage = $derived(
