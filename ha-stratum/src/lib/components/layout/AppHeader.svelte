@@ -41,7 +41,10 @@
 
 	const currentPageId = $derived($activePageId);
 	const editing       = $derived($isEditing);
-	const isMac         = $derived(typeof navigator !== 'undefined' ? navigator?.platform?.includes('Mac') : false);
+	let isMac = $state(false);
+	onMount(() => {
+		isMac = navigator.platform.includes('Mac');
+	});
 
 	const activePage = $derived(
 		pages.find((p) => p.id === currentPageId) ?? pages[0] ?? null
