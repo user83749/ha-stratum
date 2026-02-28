@@ -16,7 +16,7 @@
 		"@sveltejs/kit": "^2.53.4",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
 		"@tailwindcss/vite": "^4.2.1",
-		"@types/vanilla-tilt": "^1.4.1",
+		"@types/vanilla-tilt": "^1.6.2",
 		"svelte": "^5.53.6",
 		"svelte-check": "^4.4.4",
 		"tailwindcss": "^4.2.1",
