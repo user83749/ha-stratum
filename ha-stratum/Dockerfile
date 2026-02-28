@@ -9,6 +9,9 @@ RUN npm install
 # Copy the rest of the source
 COPY . .
 
+# Ensure no stale build files exist before building
+RUN rm -rf build .svelte-kit node_modules/.cache
+
 # Build the app
 RUN npm run build
 
