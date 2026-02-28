@@ -1,3 +1,15 @@
+// SSR Ghost Mocks — prevents crashes from dependencies using browser globals
+if (typeof global.window === 'undefined') {
+	global.window = {};
+	global.navigator = { userAgent: '', platform: '' };
+	global.document = {
+		scrollElement: {},
+		addEventListener: () => { },
+		removeEventListener: () => { },
+		documentElement: { style: { setProperty: () => { } }, classList: { toggle: () => { }, add: () => { }, remove: () => { } } }
+	};
+}
+
 import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { handler } from './build/handler.js';

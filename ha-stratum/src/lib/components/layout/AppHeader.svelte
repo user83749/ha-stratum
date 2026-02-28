@@ -43,11 +43,6 @@
 	const currentPageId = $derived($activePageId);
 	const editing       = $derived($isEditing);
 	let isMac = $state(false);
-	onMount(() => {
-		if (typeof navigator !== 'undefined' && navigator.platform) {
-			isMac = navigator.platform.includes('Mac');
-		}
-	});
 
 	const activePage = $derived(
 		pages.find((p) => p.id === currentPageId) ?? pages[0] ?? null
@@ -113,7 +108,7 @@
 					class="ha-header__search"
 					onclick={handleSearchClick}
 					aria-label="Search"
-					title="Search  ({isMac ? '⌘' : 'Ctrl'}+{search.hotkey.toUpperCase()})"
+					title="Search"
 				>
 					<Icon name="search" size={16} />
 					<span class="ha-header__search-label">Search…</span>
