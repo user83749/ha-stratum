@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Geist:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+/* ─── CSS custom property defaults ────────────────────────────────────────────
+   Mirrors the Midnight dark theme so the page renders correctly before JS runs.
+   applyTheme() in +layout.svelte will override these on mount.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  color-scheme: dark;
+
+  /* Accent */
+  --accent:     #6366f1;
+  --accent-rgb: 99 102 241;
+  --accent-fg:  #ffffff;
+
+  /* Surfaces */
+  --surface:     #18181b;
+  --surface-rgb: 24 24 27;
+
+  /* Background layers */
+  --bg:          #09090b;
+  --bg-elevated: #18181b;
+
+  /* Borders */
+  --border:        rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Foreground scale */
+  --fg:        #fafafa;
+  --fg-muted:  #a1a1aa;
+  --fg-subtle: #52525b;
+
+  /* Interactive states */
+  --hover:  rgba(255, 255, 255, 0.05);
+  --active: rgba(255, 255, 255, 0.08);
+
+  /* Shadows */
+  --shadow:    0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.6);
+
+  /* Shape */
+  --radius:    12px;
+  --radius-sm: 7px;
+  --radius-lg: 18px;
+
+  /* Typography */
+  --font-family: "Inter", system-ui, sans-serif;
+  --font-size:   14px;
+
+  /* Tile spacing */
+  --tile-padding: 12px;
+  --tile-gap:     10px;
+
+  /* Tile card (defaults — overridden per visual style by applyTheme) */
+  --tile-bg:       var(--surface);
+  --tile-border:   1px solid var(--border);
+  --tile-shadow:   none;
+  --tile-backdrop: none;
+
+  /* Tile interactive states */
+  --tile-hover-shadow: none;
+
+  /* Tile active entity states */
+  --tile-active-shadow:   none;
+
+  /* Glass / blur */
+  --blur-amount: 12px;
+  --glass-bg:    rgba(24 24 27 / 0.8);
+
+  /* Motion */
+  --transition:      150ms ease;
+  --transition-slow: 300ms ease;
+
+  /* Semantic status colours */
+  --color-on:      #f97316;
+  --color-off:     #3f3f46;
+  --color-warning: #f59e0b;
+  --color-danger:  #ef4444;
+  --color-info:    #3b82f6;
+
+  /* Weather condition colours */
+  --color-weather-sun:   #f59e0b;
+  --color-weather-cloud: #94a3b8;
+  --color-weather-rain:  #3b82f6;
+  --color-weather-snow:  #bae6fd;
+  --color-weather-wind:  #6366f1;
+
+  /* Component helpers */
+  --text-inverse: #ffffff;   /* text on solid coloured backgrounds */
+  --thumb-bg:     #ffffff;   /* slider/range input thumb fill */
+
+  /* Light color-temperature slider endpoints */
+  --color-ct-cool: #c7e9ff;  /* ~6500 K daylight blue */
+  --color-ct-warm: #ffa559;  /* ~2700 K warm amber */
+
+  /* Layout shell dimensions — overridden by AppShell inline styles */
+  --nav-width:     220px;
+  --header-height: 56px;
+}
+
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg);
+}
+
+body {
+  color: var(--fg);
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ─── Global scrollbar ─────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background-color: var(--fg-subtle); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--fg-muted); }
+
+/* Firefox */
+* { scrollbar-width: thin; scrollbar-color: var(--fg-subtle) transparent; }
+
+/* ─── Focus ring ───────────────────────────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Remove default button/input styles to keep components fully in control */
+button { cursor: pointer; background: none; border: none; padding: 0; }
+input, textarea, select { font: inherit; }

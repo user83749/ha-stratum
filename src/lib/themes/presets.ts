@@ -1,0 +1,386 @@
+import type { PageBackground } from '$lib/types/dashboard';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stratum — Comprehensive Theme Library
+// A massive collection of high-end, elegant, modern themes.
+// STRICTLY NEUTRAL surfaces and text. Gradients provide the backdrop, 
+// but the UI elements remain clean and sophisticated glass/solid layers.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ThemeTokens {
+	'--theme-bg-css': string;
+	'--bg': string;
+	'--bg-elevated': string;
+	'--surface': string;
+	'--surface-rgb': string;
+	'--fg': string;
+	'--fg-muted': string;
+	'--fg-subtle': string;
+	'--border': string;
+	'--border-strong': string;
+	'--hover': string; // Light/subtle shift on hover
+	'--active': string;
+	'--accent': string;
+	'--accent-rgb': string;
+	'--accent-fg': string;
+	'--shadow': string;
+	'--shadow-lg': string;
+	'--color-on': string;
+	'--color-off': string;
+}
+
+export type VisualStyle = 'liquid' | 'sculpted' | 'vivid';
+export type RadiusScale = 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+export type FontSize = 'sm' | 'md' | 'lg';
+
+export interface ThemeDefinition {
+	id: string;
+	name: string;
+	description: string;
+	colorScheme: 'dark' | 'light';
+	visualStyle: VisualStyle;
+	radius: RadiusScale;
+	font: { family: string; size: FontSize };
+	dense: boolean;
+	animations: boolean;
+	tokens: ThemeTokens;
+	defaultBackground: PageBackground;
+	preview: {
+		canvas: string;
+		card: string;
+		accent: string;
+		text: string;
+	};
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The Gradient Collection (Bold Backgrounds, Strictly Neutral Cards)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const THEME_NEBULA: ThemeDefinition = {
+	id: 'nebula', name: 'Furnace Line',
+	description: 'Warm neutral gradient with restrained amber accents and clean low-contrast surfaces.',
+	colorScheme: 'dark', visualStyle: 'sculpted', radius: 'md', font: { family: 'Manrope', size: 'md' },
+	dense: false, animations: true,
+	preview: {
+		canvas: 'radial-gradient(circle at 16% 14%, #8a430f 0%, #341808 28%, #0b0908 68%, #050505 100%)',
+		card: '#1b1f22',
+		accent: '#f59e0b',
+		text: '#f7f3ea'
+	},
+	tokens: {
+		'--theme-bg-css': 'radial-gradient(circle at 14% 12%, #221003 0%, #180b05 22%, #080706 54%, #040404 100%)',
+		'--bg': '#101214',
+		'--bg-elevated': '#191d20',
+		'--surface': '#1b1f22',
+		'--surface-rgb': '27 31 34',
+		'--fg': '#f7f3ea',
+		'--fg-muted': '#c5bbb0',
+		'--fg-subtle': '#8f857c',
+		'--border': 'rgba(247, 243, 234, 0.08)',
+		'--border-strong': 'rgba(247, 243, 234, 0.15)',
+		'--hover': 'rgba(255, 255, 255, 0.045)',
+		'--active': 'rgba(245, 158, 11, 0.12)',
+		'--accent': '#f59e0b',
+		'--accent-rgb': '245 158 11',
+		'--accent-fg': '#1a1208',
+		'--shadow': '0 10px 28px rgba(0, 0, 0, 0.38)',
+		'--shadow-lg': '0 24px 60px rgba(0, 0, 0, 0.52)',
+		'--color-on': '#f59e0b',
+		'--color-off': '#3a4046'
+	},
+	defaultBackground: {
+		type: 'gradient',
+		value: 'radial-gradient(circle at 14% 12%, #221003 0%, #180b05 22%, #080706 54%, #040404 100%)'
+	}
+};
+
+export const THEME_AURORA_BOREALIS: ThemeDefinition = {
+	id: 'aurora-borealis', name: 'Aurora Borealis',
+	description: 'Lush emerald gradient. Pitch-black contrasting cards.',
+	colorScheme: 'dark', visualStyle: 'sculpted', radius: 'xl', font: { family: 'Plus Jakarta Sans', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: 'radial-gradient(circle at top right, #004d40, #000000 60%, #00251a)', card: '#050505', accent: '#2dd4bf', text: '#ffffff' },
+	tokens: {
+		'--theme-bg-css': 'radial-gradient(circle at top right, #004d40, #000000 60%, #00251a)', '--bg': '#000000', '--bg-elevated': '#050505', '--surface': '#050505', '--surface-rgb': '5 5 5',
+		'--fg': '#ffffff', '--fg-muted': '#a1a1aa', '--fg-subtle': '#71717a', '--border': 'rgba(255, 255, 255, 0.1)', '--border-strong': 'rgba(255, 255, 255, 0.2)',
+		'--hover': 'rgba(255, 255, 255, 0.05)', '--active': 'rgba(255, 255, 255, 0.1)', '--accent': '#2dd4bf', '--accent-rgb': '45 212 191', '--accent-fg': '#000000',
+		'--shadow': '0 10px 40px rgba(0, 0, 0, 0.8)', '--shadow-lg': '0 20px 60px rgba(0, 0, 0, 1)', '--color-on': '#2dd4bf', '--color-off': 'rgba(255, 255, 255, 0.1)'
+	},
+	defaultBackground: { type: 'gradient', value: 'radial-gradient(circle at top right, #004d40, #000000 60%, #00251a)' }
+};
+
+export const THEME_SUNSET: ThemeDefinition = {
+	id: 'sunset', name: 'Sunset Vibe',
+	description: 'Vibrant sunset gradient. Solid dark minimal cards.',
+	colorScheme: 'dark', visualStyle: 'liquid', radius: 'lg', font: { family: 'Inter', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: 'linear-gradient(to bottom right, #ff512f, #dd2476)', card: 'rgba(5, 5, 5, 0.75)', accent: '#fca5a5', text: '#ffffff' },
+	tokens: {
+		'--theme-bg-css': 'linear-gradient(to bottom right, #ff512f, #dd2476, #3b073c)', '--bg': '#000000', '--bg-elevated': '#0a0a0a', '--surface': '#050505', '--surface-rgb': '5 5 5',
+		'--fg': '#ffffff', '--fg-muted': '#a1a1aa', '--fg-subtle': '#71717a', '--border': 'rgba(255, 255, 255, 0.1)', '--border-strong': 'rgba(255, 255, 255, 0.2)',
+		'--hover': 'rgba(255, 255, 255, 0.05)', '--active': 'rgba(255, 255, 255, 0.1)', '--accent': '#fca5a5', '--accent-rgb': '252 165 165', '--accent-fg': '#000000',
+		'--shadow': '0 8px 32px rgba(0, 0, 0, 0.6)', '--shadow-lg': '0 16px 48px rgba(0, 0, 0, 0.8)', '--color-on': '#fca5a5', '--color-off': 'rgba(255, 255, 255, 0.1)'
+	},
+	defaultBackground: { type: 'gradient', value: 'linear-gradient(to bottom right, #ff512f, #dd2476, #3b073c)' }
+};
+
+export const THEME_ANTIGRAVITY_PRIME: ThemeDefinition = {
+	id: 'antigravity-prime', name: 'Antigravity Prime',
+	description: 'Our signature aesthetic. A deep nocturnal mesh background with phosphoric accents and hyper-glassy tiles.',
+	colorScheme: 'dark', visualStyle: 'liquid', radius: 'xl', font: { family: 'Plus Jakarta Sans', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: 'radial-gradient(at 0% 0%, #064e3b 0, transparent 40%), #020617', card: 'rgba(255, 255, 255, 0.05)', accent: '#10b981', text: '#ffffff' },
+	tokens: {
+		'--theme-bg-css': 'radial-gradient(at 0% 0%, #064e3b 0, transparent 50%), radial-gradient(at 100% 0%, #082f49 0, transparent 50%), radial-gradient(at 100% 100%, #1e1b4b 0, transparent 50%), #020617',
+		'--bg': '#020617', '--bg-elevated': '#0f172a', '--surface': '#020617', '--surface-rgb': '2 6 23',
+		'--fg': '#f1f5f9', '--fg-muted': '#94a3b8', '--fg-subtle': '#475569', '--border': 'rgba(255, 255, 255, 0.06)', '--border-strong': 'rgba(255, 255, 255, 0.12)',
+		'--hover': 'rgba(255, 255, 255, 0.04)', '--active': 'rgba(255, 255, 255, 0.08)', '--accent': '#10b981', '--accent-rgb': '16 185 129', '--accent-fg': '#000000',
+		'--shadow': '0 8px 32px rgba(0, 0, 0, 0.5)', '--shadow-lg': '0 20px 48px rgba(0, 0, 0, 0.7)', '--color-on': '#34d399', '--color-off': '#1e293b'
+	},
+	defaultBackground: { type: 'gradient', value: 'radial-gradient(at 0% 0%, #064e3b 0, transparent 50%), radial-gradient(at 100% 0%, #082f49 0, transparent 50%), radial-gradient(at 100% 100%, #1e1b4b 0, transparent 50%), #020617' }
+};
+
+export const THEME_OCEANIC = THEME_ANTIGRAVITY_PRIME;
+export const THEME_STUDIO_MINIMAL = THEME_ANTIGRAVITY_PRIME;
+
+
+export const THEME_DAWN: ThemeDefinition = {
+	id: 'dawn', name: 'Coral Dawn',
+	description: 'Soft sunrise gradient. Solid neutral white cards.',
+	colorScheme: 'light', visualStyle: 'vivid', radius: 'xl', font: { family: 'DM Sans', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: 'linear-gradient(120deg, #f6d365 0%, #fda085 100%)', card: '#ffffff', accent: '#e11d48', text: '#000000' },
+	tokens: {
+		'--theme-bg-css': 'linear-gradient(120deg, #f6d365 0%, #fda085 100%)', '--bg': '#ffffff', '--bg-elevated': '#f8fafc', '--surface': '#ffffff', '--surface-rgb': '255 255 255',
+		'--fg': '#000000', '--fg-muted': '#52525b', '--fg-subtle': '#a1a1aa', '--border': 'rgba(0, 0, 0, 0.05)', '--border-strong': 'rgba(0, 0, 0, 0.1)',
+		'--hover': 'rgba(0, 0, 0, 0.03)', '--active': 'rgba(0, 0, 0, 0.06)', '--accent': '#e11d48', '--accent-rgb': '225 29 72', '--accent-fg': '#ffffff',
+		'--shadow': '0 4px 20px rgba(0, 0, 0, 0.05)', '--shadow-lg': '0 12px 36px rgba(0, 0, 0, 0.1)', '--color-on': '#e11d48', '--color-off': 'rgba(0, 0, 0, 0.05)'
+	},
+	defaultBackground: { type: 'gradient', value: 'linear-gradient(120deg, #f6d365 0%, #fda085 100%)' }
+};
+
+export const THEME_TITANIUM: ThemeDefinition = {
+	id: 'titanium', name: 'Titanium',
+	description: 'Sleek dark metallic. Deep contrasting pitch black cards.',
+	colorScheme: 'dark', visualStyle: 'vivid', radius: 'md', font: { family: 'Inter', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: 'linear-gradient(to right, #434343 0%, #000000 100%)', card: '#050505', accent: '#38bdf8', text: '#ffffff' },
+	tokens: {
+		'--theme-bg-css': 'linear-gradient(to bottom right, #434343 0%, #111111 60%, #000000 100%)', '--bg': '#000000', '--bg-elevated': '#09090b', '--surface': '#050505', '--surface-rgb': '5 5 5',
+		'--fg': '#ffffff', '--fg-muted': '#a1a1aa', '--fg-subtle': '#71717a', '--border': 'rgba(255, 255, 255, 0.1)', '--border-strong': 'rgba(255, 255, 255, 0.2)',
+		'--hover': 'rgba(255, 255, 255, 0.05)', '--active': 'rgba(255, 255, 255, 0.1)', '--accent': '#38bdf8', '--accent-rgb': '56 189 248', '--accent-fg': '#000000',
+		'--shadow': '0 10px 30px rgba(0, 0, 0, 0.9)', '--shadow-lg': '0 20px 50px rgba(0, 0, 0, 1)', '--color-on': '#38bdf8', '--color-off': 'rgba(255, 255, 255, 0.1)'
+	},
+	defaultBackground: { type: 'gradient', value: 'linear-gradient(to right, #434343 0%, #111111 60%, #000000 100%)' }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The Luxury Collection (Premium, Minimalist, High-End Neutrals)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const THEME_ONYX: ThemeDefinition = {
+	id: 'onyx', name: 'Onyx Reserve',
+	description: 'Premium charcoal dark mode. Strictly monochrome styling.',
+	colorScheme: 'dark', visualStyle: 'sculpted', radius: 'md', font: { family: 'Inter', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: '#09090b', card: '#18181b', accent: '#ffffff', text: '#ffffff' },
+	tokens: {
+		'--theme-bg-css': '#09090b', '--bg': '#09090b', '--bg-elevated': '#18181b', '--surface': '#18181b', '--surface-rgb': '24 24 27',
+		'--fg': '#ffffff', '--fg-muted': '#a1a1aa', '--fg-subtle': '#71717a', '--border': 'rgba(255, 255, 255, 0.08)', '--border-strong': 'rgba(255, 255, 255, 0.15)',
+		'--hover': 'rgba(255, 255, 255, 0.05)', '--active': 'rgba(255, 255, 255, 0.1)', '--accent': '#ffffff', '--accent-rgb': '255 255 255', '--accent-fg': '#000000',
+		'--shadow': '0 4px 12px rgba(0, 0, 0, 0.4)', '--shadow-lg': '0 10px 30px rgba(0, 0, 0, 0.6)', '--color-on': '#ffffff', '--color-off': '#27272a'
+	},
+	defaultBackground: { type: 'solid', value: '#09090b' }
+};
+
+export const THEME_NORDIC: ThemeDefinition = {
+	id: 'nordic', name: 'Nordic Frost',
+	description: 'Clean icy minimalism. Bright white cards on light grey.',
+	colorScheme: 'light', visualStyle: 'vivid', radius: 'lg', font: { family: 'Inter', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: '#f3f4f6', card: '#ffffff', accent: '#000000', text: '#000000' },
+	tokens: {
+		'--theme-bg-css': '#f3f4f6', '--bg': '#f3f4f6', '--bg-elevated': '#ffffff', '--surface': '#ffffff', '--surface-rgb': '255 255 255',
+		'--fg': '#000000', '--fg-muted': '#52525b', '--fg-subtle': '#a1a1aa', '--border': 'rgba(0, 0, 0, 0.06)', '--border-strong': 'rgba(0, 0, 0, 0.15)',
+		'--hover': 'rgba(0, 0, 0, 0.03)', '--active': 'rgba(0, 0, 0, 0.06)', '--accent': '#000000', '--accent-rgb': '0 0 0', '--accent-fg': '#ffffff',
+		'--shadow': '0 2px 8px rgba(0, 0, 0, 0.04)', '--shadow-lg': '0 12px 32px rgba(0, 0, 0, 0.08)', '--color-on': '#000000', '--color-off': '#e4e4e7'
+	},
+	defaultBackground: { type: 'solid', value: '#f3f4f6' }
+};
+
+export const THEME_SAHARA: ThemeDefinition = {
+	id: 'sahara', name: 'Sahara Sand',
+	description: 'Warm, elegant neutral tones. Clean white cards throughout.',
+	colorScheme: 'light', visualStyle: 'sculpted', radius: 'xl', font: { family: 'DM Sans', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: '#f5f5f4', card: '#ffffff', accent: '#000000', text: '#000000' },
+	tokens: {
+		'--theme-bg-css': '#f5f5f4', '--bg': '#f5f5f4', '--bg-elevated': '#ffffff', '--surface': '#ffffff', '--surface-rgb': '255 255 255',
+		'--fg': '#000000', '--fg-muted': '#52525b', '--fg-subtle': '#a1a1aa', '--border': 'rgba(0, 0, 0, 0.05)', '--border-strong': 'rgba(0, 0, 0, 0.1)',
+		'--hover': 'rgba(0, 0, 0, 0.03)', '--active': 'rgba(0, 0, 0, 0.06)', '--accent': '#000000', '--accent-rgb': '0 0 0', '--accent-fg': '#ffffff',
+		'--shadow': '0 4px 12px rgba(0, 0, 0, 0.05)', '--shadow-lg': '0 16px 40px rgba(0, 0, 0, 0.08)', '--color-on': '#000000', '--color-off': '#e5e5e5'
+	},
+	defaultBackground: { type: 'solid', value: '#f5f5f4' }
+};
+
+export const THEME_ABYSS: ThemeDefinition = {
+	id: 'abyss', name: 'Midnight Abyss',
+	description: 'Elegant pure dark mode. Sharp sleek contrast across elements.',
+	colorScheme: 'dark', visualStyle: 'sculpted', radius: 'lg', font: { family: 'Geist', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: '#050505', card: '#0a0a0a', accent: '#ffffff', text: '#ffffff' },
+	tokens: {
+		'--theme-bg-css': '#050505', '--bg': '#050505', '--bg-elevated': '#0a0a0a', '--surface': '#0a0a0a', '--surface-rgb': '10 10 10',
+		'--fg': '#ffffff', '--fg-muted': '#a1a1aa', '--fg-subtle': '#71717a', '--border': 'rgba(255, 255, 255, 0.08)', '--border-strong': 'rgba(255, 255, 255, 0.15)',
+		'--hover': 'rgba(255, 255, 255, 0.04)', '--active': 'rgba(255, 255, 255, 0.08)', '--accent': '#ffffff', '--accent-rgb': '255 255 255', '--accent-fg': '#000000',
+		'--shadow': '0 4px 12px rgba(0, 0, 0, 0.5)', '--shadow-lg': '0 20px 48px rgba(0, 0, 0, 0.7)', '--color-on': '#ffffff', '--color-off': 'rgba(255, 255, 255, 0.1)'
+	},
+	defaultBackground: { type: 'solid', value: '#050505' }
+};
+
+export const THEME_SAKURA: ThemeDefinition = {
+	id: 'sakura', name: 'Sakura Cloud',
+	description: 'Soft pastel background strictly contrasted with pure white cards.',
+	colorScheme: 'light', visualStyle: 'vivid', radius: 'lg', font: { family: 'Plus Jakarta Sans', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: '#faf5f6', card: '#ffffff', accent: '#000000', text: '#000000' },
+	tokens: {
+		'--theme-bg-css': '#faf5f6', '--bg': '#faf5f6', '--bg-elevated': '#ffffff', '--surface': '#ffffff', '--surface-rgb': '255 255 255',
+		'--fg': '#000000', '--fg-muted': '#52525b', '--fg-subtle': '#a1a1aa', '--border': 'rgba(0, 0, 0, 0.05)', '--border-strong': 'rgba(0, 0, 0, 0.1)',
+		'--hover': 'rgba(0, 0, 0, 0.03)', '--active': 'rgba(0, 0, 0, 0.06)', '--accent': '#000000', '--accent-rgb': '0 0 0', '--accent-fg': '#ffffff',
+		'--shadow': '0 4px 12px rgba(0, 0, 0, 0.04)', '--shadow-lg': '0 16px 40px rgba(0, 0, 0, 0.07)', '--color-on': '#000000', '--color-off': '#e5e5e5'
+	},
+	defaultBackground: { type: 'solid', value: '#faf5f6' }
+};
+
+export const THEME_SILICON: ThemeDefinition = {
+	id: 'silicon', name: 'Silicon Fluid',
+	description: 'Pristine neutral tones. Bright solid cards above.',
+	colorScheme: 'light', visualStyle: 'liquid', radius: 'lg', font: { family: 'Inter', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: 'radial-gradient(circle at top left, #f9fafb, #f3f4f6, #e5e7eb)', card: '#ffffff', accent: '#000000', text: '#000000' },
+	tokens: {
+		'--theme-bg-css': 'radial-gradient(circle at top left, #f9fafb, #f3f4f6, #e5e7eb)', '--bg': '#ffffff', '--bg-elevated': '#ffffff', '--surface': '#ffffff', '--surface-rgb': '255 255 255',
+		'--fg': '#000000', '--fg-muted': '#52525b', '--fg-subtle': '#a1a1aa', '--border': 'rgba(0, 0, 0, 0.05)', '--border-strong': 'rgba(0, 0, 0, 0.1)',
+		'--hover': 'rgba(0, 0, 0, 0.03)', '--active': 'rgba(0, 0, 0, 0.06)', '--accent': '#000000', '--accent-rgb': '0 0 0', '--accent-fg': '#ffffff',
+		'--shadow': '0 8px 32px rgba(0, 0, 0, 0.05)', '--shadow-lg': '0 24px 64px rgba(0, 0, 0, 0.1)', '--color-on': '#000000', '--color-off': 'rgba(0, 0, 0, 0.05)'
+	},
+	defaultBackground: { type: 'gradient', value: 'radial-gradient(circle at top left, #f9fafb, #f3f4f6, #e5e7eb)' }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The Classic Collection (The Original Revamped to be Strictly Neutral)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const THEME_MIDNIGHT: ThemeDefinition = {
+	id: 'midnight', name: 'Classic Midnight',
+	description: 'Cosmic indigo gradient. Cards are firmly neutral jet black.',
+	colorScheme: 'dark', visualStyle: 'liquid', radius: 'lg', font: { family: 'Inter', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: 'radial-gradient(ellipse at 30% 40%, #1e1254 0%, #0d0b1e 55%, #07060f 100%)', card: 'rgba(0, 0, 0, 0.7)', accent: '#818cf8', text: '#ffffff' },
+	tokens: {
+		'--theme-bg-css': 'radial-gradient(ellipse at 30% 40%, #1e1254 0%, #0d0b1e 55%, #07060f 100%)', '--bg': '#000000', '--bg-elevated': '#09090b', '--surface': '#000000', '--surface-rgb': '0 0 0',
+		'--fg': '#ffffff', '--fg-muted': '#a1a1aa', '--fg-subtle': '#71717a', '--border': 'rgba(255, 255, 255, 0.1)', '--border-strong': 'rgba(255, 255, 255, 0.2)',
+		'--hover': 'rgba(255, 255, 255, 0.05)', '--active': 'rgba(255, 255, 255, 0.1)', '--accent': '#818cf8', '--accent-rgb': '129 140 248', '--accent-fg': '#ffffff',
+		'--shadow': '0 4px 24px rgba(0, 0, 0, 0.6)', '--shadow-lg': '0 16px 64px rgba(0, 0, 0, 0.8)', '--color-on': '#818cf8', '--color-off': 'rgba(255, 255, 255, 0.1)'
+	},
+	defaultBackground: { type: 'gradient', value: 'radial-gradient(ellipse at 30% 40%, #1e1254 0%, #0d0b1e 55%, #07060f 100%)' }
+};
+
+export const THEME_OBSIDIAN: ThemeDefinition = {
+	id: 'obsidian', name: 'Pure Obsidian',
+	description: 'Pure OLED black void. Clean architectural lines.',
+	colorScheme: 'dark', visualStyle: 'sculpted', radius: 'md', font: { family: 'Geist', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: '#000000', card: '#09090b', accent: '#ffffff', text: '#ffffff' },
+	tokens: {
+		'--theme-bg-css': '#000000', '--bg': '#000000', '--bg-elevated': '#09090b', '--surface': '#09090b', '--surface-rgb': '9 9 11',
+		'--fg': '#ffffff', '--fg-muted': '#a1a1aa', '--fg-subtle': '#71717a', '--border': 'rgba(255, 255, 255, 0.1)', '--border-strong': 'rgba(255, 255, 255, 0.2)',
+		'--hover': 'rgba(255, 255, 255, 0.05)', '--active': 'rgba(255, 255, 255, 0.1)', '--accent': '#ffffff', '--accent-rgb': '255 255 255', '--accent-fg': '#000000',
+		'--shadow': '8px 8px 20px rgba(0, 0, 0, 0.9)', '--shadow-lg': '16px 16px 40px rgba(0, 0, 0, 1)', '--color-on': '#ffffff', '--color-off': '#27272a'
+	},
+	defaultBackground: { type: 'solid', value: '#000000' }
+};
+
+export const THEME_EMBER: ThemeDefinition = {
+	id: 'ember', name: 'Ember Glow',
+	description: 'Warm firelight gradient. Cards are perfectly flat black void.',
+	colorScheme: 'dark', visualStyle: 'vivid', radius: 'lg', font: { family: 'Plus Jakarta Sans', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: 'radial-gradient(ellipse at 85% 90%, #5c2a00 0%, #2a1200 45%, #0d0600 100%)', card: '#000000', accent: '#fb923c', text: '#ffffff' },
+	tokens: {
+		'--theme-bg-css': 'radial-gradient(ellipse at 85% 90%, #5c2a00 0%, #2a1200 45%, #0d0600 100%)', '--bg': '#000000', '--bg-elevated': '#0a0a0a', '--surface': '#000000', '--surface-rgb': '0 0 0',
+		'--fg': '#ffffff', '--fg-muted': '#a1a1aa', '--fg-subtle': '#71717a', '--border': 'rgba(255, 255, 255, 0.1)', '--border-strong': 'rgba(255, 255, 255, 0.2)',
+		'--hover': 'rgba(255, 255, 255, 0.05)', '--active': 'rgba(255, 255, 255, 0.1)', '--accent': '#fb923c', '--accent-rgb': '251 146 60', '--accent-fg': '#000000',
+		'--shadow': '0 4px 24px rgba(0, 0, 0, 0.7)', '--shadow-lg': '0 16px 64px rgba(0, 0, 0, 0.85)', '--color-on': '#fbbf24', '--color-off': 'rgba(255, 255, 255, 0.1)'
+	},
+	defaultBackground: { type: 'gradient', value: 'radial-gradient(ellipse at 85% 90%, #5c2a00 0%, #2a1200 45%, #0d0600 100%)' }
+};
+
+export const THEME_SNOW: ThemeDefinition = {
+	id: 'snow', name: 'Fresh Snow',
+	description: 'Crisp and clean. Pure white everywhere.',
+	colorScheme: 'light', visualStyle: 'sculpted', radius: 'lg', font: { family: 'Inter', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: '#fafafa', card: '#ffffff', accent: '#000000', text: '#000000' },
+	tokens: {
+		'--theme-bg-css': '#fafafa', '--bg': '#fafafa', '--bg-elevated': '#ffffff', '--surface': '#ffffff', '--surface-rgb': '255 255 255',
+		'--fg': '#000000', '--fg-muted': '#52525b', '--fg-subtle': '#a1a1aa', '--border': 'rgba(0, 0, 0, 0.05)', '--border-strong': 'rgba(0, 0, 0, 0.1)',
+		'--hover': 'rgba(0, 0, 0, 0.03)', '--active': 'rgba(0, 0, 0, 0.06)', '--accent': '#000000', '--accent-rgb': '0 0 0', '--accent-fg': '#ffffff',
+		'--shadow': '6px 6px 16px rgba(0, 0, 0, 0.04)', '--shadow-lg': '12px 12px 32px rgba(0, 0, 0, 0.08)', '--color-on': '#000000', '--color-off': '#e4e4e7'
+	},
+	defaultBackground: { type: 'solid', value: '#fafafa' }
+};
+
+export const THEME_DUSK: ThemeDefinition = {
+	id: 'dusk', name: 'Soft Dusk',
+	description: 'Lavender sky backdrop. Crisp solid white cards offset the soft tones.',
+	colorScheme: 'light', visualStyle: 'liquid', radius: 'xl', font: { family: 'Plus Jakarta Sans', size: 'md' },
+	dense: false, animations: true,
+	preview: { canvas: 'linear-gradient(145deg, #ede8ff 0%, #f5e6ff 50%, #ffe4f0 100%)', card: 'rgba(255, 255, 255, 0.95)', accent: '#7c3aed', text: '#000000' },
+	tokens: {
+		'--theme-bg-css': 'linear-gradient(145deg, #ede8ff 0%, #f5e6ff 50%, #ffe4f0 100%)', '--bg': '#ffffff', '--bg-elevated': '#f8fafc', '--surface': '#ffffff', '--surface-rgb': '255 255 255',
+		'--fg': '#000000', '--fg-muted': '#52525b', '--fg-subtle': '#a1a1aa', '--border': 'rgba(0, 0, 0, 0.05)', '--border-strong': 'rgba(0, 0, 0, 0.1)',
+		'--hover': 'rgba(0, 0, 0, 0.03)', '--active': 'rgba(0, 0, 0, 0.06)', '--accent': '#7c3aed', '--accent-rgb': '124 58 237', '--accent-fg': '#ffffff',
+		'--shadow': '0 4px 24px rgba(0, 0, 0, 0.05)', '--shadow-lg': '0 16px 48px rgba(0, 0, 0, 0.1)', '--color-on': '#7c3aed', '--color-off': 'rgba(0, 0, 0, 0.05)'
+	},
+	defaultBackground: { type: 'gradient', value: 'linear-gradient(145deg, #ede8ff 0%, #f5e6ff 50%, #ffe4f0 100%)' }
+};
+
+// ─── Registry ─────────────────────────────────────────────────────────────────
+
+export const SYSTEM_THEMES: ThemeDefinition[] = [
+	// Gradients
+	THEME_NEBULA,
+	THEME_AURORA_BOREALIS,
+	THEME_SUNSET,
+	THEME_ANTIGRAVITY_PRIME,
+	THEME_DAWN,
+	THEME_TITANIUM,
+
+	// Luxury Collection
+	THEME_ONYX,
+	THEME_NORDIC,
+	THEME_SAHARA,
+	THEME_ABYSS,
+	THEME_SAKURA,
+	THEME_SILICON,
+
+	// Classic Revival
+	THEME_MIDNIGHT,
+	THEME_OBSIDIAN,
+	THEME_EMBER,
+	THEME_SNOW,
+	THEME_DUSK
+];
+
+export function getSystemTheme(id: string): ThemeDefinition | undefined {
+	return SYSTEM_THEMES.find((t) => t.id === id);
+}
+
+// Legacy compat
+export type ThemePreset = ThemeDefinition;
+export const THEME_PRESETS = SYSTEM_THEMES;
+export const DARK_PRESETS = SYSTEM_THEMES.filter((t) => t.colorScheme === 'dark');
+export const LIGHT_PRESETS = SYSTEM_THEMES.filter((t) => t.colorScheme === 'light');

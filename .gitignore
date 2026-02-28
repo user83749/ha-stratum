@@ -1,0 +1,61 @@
+node_modules
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+.npmrc
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Documentation / Vision Files
+docs/PLAN.md
+PLAN.md
+
+# Runtime data (dashboard config stored by server.js)
+/data
+dashboard.json
+storage/
+
+# Editor / AI assistant / IDE tooling
+.claude/
+.cursor/
+.aider*
+*.aider
+.gemini/
+.codex/
+.idea/
+.vscode/
+
+# Temporary and local scripts
+*.py
+fix_*.py
+inject_*.py
+update_*.js
+*.log
+*.sh
+!run.sh
+
+# Sensitive Info / Keys
+.ssh/
+*.pem
+*.key
+auth.json
+secrets.yaml
+.env
+.env.*
