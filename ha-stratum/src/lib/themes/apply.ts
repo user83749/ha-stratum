@@ -30,6 +30,7 @@ function resolveTheme(cfg: ThemeConfig): ThemeDefinition {
 }
 
 export function applyTheme(cfg: ThemeConfig, reducedMotion = false): void {
+	if (typeof document === 'undefined') return;
 	const root = document.documentElement;
 	const theme = resolveTheme(cfg);
 	const isDark = theme.colorScheme === 'dark';
@@ -136,6 +137,7 @@ function applyVisualStyle(root: HTMLElement, vs: VisualStyle, isDark: boolean): 
 export function watchSystemScheme(
 	getCurrentCfg: () => { theme: ThemeConfig; reducedMotion: boolean }
 ): () => void {
+	if (typeof window === 'undefined') return () => { };
 	const mq = window.matchMedia('(prefers-color-scheme: dark)');
 	const handler = () => {
 		const current = getCurrentCfg();

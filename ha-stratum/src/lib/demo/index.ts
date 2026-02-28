@@ -4,8 +4,8 @@ import { demoDashboardConfig } from '$lib/demo/dashboard';
 import { DEMO_ENTITIES } from '$lib/demo/entities';
 import { entities } from '$lib/ha/websocket';
 
-const DEMO_KEY = 'ha_studio_demo';
-const DEMO_STATE_KEY = 'ha_studio_demo_state';
+const DEMO_KEY = 'stratum_demo';
+const DEMO_STATE_KEY = 'stratum_demo_state';
 // Bump this whenever the demo dashboard layout changes — forces cache invalidation
 const DEMO_VERSION = '32';
 
