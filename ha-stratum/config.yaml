@@ -1,11 +1,11 @@
 name: "Stratum"
-version: "0.0.15"
+version: "0.0.16"
 slug: "ha-stratum"
 description: "A fully customizable Home Assistant dashboard."
 url: "https://github.com/user83749/ha-stratum"
 
-# Docker Hub image — built by home-assistant/builder, pulled on install
-image: "user83749/addon-ha-stratum-{arch}"
+# GitHub Container Registry image
+image: "ghcr.io/user83749/ha-stratum/{arch}-addon-ha-stratum"
 
 arch:
   - aarch64
