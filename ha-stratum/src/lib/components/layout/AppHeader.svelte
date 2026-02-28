@@ -41,6 +41,7 @@
 
 	const currentPageId = $derived($activePageId);
 	const editing       = $derived($isEditing);
+	const isMac         = $derived(browser ? navigator?.platform?.includes('Mac') : false);
 
 	const activePage = $derived(
 		pages.find((p) => p.id === currentPageId) ?? pages[0] ?? null
@@ -106,12 +107,12 @@
 					class="ha-header__search"
 					onclick={handleSearchClick}
 					aria-label="Search"
-					title="Search  ({navigator?.platform?.includes('Mac') ? '⌘' : 'Ctrl'}+{search.hotkey.toUpperCase()})"
+					title="Search  ({isMac ? '⌘' : 'Ctrl'}+{search.hotkey.toUpperCase()})"
 				>
 					<Icon name="search" size={16} />
 					<span class="ha-header__search-label">Search…</span>
 					<kbd class="ha-header__search-kbd">
-						<span class="ha-header__search-kbd-meta">{navigator?.platform?.includes('Mac') ? '⌘' : '⌃'}</span>{search.hotkey.toUpperCase()}
+						<span class="ha-header__search-kbd-meta">{isMac ? '⌘' : '⌃'}</span>{search.hotkey.toUpperCase()}
 					</kbd>
 				</button>
 			{/if}
