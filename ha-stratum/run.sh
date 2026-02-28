@@ -1,7 +1,14 @@
-#!/usr/bin/with-contenv bashio
-
-export HASS_PORT=$(bashio::core.port)
-export EXPOSED_PORT=$(bashio::addon.port "5173/tcp")
+#!/usr/bin/env sh
+set -e
 
 echo "[Stratum] Starting..."
-node /rootfs/server.js
+
+export ADDON=true
+export PORT=5173
+export NODE_ENV=production
+
+if [ -n "$SUPERVISOR_TOKEN" ]; then
+  export SUPERVISOR_TOKEN
+fi
+
+exec node /app/server.js
