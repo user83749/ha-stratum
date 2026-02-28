@@ -1,14 +1,21 @@
 name: "Stratum"
-version: "0.0.7"
+version: "0.0.8"
 slug: "ha-stratum"
 description: "A fully customizable Home Assistant dashboard."
 url: "https://github.com/user83749/ha-stratum"
+
+# ── Pre-built image — pulled from GHCR, no build on your hardware ─────────────
+# {arch} is automatically replaced by the Supervisor with your device's arch
+# e.g. amd64-addon-ha-stratum, aarch64-addon-ha-stratum, etc.
+image: "ghcr.io/user83749/ha-stratum/{arch}-addon-ha-stratum"
+
 arch:
   - aarch64
   - amd64
   - armhf
   - armv7
   - i386
+
 startup: "services"
 boot: "auto"
 init: false
@@ -20,14 +27,11 @@ panel_icon: "mdi:view-dashboard"
 panel_title: "Stratum"
 
 # ── HA Integration ───────────────────────────────────────────────────────────
-# Grants the add-on a long-lived token via $SUPERVISOR_TOKEN so it can
-# talk directly to HA Core without the user configuring anything.
 homeassistant_api: true
 auth_api: true
 hassio_api: true
 
 # ── Watchdog ─────────────────────────────────────────────────────────────────
-# HA will ping this URL periodically; if it fails, the add-on is restarted.
 watchdog: "http://[HOST]:[PORT:5173]/api/health"
 
 # ── Storage ──────────────────────────────────────────────────────────────────
@@ -36,6 +40,5 @@ map:
   - "share:rw"
   - "ssl"
 
-# ── User options (shown in the add-on config UI) ─────────────────────────────
 options: {}
 schema: {}
