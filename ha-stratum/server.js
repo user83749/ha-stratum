@@ -55,13 +55,28 @@ const haProxy = createProxyMiddleware({
 
 // ─── Middleware ─────────────────────────────────────────────────────────────
 
-// Global Ingress prefix stripper — ensures all internal routing and proxying
-// uses root-relative paths, regardless of the dynamic Ingress ID.
+// Robust Ingress prefix stripping
 app.use((req, res, next) => {
-	if (ADDON && req.path.startsWith('/api/hassio_ingress/')) {
-		const parts = req.path.split('/');
-		if (parts.length >= 5) {
-			req.url = '/' + parts.slice(4).join('/');
+	const ingressPath = req.headers['x-ingress-path'] || '';
+	const pathToCheck = req.url;
+
+	if (ADDON) {
+		let stripped = req.url;
+		// 1. Try stripping via X-Ingress-Path header
+		if (ingressPath && stripped.startsWith(ingressPath)) {
+			stripped = stripped.slice(ingressPath.length) || '/';
+		}
+		// 2. Fallback: Strip anything that looks like the ingress pattern if still stuck
+		if (stripped.startsWith('/api/hassio_ingress/')) {
+			const parts = stripped.split('/');
+			if (parts.length >= 5 && parts[1] === 'api' && parts[2] === 'hassio_ingress') {
+				stripped = '/' + parts.slice(4).join('/');
+			}
+		}
+
+		if (stripped !== req.url) {
+			console.log(`[Stratum] Ingress Strip: ${req.url} -> ${stripped}`);
+			req.url = stripped.startsWith('/') ? stripped : '/' + stripped;
 		}
 	}
 	next();
