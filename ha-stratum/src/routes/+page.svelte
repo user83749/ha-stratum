@@ -1,6 +1,18 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { get } from 'svelte/store';
+	let { data } = $props();
+	import { browser } from '$app/environment';
+	import { configStore } from '$lib/stores/config';
+
+	// Seed the configStore with the server-passed URL if it's currently empty
+	// (critical for Home Assistant Ingress auto-discovery)
+	if (browser && data?.config?.hassUrl) {
+		configStore.update(c => {
+			if (!c.hassUrl) return { ...c, hassUrl: data.config.hassUrl };
+			return c;
+		});
+	}
+
+	import { onMount, get } from 'svelte';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore, activePageId } from '$lib/stores/ui';
 	import { editMode, isEditing, editSelection, editorOpen } from '$lib/stores/editMode';
@@ -16,19 +28,18 @@
 	import TileEditor from '$lib/components/edit/TileEditor.svelte';
 	import SectionEditor from '$lib/components/edit/SectionEditor.svelte';
 	import PageEditor from '$lib/components/edit/PageEditor.svelte';
-import TilePicker from '$lib/components/edit/TilePicker.svelte';
-import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
-import CommandPalette from '$lib/components/ui/CommandPalette.svelte';
-import NotificationsPanel from '$lib/components/ui/NotificationsPanel.svelte';
-import { isSettingsOpen, isSearchOpen, isNotificationsOpen } from '$lib/stores/ui';
-import { THEME_PRESETS } from '$lib/themes/presets';
-import { entities } from '$lib/ha/websocket';
-import type { Section } from '$lib/types/dashboard';
-import { getAdaptiveColumns, getSectionMaxColumns, MOBILE_SECTION_COLS } from '$lib/layout/sectionLayout';
-import { getAllowedPresets } from '$lib/layout/tileSizing';
-import { configStore } from '$lib/stores/config';
-import { isDemoMode } from '$lib/demo';
-import ConnectScreen from '$lib/components/setup/ConnectScreen.svelte';
+	import TilePicker from '$lib/components/edit/TilePicker.svelte';
+	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
+	import CommandPalette from '$lib/components/ui/CommandPalette.svelte';
+	import NotificationsPanel from '$lib/components/ui/NotificationsPanel.svelte';
+	import { isSettingsOpen, isSearchOpen, isNotificationsOpen } from '$lib/stores/ui';
+	import { THEME_PRESETS } from '$lib/themes/presets';
+	import { entities } from '$lib/ha/websocket';
+	import type { Section } from '$lib/types/dashboard';
+	import { getAdaptiveColumns, getSectionMaxColumns, MOBILE_SECTION_COLS } from '$lib/layout/sectionLayout';
+	import { getAllowedPresets } from '$lib/layout/tileSizing';
+	import { isDemoMode } from '$lib/demo';
+	import ConnectScreen from '$lib/components/setup/ConnectScreen.svelte';
 
 	const isConfigured = $derived($configStore.hassUrl && $configStore.token);
 	const showSetup = $derived(!isConfigured && !isDemoMode());
@@ -400,7 +411,6 @@ import ConnectScreen from '$lib/components/setup/ConnectScreen.svelte';
 	<ConnectScreen />
 {:else}
 	<AppShell integratedLeftNav={useIntegratedDesktopNav}>
-{/if}
 		{#snippet nav()}
 			{#if !useIntegratedDesktopNav && !showMobileNav && navCfg.position !== 'bottom'}
 				<AppNav />

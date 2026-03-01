@@ -1,7 +1,7 @@
 {
 	"name": "ha-stratum",
 	"private": true,
-	"version": "1.0.4",
+	"version": "1.0.7",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -26,6 +26,7 @@
 		"@sveltejs/adapter-node": "^5.5.4",
 		"bits-ui": "^2.16.2",
 		"clsx": "^2.1.1",
+		"dotenv": "^17.3.1",
 		"express": "^5.2.1",
 		"home-assistant-js-websocket": "^9.6.0",
 		"http-proxy-middleware": "^3.0.5",

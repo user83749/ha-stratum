@@ -27,6 +27,8 @@ const entryMiddleware = async (req, res, next) => {
 		}
 	}
 
+	// add header for +page.server.ts
+	req.headers['X-Proxy-Target'] = target;
 	req.target = target;
 	next();
 };
