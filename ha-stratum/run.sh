@@ -11,4 +11,4 @@ if [ -n "$SUPERVISOR_TOKEN" ]; then
   export SUPERVISOR_TOKEN
 fi
 
-exec node /app/server.js
+exec node /app/bootstrap.cjs

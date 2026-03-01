@@ -1,4 +1,6 @@
-import './mocks.js';
+// SvelteKit Server - Processed via bootstrap.cjs
+console.log('[Stratum] server.js entered.');
+
 import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { handler } from './build/handler.js';

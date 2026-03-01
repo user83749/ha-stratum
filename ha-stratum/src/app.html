@@ -1,11 +1,38 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		%sveltekit.head%
-	</head>
-	<body data-sveltekit-preload-data="hover">
-		<div style="display: contents">%sveltekit.body%</div>
-	</body>
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<style>
+		html,
+		body {
+			background: #000;
+			margin: 0;
+			padding: 0;
+			height: 100%;
+			width: 100%;
+			overflow: hidden;
+		}
+	</style>
+	<script>
+		window.onerror = function (msg, url, line, col, error) {
+			document.body.style.background = '#7c1c1c';
+			document.body.innerHTML = `
+					<div style="padding: 24px; color: white; font-family: sans-serif;">
+						<h1 style="margin: 0 0 16px; font-size: 20px;">Frontend Error Trap</h1>
+						<p style="margin: 4px 0; font-size: 14px; opacity: 0.8;">${msg}</p>
+						<code style="display: block; margin-top: 16px; font-size: 12px; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px;">${url}:${line}:${col}</code>
+						<p style="margin-top: 24px; font-size: 12px; opacity: 0.6;">Check Home Assistant Add-on logs for server errors.</p>
+					</div>
+				`;
+		};
+	</script>
+	%sveltekit.head%
+</head>
+
+<body data-sveltekit-preload-data="hover">
+	<div style="display: contents">%sveltekit.body%</div>
+</body>
+
 </html>
