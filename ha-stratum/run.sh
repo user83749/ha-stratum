@@ -11,4 +11,5 @@ if [ -n "$SUPERVISOR_TOKEN" ]; then
   export SUPERVISOR_TOKEN
 fi
 
-exec node /app/bootstrap.cjs
+echo "Starting Stratum..."
+node /app/server.js
