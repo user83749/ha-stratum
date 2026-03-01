@@ -57,6 +57,7 @@
 	// When running as an HA add-on via ingress, HA handles auth at the proxy
 	// level. We detect this and use the ingress path as the WebSocket URL so
 	// the user never has to manually enter a URL or token.
+	let addonAuthAttempted = false;
 	async function tryAddonAutoConnect(): Promise<boolean> {
 		if (!browser) return false;
 		try {
@@ -85,6 +86,8 @@
 			const token = tokenRes.ok
 				? ((await tokenRes.json()) as { token?: string }).token ?? ''
 				: '';
+
+			if (!token) return false;
 
 			configStore.set({ hassUrl, token });
 			return true;
@@ -115,7 +118,8 @@
 
 		const hasCreds = $configStore.hassUrl.trim().length > 0 && $configStore.token.trim().length > 0;
 
-		if (!hasCreds) {
+		if (!hasCreds && !addonAuthAttempted) {
+			addonAuthAttempted = true;
 			await tryAddonAutoConnect();
 		}
 

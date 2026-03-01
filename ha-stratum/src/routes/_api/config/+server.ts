@@ -11,7 +11,11 @@ const DATA_DIR =
 const CONFIG_PATH = join(DATA_DIR, 'dashboard.json');
 
 function ensureDir() {
-    if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+    try {
+        if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+    } catch (err) {
+        console.error('[stratum] Failed to create data dir:', err);
+    }
 }
 
 export const GET: RequestHandler = () => {
@@ -19,7 +23,11 @@ export const GET: RequestHandler = () => {
 
     if (!existsSync(CONFIG_PATH)) {
         const fresh = defaultConfig();
-        writeFileSync(CONFIG_PATH, JSON.stringify(fresh, null, 2), 'utf-8');
+        try {
+            writeFileSync(CONFIG_PATH, JSON.stringify(fresh, null, 2), 'utf-8');
+        } catch (err) {
+            console.error('[stratum] Failed to create default config file:', err);
+        }
         return json(fresh);
     }
 
@@ -43,9 +51,13 @@ export const POST: RequestHandler = async ({ request }) => {
 
     try {
         const config = migrateConfig(body);
-        writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+        try {
+            writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+        } catch (err) {
+            console.error('[stratum] Failed to write config file:', err);
+        }
         return json({ ok: true });
-    } catch {
-        error(500, 'Failed to write dashboard config');
+    } catch (e) {
+        error(500, 'Failed to process config');
     }
 };
