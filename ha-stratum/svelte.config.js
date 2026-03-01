@@ -5,6 +5,7 @@ const config = {
 	kit: {
 		adapter: adapter(),
 		paths: {
+			base: '',
 			relative: true
 		}
 	}

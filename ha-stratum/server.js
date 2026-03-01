@@ -43,7 +43,11 @@ const HASS_URL = process.env.HASS_URL
 
 // ─── Express app ────────────────────────────────────────────────────────────
 
-const app = express();
+// ─── Request Logger ─────────────────────────────────────────────────────────
+app.use((req, res, next) => {
+	console.log(`[Stratum] ${req.method} ${req.path}`);
+	next();
+});
 
 // ─── Health endpoint (used by HA watchdog) ──────────────────────────────────
 app.get('/api/health', (_req, res) => {
@@ -121,10 +125,13 @@ app.use(handler);
 
 // ─── Start ──────────────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
-	console.log(`stratum running on http://localhost:${PORT}`);
-	console.log(`Mode: ${ADDON ? 'add-on' : 'standalone'} | HA: ${HASS_URL}`);
+app.listen(PORT, '0.0.0.0', () => {
+	console.log('────────────────────────────────────────────────────────────────');
+	console.log(`[Stratum] Booting v${process.env.npm_package_version || '1.0.3'}...`);
+	console.log(`[Stratum] Port: ${PORT} | Mode: ${ADDON ? 'add-on' : 'standalone'}`);
+	console.log(`[Stratum] HA URL: ${HASS_URL}`);
 	if (ADDON && SUPERVISOR_TOKEN) {
 		console.log('[Stratum] Supervisor token detected — HA API access enabled.');
 	}
+	console.log('────────────────────────────────────────────────────────────────');
 });

@@ -88,14 +88,16 @@
 
 	async function syncAppState() {
 		const isPublic = PUBLIC_ROUTES.includes($page.url.pathname);
+		console.log('[Stratum] Syncing app state, path:', $page.url.pathname, 'demo:', isDemoMode(), 'configured:', configStore.isConfigured());
 
 		if (isDemoMode()) {
 			if (loadedMode !== 'demo') {
+				console.log('[Stratum] Loading demo...');
 				loadDemoIfActive();
 				dashboardLoaded = true;
 				loadedMode = 'demo';
 			}
-			if (isPublic) await goto('/');
+			if (isPublic) await goto('.');
 			return;
 		}
 
@@ -105,9 +107,10 @@
 		}
 
 		if (!configStore.isConfigured()) {
-			// Try add-on ingress auto-connect first
+			console.log('[Stratum] Not configured, trying auto-connect...');
 			const autoConnected = await tryAddonAutoConnect();
 			if (!autoConnected) {
+				console.log('[Stratum] Auto-connect failed, redirecting...');
 				dashboardLoaded = false;
 				loadedMode = null;
 				if (!isPublic) await goto('connect');
@@ -116,6 +119,7 @@
 		}
 
 		if ($connectionStatus === 'error') {
+			console.log('[Stratum] WS Error, redirecting...');
 			dashboardLoaded = false;
 			loadedMode = null;
 			if (!isPublic) await goto('connect');
@@ -123,6 +127,7 @@
 		}
 
 		if ($connectionStatus === 'disconnected' && !connecting) {
+			console.log('[Stratum] WS Disconnected, connecting to:', $configStore.hassUrl);
 			connecting = true;
 			try {
 				const { hassUrl, token } = $configStore;
@@ -133,11 +138,13 @@
 		}
 
 		if ($connectionStatus === 'connected' && !dashboardLoaded && !loadingDashboard) {
+			console.log('[Stratum] Connected, loading dashboard...');
 			loadingDashboard = true;
 			try {
 				await dashboardStore.load();
 				dashboardLoaded = true;
 				loadedMode = 'live';
+				console.log('[Stratum] Dashboard loaded.');
 				applyTheme(get(dashboardStore).theme, get(dashboardStore).settings.reducedMotion);
 			} finally {
 				loadingDashboard = false;
@@ -155,5 +162,14 @@
 	style="font-family: var(--font-family); font-size: var(--font-size);"
 	class="contents"
 >
-	{@render children()}
+	{#if dashboardLoaded || isPublic}
+		{@render children()}
+	{:else}
+		<div style="display: flex; height: 100vh; width: 100vw; align-items: center; justify-content: center; background: #000; color: #fff;">
+			<div style="text-align: center;">
+				<div style="margin-bottom: 20px; font-size: 24px; font-weight: 600;">Stratum</div>
+				<div style="font-size: 14px; opacity: 0.5;">Connecting to Home Assistant...</div>
+			</div>
+		</div>
+	{/if}
 </div>
