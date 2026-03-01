@@ -15,9 +15,7 @@
 
 	let { children } = $props();
 
-	let dashboardLoaded = $state(false);
 	let connecting = false;
-	let loadingDashboard = false;
 	let loadedMode = $state<'demo' | 'live' | null>(null);
 
 	// Reactively re-apply theme whenever dashboard config changes
@@ -38,13 +36,9 @@
 		}));
 
 		if (!isDemoMode()) {
-			loadingDashboard = true;
 			dashboardStore.load().then(() => {
-				dashboardLoaded = true;
 				loadedMode = 'live';
 				applyTheme(get(dashboardStore).theme, get(dashboardStore).settings.reducedMotion);
-			}).finally(() => {
-				loadingDashboard = false;
 			});
 		}
 	});
@@ -105,14 +99,12 @@
 		if (isDemoMode()) {
 			if (loadedMode !== 'demo') {
 				loadDemoIfActive();
-				dashboardLoaded = true;
 				loadedMode = 'demo';
 			}
 			return;
 		}
 
 		if (loadedMode === 'demo') {
-			dashboardLoaded = false;
 			loadedMode = null;
 		}
 
@@ -146,7 +138,5 @@
 	style="font-family: var(--font-family); font-size: var(--font-size); height: 100vh; width: 100vw; overflow: hidden;"
 	class="contents"
 >
-	{#if dashboardLoaded}
-		{@render children()}
-	{/if}
+	{@render children()}
 </div>
