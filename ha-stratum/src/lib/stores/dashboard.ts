@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
+import { base } from '$app/paths';
 import {
 	defaultConfig,
 	migrateConfig,
@@ -54,7 +55,7 @@ function createDashboardStore() {
 
 	async function persistConfig(config: DashboardConfig): Promise<void> {
 		try {
-			await fetch('api/config', {
+			await fetch(`${base}/_api/config`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(config)
@@ -96,7 +97,7 @@ function createDashboardStore() {
 		async load(): Promise<void> {
 			if (!browser) return;
 			try {
-				const res = await fetch('api/config');
+				const res = await fetch(`${base}/_api/config`);
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
 				const raw = await res.json();
 				set(migrateConfig(raw));

@@ -5,6 +5,7 @@
 	// ─────────────────────────────────────────────────────────────────────────
 
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { configStore } from '$lib/stores/config';
 	import { connectionStatus } from '$lib/ha/websocket';
@@ -43,7 +44,7 @@
 		testing = true;
 		testResult = 'idle';
 		try {
-			const res = await fetch('/api/ha/test', {
+			const res = await fetch(`${base}/_api/ha/test`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ url, token })

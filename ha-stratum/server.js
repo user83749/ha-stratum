@@ -1,17 +1,7 @@
 // SSR Ghost Mocks — prevents crashes from dependencies using browser globals
 try {
-	Object.defineProperty(globalThis, 'window', { value: globalThis, writable: true, configurable: true });
 	Object.defineProperty(globalThis, 'navigator', {
 		value: { userAgent: 'node', platform: 'node', serviceWorker: { register: () => Promise.resolve() } },
-		writable: true,
-		configurable: true
-	});
-	Object.defineProperty(globalThis, 'document', {
-		value: {
-			addEventListener: () => { },
-			removeEventListener: () => { },
-			documentElement: { style: { setProperty: () => { } }, classList: { toggle: () => { }, add: () => { }, remove: () => { } } }
-		},
 		writable: true,
 		configurable: true
 	});
@@ -38,7 +28,7 @@ const HASS_URL = process.env.HASS_URL
 
 // ─── Proxy Helpers ──────────────────────────────────────────────────────────
 
-const INTERNAL_API_PREFIXES = ['/api/config', '/api/ha', '/api/health'];
+const INTERNAL_API_PREFIXES = ['/_api/config', '/_api/ha', '/_api/health'];
 
 function resolveTarget(req) {
 	const forwardedProto = req.headers['x-forwarded-proto'];
@@ -95,9 +85,9 @@ app.use((req, res, next) => {
 
 // ─── Internal API ───────────────────────────────────────────────────────────
 
-app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+app.get('/_api/health', (_req, res) => res.json({ status: 'ok' }));
 
-app.get('/api/ha/info', (req, res) => {
+app.get('/_api/ha/info', (req, res) => {
 	res.json({
 		addon: ADDON,
 		hassUrl: ADDON ? '' : resolveTarget(req),

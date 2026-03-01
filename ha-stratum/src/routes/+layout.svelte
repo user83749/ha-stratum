@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
+	import { base } from '$app/paths';
 	import favicon from '$lib/assets/favicon.svg';
 	import '../app.css';
 	import { connect, connectionStatus } from '$lib/ha/websocket';
@@ -51,7 +52,7 @@
 		if (!browser) return false;
 		try {
 			// USES RELATIVE PATH to stay inside Ingress tunnel
-			const res = await fetch('api/ha/info');
+			const res = await fetch(`${base}/_api/ha/info`);
 			if (!res.ok) return false;
 			const info = await res.json();
 			if (!info.addon) return false;
@@ -64,7 +65,7 @@
 			// Fetch a long-lived token using the ingress auth endpoint.
 			// HA injects a one-time token we can exchange for a bearer token.
 			// Note: This path is specifically for the Ingress session validator.
-			const tokenRes = await fetch('/api/hassio_ingress/validate_session', {
+			const tokenRes = await fetch(`${base}/api/hassio_ingress/validate_session`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' }
 			});
