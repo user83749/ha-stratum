@@ -38,9 +38,12 @@
 
 	// ── Responsive ─────────────────────────────────────────────────────────────
 
-	let windowWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1280);
+	let windowWidth = $state(1280);
 
 	$effect(() => {
+		if (typeof window !== 'undefined') {
+			windowWidth = window.innerWidth;
+		}
 		function onResize() { windowWidth = window.innerWidth; }
 		window.addEventListener('resize', onResize);
 		return () => window.removeEventListener('resize', onResize);
