@@ -8,7 +8,7 @@
 	import { base } from '$app/paths';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { configStore } from '$lib/stores/config';
-	import { connectionStatus } from '$lib/ha/websocket';
+	import { connectionStatus, disconnect as disconnectHA } from '$lib/ha/websocket';
 
 	// ── State ──────────────────────────────────────────────────────────────
 
@@ -67,7 +67,10 @@
 	}
 
 	function disconnect() {
+		disconnectHA();
 		configStore.clear();
+		testResult = 'idle';
+		testMessage = '';
 	}
 
 	function saveCredentials() {

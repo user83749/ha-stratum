@@ -113,11 +113,13 @@
 			loadedMode = null;
 		}
 
-		if (!configStore.isConfigured()) {
+		const hasCreds = $configStore.hassUrl.trim().length > 0 && $configStore.token.trim().length > 0;
+
+		if (!hasCreds) {
 			await tryAddonAutoConnect();
 		}
 
-		if (configStore.isConfigured() && ($connectionStatus === 'error' || $connectionStatus === 'disconnected') && !connecting) {
+		if (hasCreds && ($connectionStatus === 'error' || $connectionStatus === 'disconnected') && !connecting) {
 			connecting = true;
 			try {
 				const { hassUrl, token } = $configStore;
