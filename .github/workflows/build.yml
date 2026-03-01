@@ -57,5 +57,3 @@ jobs:
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
             ${{ steps.meta.outputs.image }}:latest
-          cache-from: type=gha,scope=${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
