@@ -160,7 +160,7 @@
 	style="font-family: var(--font-family); font-size: var(--font-size);"
 	class="contents"
 >
-	{#if dashboardLoaded || isPublic}
+	{#if dashboardLoaded}
 		{@render children()}
 	{:else}
 		<div style="display: flex; height: 100vh; width: 100vw; align-items: center; justify-content: center; background: #000; color: #fff;">

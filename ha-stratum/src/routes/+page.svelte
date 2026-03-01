@@ -12,7 +12,8 @@
 		});
 	}
 
-	import { onMount, get } from 'svelte';
+	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore, activePageId } from '$lib/stores/ui';
 	import { editMode, isEditing, editSelection, editorOpen } from '$lib/stores/editMode';

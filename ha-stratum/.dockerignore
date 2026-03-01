@@ -1,7 +1,12 @@
+.git
+.github
 node_modules
 build
 .svelte-kit
-.git
-.gitignore
+.env
+.DS_Store
 *.md
-
+LICENSE
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
