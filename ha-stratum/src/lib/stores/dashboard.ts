@@ -54,6 +54,10 @@ function createDashboardStore() {
 	}
 
 	async function persistConfig(config: DashboardConfig): Promise<void> {
+		if (!browser) return;
+		// NEVER PERSIST IF IN DEMO MODE — prevents demo config from overwriting the real dashboard.json
+		if (localStorage.getItem('stratum_demo') === 'true') return;
+
 		try {
 			await fetch(`${base}/_api/config`, {
 				method: 'POST',

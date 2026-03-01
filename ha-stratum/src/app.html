@@ -17,6 +17,10 @@
 	</style>
 	<script>
 		window.onerror = function (msg, url, line, col, error) {
+			// Ignore ResizeObserver loop errors which are non-fatal and common in modern dashboards
+			if (typeof msg === 'string' && msg.includes('ResizeObserver')) {
+				return true;
+			}
 			document.body.style.background = '#7c1c1c';
 			document.body.innerHTML = `
 					<div style="padding: 24px; color: white; font-family: sans-serif;">

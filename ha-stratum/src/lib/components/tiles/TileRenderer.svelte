@@ -104,13 +104,17 @@
 		const loadId = ++pendingLoad;
 		const loader = componentLoaders[tile.type];
 		LoadedComponent = null;
-		void loader().then((component) => {
-			if (loadId === pendingLoad) {
-				LoadedComponent = component;
-			}
-		}).catch((err) => {
-			console.error('[stratum] Failed to load tile component:', tile.type, err);
-		});
+		if (loader) {
+			void loader().then((component) => {
+				if (loadId === pendingLoad) {
+					LoadedComponent = component;
+				}
+			}).catch((err) => {
+				console.error('[stratum] Failed to load tile component:', tile.type, err);
+			});
+		} else {
+			console.warn('[stratum] No loader found for tile type:', tile.type);
+		}
 	});
 
 	// ─── Condition evaluation ─────────────────────────────────────────────────
