@@ -28,7 +28,7 @@ dotenv.config();
 
 const app = express();
 
-const PORT = parseInt(process.env.PORT ?? '5173', 10);
+const PORT = parseInt(process.env.PORT ?? '8099', 10);
 const ADDON = process.env.ADDON === 'true';
 
 // Supervisor injects this when homeassistant_api is enabled.

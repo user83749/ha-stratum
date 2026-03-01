@@ -4,7 +4,7 @@ set -e
 echo "[Stratum] Starting..."
 
 export ADDON=true
-export PORT=5173
+export PORT=8099
 export NODE_ENV=production
 
 if [ -n "$SUPERVISOR_TOKEN" ]; then

@@ -10,7 +10,7 @@ arch:
   - amd64
   - armv7
 
-# match ha-fusion's boot order
+# Application boot configuration
 init: false
 startup: "services"
 boot: "auto"
@@ -18,7 +18,7 @@ boot: "auto"
 ingress: true
 ingress_stream: true
 
-# Fusion uses its internal port for ingress automatically
+# Use internal port for ingress automatically
 ports:
   8099/tcp: null
 
