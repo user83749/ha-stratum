@@ -1,5 +1,5 @@
 name: "Stratum"
-version: "1.1.2"
+version: "1.1.3"
 slug: "ha-stratum-v5"
 description: "A modern Svelte 5 Home Assistant dashboard"
 url: "https://github.com/user83749/ha-stratum"
@@ -8,7 +8,6 @@ image: "ghcr.io/user83749/ha-stratum/{arch}-addon-ha-stratum"
 arch:
   - aarch64
   - amd64
-  - armv7
 
 # Application boot configuration
 init: false
