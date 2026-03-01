@@ -1,24 +1,4 @@
-// SSR Ghost Mocks — prevents crashes from dependencies using browser globals
-try {
-	Object.defineProperty(globalThis, 'window', { value: globalThis, writable: true, configurable: true });
-	Object.defineProperty(globalThis, 'navigator', {
-		value: { userAgent: 'node', platform: 'node', serviceWorker: { register: () => Promise.resolve() } },
-		writable: true,
-		configurable: true
-	});
-	Object.defineProperty(globalThis, 'document', {
-		value: {
-			addEventListener: () => { },
-			removeEventListener: () => { },
-			documentElement: { style: { setProperty: () => { } }, classList: { toggle: () => { }, add: () => { }, remove: () => { } } }
-		},
-		writable: true,
-		configurable: true
-	});
-} catch (e) {
-	// Fallback for modern Node where some globals are strictly locked
-}
-
+import './mocks.js';
 import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { handler } from './build/handler.js';
