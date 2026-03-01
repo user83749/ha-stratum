@@ -1,5 +1,5 @@
 name: "Stratum"
-version: "1.1.0"
+version: "1.1.1"
 slug: "ha-stratum-v5"
 description: "A modern Svelte 5 Home Assistant dashboard"
 url: "https://github.com/user83749/ha-stratum"
@@ -20,7 +20,7 @@ ingress_stream: true
 
 # Fusion uses its internal port for ingress automatically
 ports:
-  5173/tcp: null
+  8099/tcp: null
 
 apparmor: true
 hassio_api: true
