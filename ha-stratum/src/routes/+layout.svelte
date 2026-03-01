@@ -50,7 +50,7 @@
 	async function tryAddonAutoConnect(): Promise<boolean> {
 		if (!browser) return false;
 		try {
-			const res = await fetch('/api/ha/info');
+			const res = await fetch('api/ha/info');
 			if (!res.ok) return false;
 			const info = await res.json();
 			if (!info.addon) return false;
@@ -110,7 +110,7 @@
 			if (!autoConnected) {
 				dashboardLoaded = false;
 				loadedMode = null;
-				if (!isPublic) await goto('/connect');
+				if (!isPublic) await goto('connect');
 				return;
 			}
 		}
@@ -118,7 +118,7 @@
 		if ($connectionStatus === 'error') {
 			dashboardLoaded = false;
 			loadedMode = null;
-			if (!isPublic) await goto('/connect');
+			if (!isPublic) await goto('connect');
 			return;
 		}
 

@@ -27,6 +27,7 @@ WORKDIR /app
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/server.js .
+COPY --from=builder /app/mocks.js .
 COPY --from=builder /app/package.json .
 COPY --from=builder /app/run.sh ./run.sh
 
