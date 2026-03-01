@@ -14,8 +14,11 @@
 
 	function exitDemo() {
 		deactivateDemo();
-		goto('/connect');
 	}
+
+	onMount(() => {
+		isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+	});
 
 	const cfg       = $derived($dashboardStore);
 	const header    = $derived(cfg.header);

@@ -1,12 +1,11 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { connect, connectionStatus, error as wsError } from '$lib/ha/websocket';
 	import { configStore } from '$lib/stores/config';
 	import { activateDemo } from '$lib/demo/index';
+	import { browser } from '$app/environment';
 
 	function handleDemo() {
 		activateDemo();
-		goto('/');
 	}
 
 	let hassUrl = $state($configStore.hassUrl || 'http://homeassistant.local:8123');
@@ -48,7 +47,6 @@
 
 		if ($connectionStatus === 'connected') {
 			configStore.set({ hassUrl: cleanUrl, token: cleanToken });
-			goto('/');
 		} else {
 			isLoading = false;
 		}

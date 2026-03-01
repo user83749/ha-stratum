@@ -113,7 +113,6 @@
 				console.log('[Stratum] Auto-connect failed, redirecting...');
 				dashboardLoaded = false;
 				loadedMode = null;
-				if (!isPublic) await goto('connect');
 				return;
 			}
 		}
@@ -122,7 +121,6 @@
 			console.log('[Stratum] WS Error, redirecting...');
 			dashboardLoaded = false;
 			loadedMode = null;
-			if (!isPublic) await goto('connect');
 			return;
 		}
 

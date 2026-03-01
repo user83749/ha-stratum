@@ -26,8 +26,12 @@ import { entities } from '$lib/ha/websocket';
 import type { Section } from '$lib/types/dashboard';
 import { getAdaptiveColumns, getSectionMaxColumns, MOBILE_SECTION_COLS } from '$lib/layout/sectionLayout';
 import { getAllowedPresets } from '$lib/layout/tileSizing';
+import { configStore } from '$lib/stores/config';
+import { isDemoMode } from '$lib/demo';
+import ConnectScreen from '$lib/components/setup/ConnectScreen.svelte';
 
-	// ── Config ─────────────────────────────────────────────────────────────────
+	const isConfigured = $derived($configStore.hassUrl && $configStore.token);
+	const showSetup = $derived(!isConfigured && !isDemoMode());
 
 	const cfg    = $derived($dashboardStore);
 	const navCfg = $derived(cfg.nav);
@@ -392,7 +396,11 @@ import { getAllowedPresets } from '$lib/layout/tileSizing';
 	ontouchend={handleTouchEnd}
 />
 
+{#if showSetup}
+	<ConnectScreen />
+{:else}
 	<AppShell integratedLeftNav={useIntegratedDesktopNav}>
+{/if}
 		{#snippet nav()}
 			{#if !useIntegratedDesktopNav && !showMobileNav && navCfg.position !== 'bottom'}
 				<AppNav />
@@ -543,4 +551,5 @@ import { getAllowedPresets } from '$lib/layout/tileSizing';
 			/>
 		{/if}
 	{/snippet}
-</AppShell>
+	</AppShell>
+{/if}
