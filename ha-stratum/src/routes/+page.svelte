@@ -1,16 +1,7 @@
 <script lang="ts">
-	let { data } = $props();
 	import { browser } from '$app/environment';
 	import { configStore } from '$lib/stores/config';
 
-	// Seed the configStore with the server-passed URL if it's currently empty
-	// (critical for Home Assistant Ingress auto-discovery)
-	if (browser && data?.config?.hassUrl) {
-		configStore.update(c => {
-			if (!c.hassUrl) return { ...c, hassUrl: data.config.hassUrl };
-			return c;
-		});
-	}
 
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
@@ -40,10 +31,6 @@
 	import { getAdaptiveColumns, getSectionMaxColumns, MOBILE_SECTION_COLS } from '$lib/layout/sectionLayout';
 	import { getAllowedPresets } from '$lib/layout/tileSizing';
 	import { isDemoMode } from '$lib/demo';
-	import ConnectScreen from '$lib/components/setup/ConnectScreen.svelte';
-
-	const isConfigured = $derived($configStore.hassUrl && $configStore.token);
-	const showSetup = $derived(!isConfigured && !isDemoMode());
 
 	const cfg    = $derived($dashboardStore);
 	const navCfg = $derived(cfg.nav);
@@ -408,15 +395,12 @@
 	ontouchend={handleTouchEnd}
 />
 
-{#if showSetup}
-	<ConnectScreen />
-{:else}
-	<AppShell integratedLeftNav={useIntegratedDesktopNav}>
-		{#snippet nav()}
-			{#if !useIntegratedDesktopNav && !showMobileNav && navCfg.position !== 'bottom'}
-				<AppNav />
-			{/if}
-		{/snippet}
+<AppShell integratedLeftNav={useIntegratedDesktopNav}>
+	{#snippet nav()}
+		{#if !useIntegratedDesktopNav && !showMobileNav && navCfg.position !== 'bottom'}
+			<AppNav />
+		{/if}
+	{/snippet}
 
 	{#snippet header()}
 		<AppHeader />
@@ -562,5 +546,4 @@
 			/>
 		{/if}
 	{/snippet}
-	</AppShell>
-{/if}
+</AppShell>

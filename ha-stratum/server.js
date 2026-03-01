@@ -1,69 +1,117 @@
-import { handler } from './build/handler.js';
+// SSR Ghost Mocks — prevents crashes from dependencies using browser globals
+try {
+	Object.defineProperty(globalThis, 'window', { value: globalThis, writable: true, configurable: true });
+	Object.defineProperty(globalThis, 'navigator', {
+		value: { userAgent: 'node', platform: 'node', serviceWorker: { register: () => Promise.resolve() } },
+		writable: true,
+		configurable: true
+	});
+	Object.defineProperty(globalThis, 'document', {
+		value: {
+			addEventListener: () => { },
+			removeEventListener: () => { },
+			documentElement: { style: { setProperty: () => { } }, classList: { toggle: () => { }, add: () => { }, remove: () => { } } }
+		},
+		writable: true,
+		configurable: true
+	});
+} catch (e) {
+	// Fallback for modern Node where some globals are strictly locked
+}
+
 import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import { handler } from './build/handler.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const app = express();
 
+const PORT = parseInt(process.env.PORT ?? '5173', 10);
 const ADDON = process.env.ADDON === 'true';
-const PORT = process.env.PORT || 5173;
 
-// environment-aware proxy target resolution
-const entryMiddleware = async (req, res, next) => {
-	// default to Home Assistant local
-	let target = process.env.HASS_URL || 'http://homeassistant.local:8123';
+// Supervisor injects this when homeassistant_api is enabled.
+const SUPERVISOR_TOKEN = process.env.SUPERVISOR_TOKEN ?? '';
+const HASS_URL = process.env.HASS_URL
+	?? (ADDON ? 'http://supervisor/core' : 'http://homeassistant.local:8123');
 
-	if (ADDON) {
-		const {
-			'x-hass-source': source,
-			'x-forwarded-proto': forwardedProto,
-			'x-forwarded-host': forwardedHost
-		} = req.headers;
+// ─── Proxy Helpers ──────────────────────────────────────────────────────────
 
-		// Ingress provides headers to point back to HA cleanly
-		if (source && forwardedProto && forwardedHost) {
-			target = `${forwardedProto}://${forwardedHost}`;
-		} else if (process.env.SUPERVISOR_TOKEN) {
-			target = 'http://supervisor/core';
-		}
+const INTERNAL_API_PREFIXES = ['/api/config', '/api/ha', '/api/health'];
+
+function resolveTarget(req) {
+	const forwardedProto = req.headers['x-forwarded-proto'];
+	const forwardedHost = req.headers['x-forwarded-host'];
+	const source = req.headers['x-ingress-path'];
+
+	// 1. Ingress Proxy Mode
+	if (ADDON && source && forwardedProto && forwardedHost) {
+		return `${forwardedProto}://${forwardedHost}`;
 	}
 
-	// add header for +page.server.ts
-	req.headers['X-Proxy-Target'] = target;
-	req.target = target;
-	next();
-};
+	// 2. Local fallback / Configured URL
+	return HASS_URL;
+}
+
+function shouldProxy(pathname) {
+	// Never proxy our own internal API routes
+	const isInternalApi = INTERNAL_API_PREFIXES.some(
+		(prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+	);
+	if (isInternalApi) return false;
+
+	// Proxy all other HA-specific endpoints
+	return (
+		pathname === '/api' ||
+		pathname.startsWith('/api/') ||
+		pathname === '/local' ||
+		pathname.startsWith('/local/')
+	);
+}
 
 const haProxy = createProxyMiddleware({
-	pathFilter: ['/api/', '/local/'],
-	router: (req) => req.target,
+	router: resolveTarget,
 	changeOrigin: true,
 	ws: true,
-	headers: process.env.SUPERVISOR_TOKEN
-		? { Authorization: `Bearer ${process.env.SUPERVISOR_TOKEN}` }
+	headers: SUPERVISOR_TOKEN
+		? { Authorization: `Bearer ${SUPERVISOR_TOKEN}` }
 		: undefined
 });
 
-// health
+// ─── Middleware ─────────────────────────────────────────────────────────────
+
+// Add X-Proxy-Target for SvelteKit +page.server.ts load function
+app.use((req, res, next) => {
+	req.headers['X-Proxy-Target'] = resolveTarget(req);
+	next();
+});
+
+// Proxy match for HA endpoints
+app.use((req, res, next) => {
+	if (!shouldProxy(req.path)) return next();
+	haProxy(req, res, next);
+});
+
+// ─── Internal API ───────────────────────────────────────────────────────────
+
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
-// ha info
 app.get('/api/ha/info', (req, res) => {
 	res.json({
 		addon: ADDON,
-		hassUrl: req.target,
-		ingress: ADDON && !!process.env.SUPERVISOR_TOKEN
+		hassUrl: ADDON ? '' : resolveTarget(req),
+		ingress: ADDON && !!SUPERVISOR_TOKEN
 	});
 });
 
-app.use(entryMiddleware, haProxy);
+// ─── SvelteKit ──────────────────────────────────────────────────────────────
 
-// SvelteKit
 app.use(handler);
 
+// ─── Start ──────────────────────────────────────────────────────────────────
+
 app.listen(PORT, '0.0.0.0', () => {
-	console.log(`[Stratum] Server building ${ADDON ? 'ADD-ON' : 'STANDALONE'}...`);
-	console.log(`[Stratum] Port: ${PORT} | Target: ${process.env.HASS_URL || 'auto'}`);
+	console.log(`[Stratum] Running on http://localhost:${PORT}`);
+	console.log(`[Stratum] Mode: ${ADDON ? 'add-on' : 'standalone'} | HA: ${HASS_URL}`);
 });

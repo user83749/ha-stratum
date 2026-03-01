@@ -50,6 +50,7 @@
 	async function tryAddonAutoConnect(): Promise<boolean> {
 		if (!browser) return false;
 		try {
+			// USES RELATIVE PATH to stay inside Ingress tunnel
 			const res = await fetch('api/ha/info');
 			if (!res.ok) return false;
 			const info = await res.json();
@@ -62,6 +63,7 @@
 
 			// Fetch a long-lived token using the ingress auth endpoint.
 			// HA injects a one-time token we can exchange for a bearer token.
+			// Note: This path is specifically for the Ingress session validator.
 			const tokenRes = await fetch('/api/hassio_ingress/validate_session', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' }
@@ -88,16 +90,14 @@
 
 	async function syncAppState() {
 		const isPublic = PUBLIC_ROUTES.includes($page.url.pathname);
-		console.log('[Stratum] Syncing app state, path:', $page.url.pathname, 'demo:', isDemoMode(), 'configured:', configStore.isConfigured());
 
 		if (isDemoMode()) {
 			if (loadedMode !== 'demo') {
-				console.log('[Stratum] Loading demo...');
 				loadDemoIfActive();
 				dashboardLoaded = true;
 				loadedMode = 'demo';
 			}
-			if (isPublic) await goto('.');
+			if (isPublic) await goto('/');
 			return;
 		}
 
@@ -107,25 +107,24 @@
 		}
 
 		if (!configStore.isConfigured()) {
-			console.log('[Stratum] Not configured, trying auto-connect...');
+			// Try add-on ingress auto-connect first
 			const autoConnected = await tryAddonAutoConnect();
 			if (!autoConnected) {
-				console.log('[Stratum] Auto-connect failed, redirecting...');
 				dashboardLoaded = false;
 				loadedMode = null;
+				if (!isPublic) await goto('connect');
 				return;
 			}
 		}
 
 		if ($connectionStatus === 'error') {
-			console.log('[Stratum] WS Error, redirecting...');
 			dashboardLoaded = false;
 			loadedMode = null;
+			if (!isPublic) await goto('connect');
 			return;
 		}
 
 		if ($connectionStatus === 'disconnected' && !connecting) {
-			console.log('[Stratum] WS Disconnected, connecting to:', $configStore.hassUrl);
 			connecting = true;
 			try {
 				const { hassUrl, token } = $configStore;
@@ -136,13 +135,11 @@
 		}
 
 		if ($connectionStatus === 'connected' && !dashboardLoaded && !loadingDashboard) {
-			console.log('[Stratum] Connected, loading dashboard...');
 			loadingDashboard = true;
 			try {
 				await dashboardStore.load();
 				dashboardLoaded = true;
 				loadedMode = 'live';
-				console.log('[Stratum] Dashboard loaded.');
 				applyTheme(get(dashboardStore).theme, get(dashboardStore).settings.reducedMotion);
 			} finally {
 				loadingDashboard = false;
@@ -157,7 +154,7 @@
 </svelte:head>
 
 <div
-	style="font-family: var(--font-family); font-size: var(--font-size);"
+	style="font-family: var(--font-family); font-size: var(--font-size); height: 100vh; width: 100vw; overflow: hidden;"
 	class="contents"
 >
 	{#if dashboardLoaded}
