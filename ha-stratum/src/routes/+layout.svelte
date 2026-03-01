@@ -56,7 +56,7 @@
 		if (!browser) return false;
 		try {
 			// USES RELATIVE PATH to stay inside Ingress tunnel
-			const res = await fetch(`${base}/_api/ha/info`);
+			const res = await fetch(`${base}/api-stratum/ha/info`);
 			if (!res.ok) return false;
 			const info = await res.json();
 			if (!info.addon) return false;

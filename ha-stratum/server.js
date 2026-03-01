@@ -28,7 +28,7 @@ const HASS_URL = process.env.HASS_URL
 
 // ─── Proxy Helpers ──────────────────────────────────────────────────────────
 
-const INTERNAL_API_PREFIXES = ['/_api/config', '/_api/ha', '/_api/health'];
+const INTERNAL_API_PREFIXES = ['/api-stratum'];
 
 function resolveTarget(req) {
 	const forwardedProto = req.headers['x-forwarded-proto'];
@@ -97,9 +97,9 @@ app.use((req, res, next) => {
 
 // ─── Internal API ───────────────────────────────────────────────────────────
 
-app.get('/_api/health', (_req, res) => res.json({ status: 'ok' }));
+app.get('/api-stratum/health', (_req, res) => res.json({ status: 'ok' }));
 
-app.get('/_api/ha/info', (req, res) => {
+app.get('/api-stratum/ha/info', (req, res) => {
 	res.json({
 		addon: ADDON,
 		hassUrl: ADDON ? '' : resolveTarget(req),

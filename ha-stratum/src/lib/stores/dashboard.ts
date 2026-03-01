@@ -59,7 +59,7 @@ function createDashboardStore() {
 		if (localStorage.getItem('stratum_demo') === 'true') return;
 
 		try {
-			await fetch(`${base}/_api/config`, {
+			await fetch(`${base}/api-stratum/config`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(config)
@@ -101,7 +101,7 @@ function createDashboardStore() {
 		async load(): Promise<void> {
 			if (!browser) return;
 			try {
-				const res = await fetch(`${base}/_api/config`);
+				const res = await fetch(`${base}/api-stratum/config`);
 				if (!res.ok) throw new Error(`HTTP ${res.status}`);
 				const raw = await res.json();
 				set(migrateConfig(raw));

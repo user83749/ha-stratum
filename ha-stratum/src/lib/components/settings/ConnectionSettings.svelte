@@ -44,7 +44,7 @@
 		testing = true;
 		testResult = 'idle';
 		try {
-			const res = await fetch(`${base}/_api/ha/test`, {
+			const res = await fetch(`${base}/api-stratum/ha/test`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ url, token })
