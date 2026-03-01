@@ -106,7 +106,8 @@ function shouldProxy(pathname) {
 
 // Proxy match for HA endpoints
 app.use((req, res, next) => {
-	if (!shouldProxy(req.path)) return next();
+	const currentPath = req.url.split('?')[0];
+	if (!shouldProxy(currentPath)) return next();
 	haProxy(req, res, next);
 });
 
@@ -125,6 +126,15 @@ app.get('/api-stratum/ha/info', (req, res) => {
 // ─── SvelteKit ──────────────────────────────────────────────────────────────
 
 app.use(handler);
+
+// ─── Error Detection ────────────────────────────────────────────────────────
+
+app.use((req, res) => {
+	if (ADDON) {
+		console.warn(`[Stratum] 404 Not Found: ${req.method} ${req.url}`);
+	}
+	res.status(404).send('Not Found');
+});
 
 // ─── Start ──────────────────────────────────────────────────────────────────
 
