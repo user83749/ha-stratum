@@ -44,6 +44,35 @@ function resolveTarget(req) {
 	return HASS_URL;
 }
 
+const haProxy = createProxyMiddleware({
+	router: resolveTarget,
+	changeOrigin: true,
+	ws: true,
+	headers: SUPERVISOR_TOKEN
+		? { Authorization: `Bearer ${SUPERVISOR_TOKEN}` }
+		: undefined
+});
+
+// ─── Middleware ─────────────────────────────────────────────────────────────
+
+// Global Ingress prefix stripper — ensures all internal routing and proxying
+// uses root-relative paths, regardless of the dynamic Ingress ID.
+app.use((req, res, next) => {
+	if (ADDON && req.path.startsWith('/api/hassio_ingress/')) {
+		const parts = req.path.split('/');
+		if (parts.length >= 5) {
+			req.url = '/' + parts.slice(4).join('/');
+		}
+	}
+	next();
+});
+
+// Add X-Proxy-Target for SvelteKit +page.server.ts load function
+app.use((req, res, next) => {
+	req.headers['X-Proxy-Target'] = resolveTarget(req);
+	next();
+});
+
 function shouldProxy(pathname) {
 	// Never proxy our own internal API routes
 	const isInternalApi = INTERNAL_API_PREFIXES.some(
@@ -59,23 +88,6 @@ function shouldProxy(pathname) {
 		pathname.startsWith('/local/')
 	);
 }
-
-const haProxy = createProxyMiddleware({
-	router: resolveTarget,
-	changeOrigin: true,
-	ws: true,
-	headers: SUPERVISOR_TOKEN
-		? { Authorization: `Bearer ${SUPERVISOR_TOKEN}` }
-		: undefined
-});
-
-// ─── Middleware ─────────────────────────────────────────────────────────────
-
-// Add X-Proxy-Target for SvelteKit +page.server.ts load function
-app.use((req, res, next) => {
-	req.headers['X-Proxy-Target'] = resolveTarget(req);
-	next();
-});
 
 // Proxy match for HA endpoints
 app.use((req, res, next) => {
