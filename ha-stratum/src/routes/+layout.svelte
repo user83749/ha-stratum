@@ -15,7 +15,6 @@
 
 	let { children } = $props();
 
-	const PUBLIC_ROUTES = ['/connect'];
 	let dashboardLoaded = $state(false);
 	let connecting = false;
 	let loadingDashboard = false;
@@ -33,11 +32,21 @@
 		// Apply default theme immediately to avoid flash of unstyled content
 		applyTheme($dashboardStore.theme, $dashboardStore.settings.reducedMotion);
 
-		// Watch system dark/light preference for 'system' scheme
 		stopWatchingScheme = watchSystemScheme(() => ({
 			theme: $dashboardStore.theme,
 			reducedMotion: $dashboardStore.settings.reducedMotion
 		}));
+
+		if (!isDemoMode()) {
+			loadingDashboard = true;
+			dashboardStore.load().then(() => {
+				dashboardLoaded = true;
+				loadedMode = 'live';
+				applyTheme(get(dashboardStore).theme, get(dashboardStore).settings.reducedMotion);
+			}).finally(() => {
+				loadingDashboard = false;
+			});
+		}
 	});
 
 	onDestroy(() => {
@@ -90,15 +99,12 @@
 	});
 
 	async function syncAppState() {
-		const isPublic = PUBLIC_ROUTES.includes($page.url.pathname);
-
 		if (isDemoMode()) {
 			if (loadedMode !== 'demo') {
 				loadDemoIfActive();
 				dashboardLoaded = true;
 				loadedMode = 'demo';
 			}
-			if (isPublic) await goto('/');
 			return;
 		}
 
@@ -108,42 +114,18 @@
 		}
 
 		if (!configStore.isConfigured()) {
-			// Try add-on ingress auto-connect first
-			const autoConnected = await tryAddonAutoConnect();
-			if (!autoConnected) {
-				dashboardLoaded = false;
-				loadedMode = null;
-				if (!isPublic) await goto('connect');
-				return;
-			}
+			await tryAddonAutoConnect();
 		}
 
-		if ($connectionStatus === 'error') {
-			dashboardLoaded = false;
-			loadedMode = null;
-			if (!isPublic) await goto('connect');
-			return;
-		}
-
-		if ($connectionStatus === 'disconnected' && !connecting) {
+		if (configStore.isConfigured() && ($connectionStatus === 'error' || $connectionStatus === 'disconnected') && !connecting) {
 			connecting = true;
 			try {
 				const { hassUrl, token } = $configStore;
 				await connect(hassUrl, token);
+			} catch (e) {
+				console.error('[stratum] Connection failed in syncAppState', e);
 			} finally {
 				connecting = false;
-			}
-		}
-
-		if ($connectionStatus === 'connected' && !dashboardLoaded && !loadingDashboard) {
-			loadingDashboard = true;
-			try {
-				await dashboardStore.load();
-				dashboardLoaded = true;
-				loadedMode = 'live';
-				applyTheme(get(dashboardStore).theme, get(dashboardStore).settings.reducedMotion);
-			} finally {
-				loadingDashboard = false;
 			}
 		}
 	}
@@ -160,12 +142,5 @@
 >
 	{#if dashboardLoaded}
 		{@render children()}
-	{:else}
-		<div style="display: flex; height: 100vh; width: 100vw; align-items: center; justify-content: center; background: #000; color: #fff;">
-			<div style="text-align: center;">
-				<div style="margin-bottom: 20px; font-size: 24px; font-weight: 600;">Stratum</div>
-				<div style="font-size: 14px; opacity: 0.5;">Connecting to Home Assistant...</div>
-			</div>
-		</div>
 	{/if}
 </div>

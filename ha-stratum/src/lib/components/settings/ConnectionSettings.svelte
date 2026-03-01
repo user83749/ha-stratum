@@ -68,7 +68,6 @@
 
 	function disconnect() {
 		configStore.clear();
-		goto('/connect');
 	}
 
 	function saveCredentials() {

@@ -1,5 +1,5 @@
 name: "Stratum"
-version: "1.1.4"
+version: "1.1.5"
 slug: "ha-stratum-v5"
 description: "A modern Svelte 5 Home Assistant dashboard"
 url: "https://github.com/user83749/ha-stratum"
