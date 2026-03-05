@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    tags: ["v*"]
 
 permissions:
   contents: read
@@ -44,12 +45,12 @@ jobs:
       - name: Get version
         id: version
         run: |
-          # Use the git tag if triggered by a release (always correct)
-          # Fall back to config.yaml for manual workflow_dispatch runs
+          # Use the git tag if triggered by a tag push (preferred release flow)
+          # Fall back to config.yaml for pushes to main / workflow_dispatch runs
           if [[ "${{ github.ref_name }}" =~ ^v[0-9] ]]; then
-            VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+            VERSION="$(echo "${{ github.ref_name }}" | sed 's/^v//')"
           else
-            VERSION=$(grep '^version:' config.yaml | cut -d' ' -f2 | tr -d '"')
+            VERSION="$(grep '^version:' config.yaml | cut -d' ' -f2 | tr -d '\"')"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION"
@@ -69,9 +70,19 @@ jobs:
             BUILD_REPOSITORY=${{ github.repository }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/ha-stratum-${{ matrix.arch }}:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/ha-stratum-${{ matrix.arch }}:v${{ steps.version.outputs.version }}
             ghcr.io/${{ github.repository_owner }}/ha-stratum-${{ matrix.arch }}:latest
 
       - name: Verify push
         run: |
-          docker pull ghcr.io/${{ github.repository_owner }}/ha-stratum-${{ matrix.arch }}:${{ steps.version.outputs.version }}
-          echo "✅ Image verified: ghcr.io/${{ github.repository_owner }}/ha-stratum-${{ matrix.arch }}:${{ steps.version.outputs.version }}"
+          IMAGE="ghcr.io/${{ github.repository_owner }}/ha-stratum-${{ matrix.arch }}:${{ steps.version.outputs.version }}"
+          for i in 1 2 3 4 5 6; do
+            if docker pull "$IMAGE"; then
+              echo "✅ Image verified: $IMAGE"
+              exit 0
+            fi
+            echo "Pull failed (attempt $i/6). Waiting 10s..."
+            sleep 10
+          done
+          echo "❌ Failed to verify image after retries: $IMAGE"
+          exit 1
