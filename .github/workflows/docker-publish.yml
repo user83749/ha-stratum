@@ -67,7 +67,6 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           provenance: false
-          attests: false
           build-args: |
             BUILD_FROM=${{ matrix.base }}
             BUILD_ARCH=${{ matrix.arch }}
