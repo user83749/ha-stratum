@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<style>
+		html,
+		body {
+			background: #000;
+			margin: 0;
+			padding: 0;
+			height: 100%;
+			width: 100%;
+			overflow: hidden;
+		}
+	</style>
+	<script>
+		function showError(title, detail) {
+			document.body.style.background = '#7c1c1c';
+			document.body.innerHTML =
+				'<div style="padding: 24px; color: white; font-family: sans-serif;">' +
+				'<h1 style="margin: 0 0 16px; font-size: 20px;">' + title + '</h1>' +
+				'<p style="margin: 4px 0; font-size: 14px; opacity: 0.8; word-break: break-all;">' + detail + '</p>' +
+				'<p style="margin-top: 24px; font-size: 12px; opacity: 0.6;">Check Home Assistant &rarr; Settings &rarr; Add-ons &rarr; Stratum &rarr; Log for details.</p>' +
+				'</div>';
+		}
+
+		window.onerror = function (msg, url, line, col) {
+			if (typeof msg === 'string' && msg.includes('ResizeObserver')) return true;
+			showError('Frontend Error', msg + ' \u2014 ' + url + ':' + line + ':' + col);
+		};
+
+		window.onunhandledrejection = function (event) {
+			var reason = event.reason;
+			var msg = reason instanceof Error ? reason.message : String(reason);
+			showError('Unhandled Promise Rejection', msg);
+		};
+	</script>
+	%sveltekit.head%
+</head>
+
+<body data-sveltekit-preload-data="hover">
+	<div style="display: contents">%sveltekit.body%</div>
+</body>
+
+</html>

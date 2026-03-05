@@ -1,0 +1,107 @@
+<script lang="ts">
+  import type { HassEntity } from 'home-assistant-js-websocket';
+  import type { Tile } from '$lib/types/dashboard';
+  import Icon from '$lib/components/ui/Icon.svelte';
+  import BaseTile from '$lib/components/tiles/BaseTile.svelte';
+  import { sirenService } from '$lib/ha/services';
+
+  interface Props { tile: Tile; entity: HassEntity | null; }
+  const { tile, entity }: Props = $props();
+
+  const config = $derived(tile.config);
+  const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
+  const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
+  const sizePreset = $derived(
+    layoutW >= 4 && layoutH >= 3 ? 'xl' :
+    layoutW >= 3 && layoutH >= 2 ? 'lg' :
+    layoutW >= 2 || layoutH >= 2 ? 'md' :
+    'sm'
+  );
+  const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');
+  const isOn = $derived(entity?.state === 'on');
+  const attrs = $derived(entity?.attributes ?? {});
+  const name = $derived(config.name ?? attrs.friendly_name ?? 'Siren');
+  const tones = $derived((attrs.available_tones as string[]) ?? []);
+  const currentTone = $derived(attrs.tone as string ?? '');
+  const showToneChips = $derived((sizePreset === 'lg' || sizePreset === 'xl') && tones.length > 0 && isOn);
+</script>
+
+<BaseTile {name} state={isOn ? 'Sounding' : 'Silent'} {isOn}>
+
+  {#snippet icon()}
+    <!-- Visual-only siren icon — tile tap handled by TileWrapper -->
+    <div class="siren-icon" class:on={isOn}>
+      <span class="icon-span" class:pulse={isOn}><Icon name="siren" size="100%" /></span>
+    </div>
+  {/snippet}
+
+  {#snippet below()}
+    {#if showToneChips}
+      <div class="tones">
+        {#each tones.slice(0, 4) as t}
+          <button class="tone-chip" class:active={currentTone === t}
+            onclick={() => entityId && sirenService.turnOn(entityId, t)}>{t}</button>
+        {/each}
+      </div>
+    {/if}
+  {/snippet}
+
+</BaseTile>
+
+<style>
+  /* ── Siren icon (visual only) ────────────────────────────────────────── */
+  .siren-icon {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: var(--control-chip-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fg-muted);
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
+    border: 1.5px solid var(--border);
+    transition: all var(--transition);
+  }
+
+  /* Inner chip only: danger color when sounding. */
+  .siren-icon.on {
+    color: var(--color-danger);
+    background: color-mix(in srgb, var(--color-danger) 20%, transparent);
+    border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
+  }
+
+  .icon-span { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; }
+  .pulse { animation: siren-pulse 0.5s ease-in-out infinite alternate; }
+  @keyframes siren-pulse { from { transform: scale(0.85); } to { transform: scale(1.15); } }
+
+  /* ── Tone chips ──────────────────────────────────────────────────────── */
+  .tones {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  .tone-chip {
+    all: unset;
+    font-size: var(--secondary-label-size);
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 99px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--fg-muted);
+    cursor: pointer;
+    transition: all var(--transition);
+    text-transform: capitalize;
+  }
+
+  /* Inner tone chip only: active text state, not tile background. */
+  .tone-chip.active {
+    background: transparent;
+    color: var(--color-danger);
+    border-color: transparent;
+  }
+</style>

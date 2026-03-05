@@ -1,0 +1,35 @@
+name: "Stratum"
+version: "1.0.0"
+slug: "ha-stratum-v5"
+description: "A fast, highly customizable Home Assistant dashboard add-on"
+url: "https://github.com/user83749/ha-stratum.git"
+
+arch:
+  - aarch64
+  - amd64
+
+image: "ghcr.io/user83749/ha-stratum-{arch}"
+
+init: false
+startup: "services"
+boot: "auto"
+
+ingress: true
+ingress_stream: true
+ingress_port: 8099
+
+# port to expose, null defaults to disabled
+# enable via "Show disabled ports" in add-on settings for direct access (no HA toolbar)
+ports:
+  8099/tcp: null
+
+apparmor: true
+hassio_api: true
+homeassistant_api: true
+
+panel_icon: "mdi:view-dashboard"
+panel_title: "Stratum"
+panel_admin: false
+
+options: {}
+schema: {}
