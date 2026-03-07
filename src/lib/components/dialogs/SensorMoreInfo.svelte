@@ -5,6 +5,7 @@
 	import { updateService } from '$lib/ha/services';
 	import type { Tile } from '$lib/types/dashboard';
 	import { isCustomIcon } from '$lib/icons/customIcons';
+	import { uiStore } from '$lib/stores/ui';
 
 	interface Props { entityId: string; tile?: Tile | null; }
 	const { entityId, tile = null }: Props = $props();
@@ -74,26 +75,10 @@
 		return 'UP';
 	}
 
-	let activeUpdateId = $state<string | null>(null);
-	const activeUpdate = $derived(activeUpdateId ? ($optimisticEntities[activeUpdateId] ?? null) : null);
-	const activeIsAvail = $derived(activeUpdate?.state === 'on');
-	const activeInstalled = $derived((activeUpdate?.attributes.installed_version as string | undefined) ?? '');
-	const activeLatest = $derived((activeUpdate?.attributes.latest_version as string | undefined) ?? '');
-
 	function openUpdate(id: string) {
-		activeUpdateId = id;
-	}
-	function backToList() {
-		activeUpdateId = null;
-	}
-
-	function installActive() {
-		if (!activeUpdateId) return;
-		installUpdate(activeUpdateId);
-	}
-	function skipActive() {
-		if (!activeUpdateId) return;
-		skipUpdate(activeUpdateId);
+		// Navigate into the update.* entity details, while preserving this summary
+		// dialog as a back target (HA-like flow).
+		uiStore.pushDialog(id, undefined, 'update');
 	}
 
 	const attrs = $derived.by(() => {
@@ -140,32 +125,7 @@
 			</div>
 		</div>
 
-		{#if activeUpdateId && activeUpdate}
-			<div class="usmi__detail">
-				<button class="usmi__back" onclick={backToList} aria-label="Back to updates list">
-					<Icon name="chevron-left" size={18} />
-					<span>Back</span>
-				</button>
-
-				<div class="usmi__detail-card">
-					<div class="usmi__detail-top">
-						<div class="usmi__detail-name">{(activeUpdate.attributes.friendly_name as string | undefined) ?? activeUpdateId}</div>
-						<div class="usmi__detail-sub">{activeIsAvail ? 'Update Available' : 'Up to Date'}</div>
-					</div>
-
-					<div class="usmi__detail-versions">
-						<span class="usmi__pill">{activeInstalled}{activeInstalled && activeLatest ? ' → ' : ''}{activeLatest}</span>
-					</div>
-
-					{#if activeIsAvail}
-						<div class="usmi__detail-actions">
-							<button class="usmi__btn" onclick={installActive}>Install</button>
-							<button class="usmi__btn usmi__btn--ghost" onclick={skipActive}>Skip</button>
-						</div>
-					{/if}
-				</div>
-			</div>
-		{:else if updateEntitiesOn.length > 0}
+		{#if updateEntitiesOn.length > 0}
 			<div class="usmi__list">
 				{#each updateEntitiesOn as u (u.id)}
 					<div class="usmi__row">
@@ -401,32 +361,6 @@
 		color: var(--fg-muted);
 	}
 
-	.usmi__detail { display: flex; flex-direction: column; gap: 10px; padding: 4px 20px 20px; }
-	.usmi__back {
-		all: unset;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		cursor: pointer;
-		color: var(--fg-muted);
-		font-weight: 650;
-		font-size: 0.86rem;
-		padding: 6px 4px;
-		border-radius: 8px;
-	}
-	.usmi__back:hover { background: var(--hover); color: var(--fg); }
-	.usmi__detail-card {
-		border: 1px solid var(--border);
-		background: var(--hover);
-		border-radius: var(--radius);
-		padding: 12px;
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-	}
-	.usmi__detail-name { font-size: 0.95rem; font-weight: 750; color: var(--fg); }
-	.usmi__detail-sub { font-size: 0.82rem; color: var(--fg-subtle); margin-top: 2px; }
-	.usmi__detail-actions { display: flex; gap: 8px; }
 	.usmi__empty {
 		padding: 10px 20px 20px;
 		color: var(--fg-subtle);

@@ -26,6 +26,7 @@ interface UIState {
 
 	// More-info dialog
 	activeDialog: ActiveDialog | null;
+	dialogStack: ActiveDialog[];
 
 	// Notification panel
 	notificationsOpen: boolean;
@@ -44,6 +45,7 @@ const initial: UIState = {
 	settingsTab: 'theme',
 	mobileNavOpen: false,
 	activeDialog: null,
+	dialogStack: [],
 	notificationsOpen: false,
 	breakpoint: 'lg'
 };
@@ -62,7 +64,8 @@ function createUIStore() {
 				previousPageId: s.activePageId,
 				activePageId: pageId,
 				searchOpen: false,
-				activeDialog: null
+				activeDialog: null,
+				dialogStack: []
 			}));
 		},
 
@@ -109,10 +112,32 @@ function createUIStore() {
 		// ── More-info dialog ──────────────────────────────────────────────
 
 		openDialog(entityId: string, styleOverride?: MoreInfoStyle, tileType?: TileType, tileId?: string) {
-			update((s) => ({ ...s, activeDialog: { entityId, styleOverride, tileType, tileId } }));
+			update((s) => ({
+				...s,
+				activeDialog: { entityId, styleOverride, tileType, tileId },
+				dialogStack: []
+			}));
 		},
 
-		closeDialog() { update((s) => ({ ...s, activeDialog: null })); },
+		/** Open a new dialog while preserving the current one as a "back" target. */
+		pushDialog(entityId: string, styleOverride?: MoreInfoStyle, tileType?: TileType, tileId?: string) {
+			update((s) => ({
+				...s,
+				dialogStack: s.activeDialog ? [...s.dialogStack, s.activeDialog] : s.dialogStack,
+				activeDialog: { entityId, styleOverride, tileType, tileId }
+			}));
+		},
+
+		dialogBack() {
+			update((s) => {
+				if (s.dialogStack.length === 0) return s;
+				const nextStack = s.dialogStack.slice(0, -1);
+				const prev = s.dialogStack[s.dialogStack.length - 1]!;
+				return { ...s, activeDialog: prev, dialogStack: nextStack };
+			});
+		},
+
+		closeDialog() { update((s) => ({ ...s, activeDialog: null, dialogStack: [] })); },
 
 		// ── Notifications panel ───────────────────────────────────────────
 
@@ -129,6 +154,7 @@ function createUIStore() {
 				settingsOpen: false,
 				mobileNavOpen: false,
 				activeDialog: null,
+				dialogStack: [],
 				notificationsOpen: false
 			}));
 		},
@@ -148,6 +174,7 @@ export const isSettingsOpen     = derived(uiStore, ($ui) => $ui.settingsOpen);
 export const settingsTab        = derived(uiStore, ($ui) => $ui.settingsTab);
 export const isMobileNavOpen    = derived(uiStore, ($ui) => $ui.mobileNavOpen);
 export const activeDialog       = derived(uiStore, ($ui) => $ui.activeDialog);
+export const dialogStackDepth   = derived(uiStore, ($ui) => $ui.dialogStack.length);
 export const isNotificationsOpen = derived(uiStore, ($ui) => $ui.notificationsOpen);
 export const currentBreakpoint  = derived(uiStore, ($ui) => $ui.breakpoint);
 

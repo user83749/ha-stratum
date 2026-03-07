@@ -6,8 +6,8 @@
 	// the appropriate tile-type-specific or domain-specific content inside.
 	// ─────────────────────────────────────────────────────────────────────────
 
-	import { dashboardStore } from '$lib/stores/dashboard';
-	import { uiStore, activeDialog } from '$lib/stores/ui';
+		import { dashboardStore } from '$lib/stores/dashboard';
+		import { uiStore, activeDialog, dialogStackDepth } from '$lib/stores/ui';
 	import { optimisticEntities } from '$lib/ha/optimistic';
 	import { getDomain, getEntityName } from '$lib/ha/entities';
 	import MoreInfoShell  from './MoreInfoShell.svelte';
@@ -51,8 +51,8 @@
 
 	// ─── Dialog state ─────────────────────────────────────────────────────────
 
-	const dialog    = $derived($activeDialog);
-	const isOpen    = $derived(dialog !== null);
+		const dialog    = $derived($activeDialog);
+		const isOpen    = $derived(dialog !== null);
 	const entityId  = $derived(dialog?.entityId ?? '');
 	const tileId    = $derived(dialog?.tileId ?? '');
 	const tileType  = $derived(dialog?.tileType);
@@ -102,18 +102,26 @@
 		)
 	);
 
-	function close() {
-		uiStore.closeDialog();
-	}
-</script>
+		function close() {
+			uiStore.closeDialog();
+		}
 
-<MoreInfoShell
-	open={isOpen}
-	{style}
-	{side}
-	{title}
-	onclose={close}
->
+		const canBack = $derived($dialogStackDepth > 0);
+
+		function back() {
+			uiStore.dialogBack();
+		}
+	</script>
+
+	<MoreInfoShell
+		open={isOpen}
+		{style}
+		{side}
+		{title}
+		onclose={close}
+		canBack={canBack}
+		onback={back}
+	>
 	{#if tileType === 'map' && selectedTile}
 		<MapTileMoreInfo tile={selectedTile} {entity} />
 	{:else if (tileType === 'history' || tileType === 'gauge' || tileType === 'statistic') && selectedTile}

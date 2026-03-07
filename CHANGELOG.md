@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.21] - 2026-03-07
+
+### Added
+- New authentication configuration API route.
+- Improved MoreInfo shell and dialog components.
+
+### Changed
+- Refactored sensor more-info views for better data presentation.
+- Updated UI store logic for improved state management.
+
 ## [1.0.2] - 2026-03-07
 
 ### Added

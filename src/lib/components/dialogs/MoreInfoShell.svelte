@@ -11,20 +11,24 @@
 	interface Props {
 		open:      boolean;
 		onclose:   () => void;
+		onback?:   () => void;
+		canBack?:  boolean;
 		style?:    MoreInfoStyle;  // 'modal' | 'drawer' | 'panel'
 		side?:     DrawerSide;     // 'right' | 'left' | 'bottom'  (drawer only)
 		title?:    string;
 		children:  Snippet;
 	}
 
-	let {
-		open,
-		onclose,
-		style  = 'drawer',
-		side   = 'right',
-		title  = '',
-		children
-	}: Props = $props();
+		let {
+			open,
+			onclose,
+			onback,
+			canBack = false,
+			style  = 'drawer',
+			side   = 'right',
+			title  = '',
+			children
+		}: Props = $props();
 
 	// Lock body scroll when open (modal/drawer only — panel is non-blocking)
 	$effect(() => {
@@ -91,17 +95,27 @@
 		onkeydown={handlePanelKeydown}
 		bind:this={panelEl}
 	>
-		<!-- Header -->
-		<div class="moreinfo-header">
-			<button
-				class="moreinfo-close"
-				onclick={onclose}
-				aria-label="Close"
-			>
-				<Icon name="x" size={18} />
-			</button>
-			<h2 class="moreinfo-title">{title}</h2>
-		</div>
+			<!-- Header -->
+			<div class="moreinfo-header">
+				{#if canBack && onback}
+					<button
+						class="moreinfo-close"
+						onclick={onback}
+						aria-label="Back"
+						title="Back"
+					>
+						<Icon name="chevron-left" size={18} />
+					</button>
+				{/if}
+				<button
+					class="moreinfo-close"
+					onclick={onclose}
+					aria-label="Close"
+				>
+					<Icon name="x" size={18} />
+				</button>
+				<h2 class="moreinfo-title">{title}</h2>
+			</div>
 
 		<!-- Scrollable body -->
 		<div class="moreinfo-body">
