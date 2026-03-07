@@ -13,6 +13,7 @@
   const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');
   const domain = $derived(entityId.split('.')[0] ?? 'script');
   const name = $derived(config.name ?? entity?.attributes?.friendly_name ?? 'Button');
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
   const iconName = $derived(config.icon ?? (domain === 'scene' ? 'star' : domain === 'automation' ? 'zap' : domain === 'input_button' ? 'circle-dot' : 'play'));
   const iconIsCustom = $derived(typeof iconName === 'string' && isCustomIcon(iconName));
   const isOn = $derived(
@@ -48,7 +49,7 @@
     {#if iconIsCustom}
       <Icon name={iconName} entity={entity} />
     {:else}
-      <div class="icon-circle" class:on={isOn}>
+      <div class="icon-circle" class:on={isOn} class:override={!!iconOverride}>
         <Icon name={iconName} size="100%" />
       </div>
     {/if}
@@ -69,4 +70,11 @@
     color: var(--accent);
     border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
     transition: background var(--transition);
-  }</style>
+  }
+
+  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+  .icon-circle.override {
+    background: transparent;
+    border-color: transparent;
+  }
+  </style>

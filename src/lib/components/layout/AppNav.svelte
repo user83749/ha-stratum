@@ -66,6 +66,7 @@
 	const iconSizeMap = { sm: 16, md: 20, lg: 24 } as const;
 	const iconSize    = $derived(iconSizeMap[nav.iconSize]);
 	const editing     = $derived($isEditing);
+	const showPageNav = $derived(editing || pages.length > 1);
 
 	function unpinEntity(entityId: string) {
 		dashboardStore.toggleFavorite(entityId);
@@ -141,6 +142,7 @@
 	<ul class="ha-nav__list" role="list">
 		{#each orderedItems as entry (entry.id)}
 			{#if entry.type === 'page'}
+				{#if showPageNav}
 				{@const page = pageMap.get(entry.id)}
 				{#if page}
 					{@const isActive = currentPageId === page.id}
@@ -173,6 +175,7 @@
 							</button>
 						{/if}
 					</li>
+				{/if}
 				{/if}
 
 			{:else if entry.type === 'extra'}

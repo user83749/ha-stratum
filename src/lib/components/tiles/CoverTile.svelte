@@ -3,6 +3,7 @@
   import type { Tile } from '$lib/types/dashboard';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { coverService } from '$lib/ha/services';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -20,6 +21,8 @@
   const entityState = $derived(entity?.state ?? 'unknown');
   const attrs = $derived(entity?.attributes ?? {});
   const name = $derived(config.name ?? attrs.friendly_name ?? 'Cover');
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const pos = $derived(attrs.current_position as number | undefined);
   const tilt = $derived(attrs.current_tilt_position as number | undefined);
   const deviceClass = $derived(attrs.device_class as string ?? 'blind');
@@ -62,10 +65,18 @@
 
 <div class="cover-tile" class:open={isOpen} data-size={sizePreset} style="--cc: {coverColor};">
 
-  <div class="tile-content">
+    <div class="tile-content">
     <div class="top">
-      <div class="icon-badge" class:open={isOpen}>
-        <Icon name={iconName()} />
+      <div class="icon-badge" class:open={isOpen} class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
+        {#if iconOverride}
+          {#if overrideIsCustom}
+            <Icon name={iconOverride} entity={entity} />
+          {:else}
+            <span class="icon-span"><Icon name={iconOverride} entity={entity} size="100%" /></span>
+          {/if}
+        {:else}
+          <Icon name={iconName()} />
+        {/if}
       </div>
       {#if showDirectControls}
       <div class="ctrl-row">
@@ -133,10 +144,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--fg-muted);
+    /* Match HA default off icon shade */
+    color: var(--state-icon-color, #9da0a2);
     background: color-mix(in srgb, var(--fg) var(--control-chip-fill-strength), transparent);
     border: var(--control-chip-border-width) solid color-mix(in srgb, var(--fg) var(--control-chip-border-strength), transparent);
     transition: all var(--transition);
+  }
+
+  .icon-badge.is-custom {
+    display: block;
+    line-height: 0;
+    overflow: visible;
   }
 
   .icon-badge.open {
@@ -146,6 +164,18 @@
     background: color-mix(in srgb, var(--cc) var(--control-chip-fill-strength), transparent);
     border-color: color-mix(in srgb, var(--cc) var(--control-chip-border-strength), transparent);
   }
+
+  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+  .icon-badge.override {
+    background: transparent;
+    border-color: transparent;
+  }
+  .icon-badge.override.open {
+    background: transparent;
+    border-color: transparent;
+  }
+
+  .icon-span { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; }
 
   .ctrl-row {
     display: flex;

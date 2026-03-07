@@ -503,13 +503,17 @@
 	}
 
 	.cmi__modes {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
+		/* Use flex so incomplete rows (e.g., 2 modes) can be centered */
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
 		gap: 8px;
 		padding-top: 10px;
 	}
 
 	.cmi__mode-btn {
+		/* Keep the “3 across” feel, but allow centering when fewer than 3 */
+		flex: 0 1 calc((100% - 16px) / 3);
 		height: 40px;
 		border-radius: 12px;
 		border: 1px solid rgba(255,255,255,0.1);

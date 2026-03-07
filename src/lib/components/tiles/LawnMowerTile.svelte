@@ -4,6 +4,7 @@
   import Icon from '$lib/components/ui/Icon.svelte';
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
   import { lawnMowerService } from '$lib/ha/services';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -21,6 +22,8 @@
   const state = $derived(entity?.state ?? 'idle');
   const attrs = $derived(entity?.attributes ?? {});
   const name = $derived(config.name ?? attrs.friendly_name ?? 'Lawn Mower');
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const battery = $derived(attrs.battery_level as number | undefined);
   const activity = $derived(attrs.activity as string ?? state);
 
@@ -50,8 +53,22 @@
 
   {#snippet icon()}
     <!-- Visual-only mower icon — tile tap handled by TileWrapper -->
-    <div class="mow-icon" class:mowing={isMowing}>
-      <span class="icon-span" class:spin={isMowing}><Icon name="scissors" size="100%" /></span>
+    <div
+      class="mow-icon"
+      class:mowing={isMowing}
+      class:override={!!iconOverride}
+      class:is-custom={overrideIsCustom}
+      style={iconOverride ? 'color: var(--lmc);' : ''}
+    >
+      {#if iconOverride}
+        {#if overrideIsCustom}
+          <Icon name={iconOverride} entity={entity} />
+        {:else}
+          <span class="icon-span" class:spin={isMowing}><Icon name={iconOverride} entity={entity} size="100%" /></span>
+        {/if}
+      {:else}
+        <span class="icon-span" class:spin={isMowing}><Icon name="scissors" size="100%" /></span>
+      {/if}
     </div>
   {/snippet}
 
@@ -106,11 +123,27 @@
     transition: all var(--transition);
   }
 
+  .mow-icon.is-custom {
+    display: block;
+    line-height: 0;
+    overflow: visible;
+  }
+
   /* Inner control chip only: mowing state. */
   .mow-icon.mowing {
     color: var(--color-on);
     background: color-mix(in srgb, var(--color-on) 16%, transparent);
     border-color: color-mix(in srgb, var(--color-on) 40%, transparent);
+  }
+
+  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+  .mow-icon.override {
+    background: transparent;
+    border-color: transparent;
+  }
+  .mow-icon.override.mowing {
+    background: transparent;
+    border-color: transparent;
   }
 
   .icon-span { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; }

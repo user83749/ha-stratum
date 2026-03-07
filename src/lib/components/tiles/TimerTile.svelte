@@ -4,6 +4,7 @@
   import Icon from '$lib/components/ui/Icon.svelte';
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
   import { timerService } from '$lib/ha/services';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -21,6 +22,8 @@
   const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');
   const attrs = $derived(entity?.attributes ?? {});
   const name = $derived(config.name ?? attrs.friendly_name ?? 'Timer');
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const entityState = $derived(entity?.state ?? 'idle');
   const isActive = $derived(entityState === 'active');
   const isPaused = $derived(entityState === 'paused');
@@ -107,7 +110,17 @@
 
 <BaseTile {name} state={formatTime(remainingSecs)} isOn={isActive || isPaused} style="--tc: {statusColor}; --tlc: {labelColor};">
   {#snippet icon()}
-    <div class="icon-sq"><Icon name="timer" size="100%" /></div>
+    <div class="icon-sq" class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
+      {#if iconOverride}
+        {#if overrideIsCustom}
+          <Icon name={iconOverride} entity={entity} />
+        {:else}
+          <Icon name={iconOverride} entity={entity} size="100%" />
+        {/if}
+      {:else}
+        <Icon name="timer" size="100%" />
+      {/if}
+    </div>
   {/snippet}
 
   {#snippet circle()}
@@ -167,6 +180,18 @@
     border: var(--control-chip-border-width) solid
       color-mix(in srgb, var(--tc) var(--control-chip-border-strength), transparent);
     transition: all var(--transition);
+  }
+
+  .icon-sq.is-custom {
+    display: block;
+    line-height: 0;
+    overflow: visible;
+  }
+
+  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+  .icon-sq.override {
+    background: transparent;
+    border-color: transparent;
   }
 
   .status-label {

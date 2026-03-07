@@ -75,6 +75,18 @@
 			/>
 		</div>
 
+		<div class="ds__toggle-row">
+			<div class="ds__toggle-info">
+				<span class="ds__toggle-label">Hide Update tile name</span>
+				<span class="ds__toggle-desc">Hides the entity name inside Update tiles (more-info headers are unchanged)</span>
+			</div>
+			<Toggle
+				checked={display.hideUpdateTileName}
+				onchange={(v) => dashboardStore.setDisplay({ hideUpdateTileName: v })}
+				label="Hide Update tile name"
+			/>
+		</div>
+
 	</div>
 
 	<!-- Theme schedule -->

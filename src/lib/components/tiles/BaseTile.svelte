@@ -13,15 +13,17 @@
     state: string;
     isOn?: boolean;
     style?: string;
+    showName?: boolean;
+    showState?: boolean;
     icon: Snippet;
     circle?: Snippet;
     below?: Snippet;
   }
 
-  let { name, state, isOn = false, style = '', icon, circle, below }: Props = $props();
+  let { name, state, isOn = false, style = '', showName = true, showState = true, icon, circle, below }: Props = $props();
 </script>
 
-<div class="base-tile" class:on={isOn} {style}>
+<div class="base-tile" class:on={isOn} class:no-name={!showName} {style}>
   <div class="tile-grid">
 
     <!-- grid-area: icon — icon container (custom icons self-position via width/margins) -->
@@ -37,10 +39,14 @@
     </div>
 
     <!-- grid-area: n -->
-    <span class="name-text">{name}</span>
+    {#if showName}
+      <span class="name-text">{name}</span>
+    {/if}
 
     <!-- grid-area: s -->
-    <span class="state-text">{state}</span>
+    {#if showState}
+      <span class="state-text">{state}</span>
+    {/if}
 
   </div>
 
@@ -79,6 +85,14 @@
     grid-template-rows: auto repeat(2, min-content);
     gap: 1.3%;
     align-items: start;
+  }
+
+  /* If the name row is hidden, collapse the grid so state sits directly under the icon row. */
+  .base-tile.no-name .tile-grid {
+    grid-template-areas:
+      "icon circle"
+      "s    s";
+    grid-template-rows: auto min-content;
   }
 
   /* icon-area: grid cell */

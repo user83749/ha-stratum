@@ -2,12 +2,15 @@
 	import type { HassEntity } from 'home-assistant-js-websocket';
 	import type { Tile } from '$lib/types/dashboard';
 	import Icon from '$lib/components/ui/Icon.svelte';
+	import { isCustomIcon } from '$lib/icons/customIcons';
 
 	interface Props { tile: Tile; entity: HassEntity | null; }
 	const { tile, entity }: Props = $props();
 
 	const sizePreset     = $derived(tile.sizePreset ?? 'md');
 	const name           = $derived((tile.config.name as string | undefined) ?? entity?.attributes.friendly_name ?? 'Camera');
+	const iconOverride   = $derived(((tile.config.icon as string | undefined) ?? '').trim() || undefined);
+	const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
 	const streamUrl      = $derived(entity?.attributes.entity_picture as string | undefined);
 	const motionDetected = $derived(entity?.attributes.motion_detection as boolean | undefined);
 	const isRecording    = $derived(entity?.state === 'recording');
@@ -53,8 +56,16 @@
 		</div>
 	{:else}
 		<div class="no-stream">
-			<div class="no-stream-icon" class:recording={isRecording}>
-				<Icon name="camera" size={32} />
+			<div class="no-stream-icon" class:recording={isRecording} class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
+				{#if iconOverride}
+					{#if overrideIsCustom}
+						<Icon name={iconOverride} entity={entity} size={32} />
+					{:else}
+						<Icon name={iconOverride} entity={entity} size={32} />
+					{/if}
+				{:else}
+					<Icon name="camera" size={32} />
+				{/if}
 				{#if isRecording}
 					<span class="rec-indicator"></span>
 				{/if}
@@ -192,9 +203,23 @@
 		color: var(--fg-muted);
 	}
 
+	.no-stream-icon.is-custom {
+		display: block;
+		line-height: 0;
+		overflow: visible;
+	}
+
 	.no-stream-icon.recording {
 		background: color-mix(in srgb, var(--color-danger) 14%, transparent);
 		color: var(--color-danger);
+	}
+
+	/* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+	.no-stream-icon.override {
+		background: transparent;
+	}
+	.no-stream-icon.override.recording {
+		background: transparent;
 	}
 
 	.rec-indicator {

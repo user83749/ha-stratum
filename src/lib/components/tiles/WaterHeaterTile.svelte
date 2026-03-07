@@ -4,6 +4,7 @@
   import Icon from '$lib/components/ui/Icon.svelte';
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
   import { waterHeaterService } from '$lib/ha/services';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -21,6 +22,8 @@
   const entityState = $derived(entity?.state ?? 'off');
   const attrs = $derived(entity?.attributes ?? {});
   const name = $derived(config.name ?? attrs.friendly_name ?? 'Water Heater');
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const isOn = $derived(entityState !== 'off');
   const targetTemp = $derived((attrs.temperature as number | undefined) ?? 50);
   const currentTemp = $derived(attrs.current_temperature as number | undefined);
@@ -54,8 +57,23 @@
 <BaseTile {name} state={`${displayTemp}${unit}`} {isOn} style="--hc: {heaterColor}; --fp: {fillPct}%;">
   {#snippet icon()}
     <!-- Flame icon button — pulsing when heating -->
-    <div class="flame-icon" class:on={isOn} class:heating={isHeating}>
-      <span class="icon-span" class:pulse={isHeating}><Icon name="flame" size="100%" /></span>
+    <div
+      class="flame-icon"
+      class:on={isOn}
+      class:heating={isHeating}
+      class:override={!!iconOverride}
+      class:is-custom={overrideIsCustom}
+      style={iconOverride ? 'color: var(--hc);' : ''}
+    >
+      {#if iconOverride}
+        {#if overrideIsCustom}
+          <Icon name={iconOverride} entity={entity} />
+        {:else}
+          <span class="icon-span" class:pulse={isHeating}><Icon name={iconOverride} entity={entity} size="100%" /></span>
+        {/if}
+      {:else}
+        <span class="icon-span" class:pulse={isHeating}><Icon name="flame" size="100%" /></span>
+      {/if}
     </div>
   {/snippet}
 
@@ -102,6 +120,12 @@
     transition: all var(--transition);
   }
 
+  .flame-icon.is-custom {
+    display: block;
+    line-height: 0;
+    overflow: visible;
+  }
+
   .icon-span { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; }
   .pulse { animation: flame-pulse 0.8s ease-in-out infinite alternate; }
 
@@ -117,6 +141,20 @@
     color: var(--color-warning);
     background: color-mix(in srgb, var(--color-warning) 18%, transparent);
     border-color: color-mix(in srgb, var(--color-warning) 40%, transparent);
+  }
+
+  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+  .flame-icon.override {
+    background: transparent;
+    border-color: transparent;
+  }
+  .flame-icon.override.on {
+    background: transparent;
+    border-color: transparent;
+  }
+  .flame-icon.override.heating {
+    background: transparent;
+    border-color: transparent;
   }
 
   @keyframes flame-pulse { from { transform: scale(0.88); } to { transform: scale(1.12); } }

@@ -245,7 +245,7 @@
 		justify-content: flex-start;
 		gap: 12px;
 		padding: 16px 16px 12px;
-		border-bottom: 1px solid var(--border);
+		border-bottom: none;
 		flex-shrink: 0;
 	}
 

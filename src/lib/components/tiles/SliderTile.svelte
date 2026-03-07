@@ -3,6 +3,7 @@
   import type { Tile } from '$lib/types/dashboard';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { inputNumberService, numberService } from '$lib/ha/services';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -21,6 +22,8 @@
   const entityState = $derived(entity?.state ?? '0');
   const attrs = $derived(entity?.attributes ?? {});
   const name = $derived(config.name ?? attrs.friendly_name ?? 'Slider');
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const minVal = $derived(attrs.min as number ?? 0);
   const maxVal = $derived(attrs.max as number ?? 100);
   const stepVal = $derived(attrs.step as number ?? 1);
@@ -48,10 +51,18 @@
 
 <div class="slider-tile" data-size={sizePreset} style="--fp: {fillPct}%;">
 
-  <div class="tile-content">
+    <div class="tile-content">
     <div class="top">
-      <div class="icon-sq">
-        <Icon name="sliders-horizontal" />
+      <div class="icon-sq" class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
+        {#if iconOverride}
+          {#if overrideIsCustom}
+            <Icon name={iconOverride} entity={entity} />
+          {:else}
+            <Icon name={iconOverride} entity={entity} size="100%" />
+          {/if}
+        {:else}
+          <Icon name="sliders-horizontal" />
+        {/if}
       </div>
     </div>
 
@@ -134,6 +145,18 @@
     color: var(--accent);
     background: color-mix(in srgb, var(--accent) var(--control-chip-fill-strength), transparent);
     border: var(--control-chip-border-width) solid color-mix(in srgb, var(--accent) var(--control-chip-border-strength), transparent);
+  }
+
+  .icon-sq.is-custom {
+    display: block;
+    line-height: 0;
+    overflow: visible;
+  }
+
+  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+  .icon-sq.override {
+    background: transparent;
+    border-color: transparent;
   }
 
   .bottom {

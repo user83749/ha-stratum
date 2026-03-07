@@ -4,6 +4,7 @@
   import Icon from '$lib/components/ui/Icon.svelte';
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
   import { sirenService } from '$lib/ha/services';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -21,6 +22,8 @@
   const isOn = $derived(entity?.state === 'on');
   const attrs = $derived(entity?.attributes ?? {});
   const name = $derived(config.name ?? attrs.friendly_name ?? 'Siren');
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const tones = $derived((attrs.available_tones as string[]) ?? []);
   const currentTone = $derived(attrs.tone as string ?? '');
   const showToneChips = $derived((sizePreset === 'lg' || sizePreset === 'xl') && tones.length > 0 && isOn);
@@ -30,8 +33,22 @@
 
   {#snippet icon()}
     <!-- Visual-only siren icon — tile tap handled by TileWrapper -->
-    <div class="siren-icon" class:on={isOn}>
-      <span class="icon-span" class:pulse={isOn}><Icon name="siren" size="100%" /></span>
+    <div
+      class="siren-icon"
+      class:on={isOn}
+      class:override={!!iconOverride}
+      class:is-custom={overrideIsCustom}
+      style={iconOverride ? `color:${isOn ? 'var(--color-danger)' : 'var(--fg-muted)'};` : ''}
+    >
+      {#if iconOverride}
+        {#if overrideIsCustom}
+          <Icon name={iconOverride} entity={entity} />
+        {:else}
+          <span class="icon-span" class:pulse={isOn}><Icon name={iconOverride} entity={entity} size="100%" /></span>
+        {/if}
+      {:else}
+        <span class="icon-span" class:pulse={isOn}><Icon name="siren" size="100%" /></span>
+      {/if}
     </div>
   {/snippet}
 
@@ -63,11 +80,27 @@
     transition: all var(--transition);
   }
 
+  .siren-icon.is-custom {
+    display: block;
+    line-height: 0;
+    overflow: visible;
+  }
+
   /* Inner chip only: danger color when sounding. */
   .siren-icon.on {
     color: var(--color-danger);
     background: color-mix(in srgb, var(--color-danger) 20%, transparent);
     border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
+  }
+
+  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+  .siren-icon.override {
+    background: transparent;
+    border-color: transparent;
+  }
+  .siren-icon.override.on {
+    background: transparent;
+    border-color: transparent;
   }
 
   .icon-span { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; }

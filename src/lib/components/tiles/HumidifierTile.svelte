@@ -4,6 +4,7 @@
   import Icon from '$lib/components/ui/Icon.svelte';
   import { humidifierService } from '$lib/ha/services';
   import { clamp } from '$lib/utils/format';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -21,6 +22,8 @@
   const entityId    = $derived(entity?.entity_id ?? tile.entity_id ?? '');
   const attrs       = $derived(entity?.attributes ?? {});
   const name        = $derived(config.name ?? attrs.friendly_name ?? 'Humidifier');
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const isOn        = $derived(entity?.state === 'on');
   const targetHum   = $derived(attrs.humidity as number ?? 50);
   const currentHum  = $derived(attrs.current_humidity as number | undefined);
@@ -61,6 +64,7 @@
 
   const modeColor = $derived(isOn ? 'var(--color-info)' : 'var(--fg-muted)');
   const activeColor = 'var(--tile-label-on, var(--control-active-name))';
+  const mainIcon = $derived(iconOverride ?? 'droplets');
 </script>
 
 <div class="hum-tile size-{sizePreset}" class:is-off={isOff} class:unavailable style="--mc: {modeColor}; --hp: {humPct}%;">
@@ -68,7 +72,11 @@
     <!-- 1x1 Bold Complication -->
     <button class="layout-sm" onclick={toggle}>
       <div class="sm-icon" style="color: {isOn ? activeColor : modeColor}">
-        <Icon name="droplets" size={38} />
+        {#if iconOverride && overrideIsCustom}
+          <Icon name={mainIcon} entity={entity} size={38} />
+        {:else}
+          <Icon name={mainIcon} size={38} />
+        {/if}
       </div>
       {#if currentHum !== undefined}
         <div class="primary-hum" style="color: {isOn ? activeColor : 'var(--fg)'}">{Math.round(currentHum)}%</div>
@@ -88,8 +96,12 @@
     <!-- 2x1 Horizontal Row -->
     <div class="layout-md">
       <button class="md-left" onclick={toggle} aria-label="Toggle Power">
-        <div class="md-icon" style="background: {isOn ? 'color-mix(in srgb, var(--mc) 20%, transparent)' : 'color-mix(in srgb, var(--fg) 8%, transparent)'}; color: {isOn ? 'var(--mc)' : 'var(--fg-muted)'}">
-          <Icon name="droplets" size={32} />
+        <div class="md-icon" style="background: {iconOverride ? 'transparent' : isOn ? 'color-mix(in srgb, var(--mc) 20%, transparent)' : 'color-mix(in srgb, var(--fg) 8%, transparent)'}; color: {isOn ? 'var(--mc)' : 'var(--fg-muted)'}">
+          {#if iconOverride && overrideIsCustom}
+            <Icon name={mainIcon} entity={entity} size={32} />
+          {:else}
+            <Icon name={mainIcon} size={32} />
+          {/if}
         </div>
         <div class="md-status">
           <div class="status-val" style="color: {isOn ? activeColor : 'var(--fg-muted)'}">{isOn ? 'Humidifying' : 'Off'}</div>
@@ -122,8 +134,12 @@
     <div class="layout-lg" class:is-xl={sizePreset === 'xl'}>
       <div class="lg-top">
         <div class="lg-hero">
-          <div class="lg-icon-box" style="background: color-mix(in srgb, {modeColor} 15%, transparent); color: {modeColor}">
-            <Icon name="droplets" size={sizePreset === 'xl' ? 44 : 32} />
+          <div class="lg-icon-box" style="background: {iconOverride ? 'transparent' : `color-mix(in srgb, ${modeColor} 15%, transparent)`}; color: {modeColor}">
+            {#if iconOverride && overrideIsCustom}
+              <Icon name={mainIcon} entity={entity} size={sizePreset === 'xl' ? 44 : 32} />
+            {:else}
+              <Icon name={mainIcon} size={sizePreset === 'xl' ? 44 : 32} />
+            {/if}
           </div>
           <div class="lg-hero-text">
             <div class="lg-mode" style="color: {isOn ? activeColor : modeColor}">{isOn ? 'Humidifying' : 'Off'}</div>

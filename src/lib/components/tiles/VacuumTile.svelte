@@ -4,6 +4,7 @@
   import Icon from '$lib/components/ui/Icon.svelte';
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
   import { vacuumService } from '$lib/ha/services';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -21,6 +22,8 @@
   const state = $derived(entity?.state ?? 'docked');
   const attrs = $derived(entity?.attributes ?? {});
   const name = $derived(config.name ?? attrs.friendly_name ?? 'Vacuum');
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const battery = $derived(attrs.battery_level as number | undefined);
   const fanSpeed = $derived(attrs.fan_speed as string ?? '');
   const fanSpeeds = $derived((attrs.fan_speed_list as string[]) ?? []);
@@ -52,8 +55,22 @@
 
   {#snippet icon()}
     <!-- Visual-only vacuum icon — tile tap handled by TileWrapper -->
-    <div class="vac-icon" class:cleaning={isCleaning}>
-      <span class="icon-span" class:spin={isCleaning}><Icon name="bot" size="100%" /></span>
+    <div
+      class="vac-icon"
+      class:cleaning={isCleaning}
+      class:override={!!iconOverride}
+      class:is-custom={overrideIsCustom}
+      style={iconOverride ? 'color: var(--vc);' : ''}
+    >
+      {#if iconOverride}
+        {#if overrideIsCustom}
+          <Icon name={iconOverride} entity={entity} />
+        {:else}
+          <span class="icon-span" class:spin={isCleaning}><Icon name={iconOverride} entity={entity} size="100%" /></span>
+        {/if}
+      {:else}
+        <span class="icon-span" class:spin={isCleaning}><Icon name="bot" size="100%" /></span>
+      {/if}
     </div>
   {/snippet}
 
@@ -114,11 +131,27 @@
     transition: all var(--transition);
   }
 
+  .vac-icon.is-custom {
+    display: block;
+    line-height: 0;
+    overflow: visible;
+  }
+
   /* Inner control chip only: cleaning state. */
   .vac-icon.cleaning {
     color: var(--color-on);
     background: color-mix(in srgb, var(--color-on) 16%, transparent);
     border-color: color-mix(in srgb, var(--color-on) 40%, transparent);
+  }
+
+  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+  .vac-icon.override {
+    background: transparent;
+    border-color: transparent;
+  }
+  .vac-icon.override.cleaning {
+    background: transparent;
+    border-color: transparent;
   }
 
   .icon-span { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; }

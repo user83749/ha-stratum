@@ -35,7 +35,7 @@
       <!-- HA-style custom icon: render inside the BaseTile icon box so YAML width/margins apply -->
       <Icon name={iconOverride} entity={entity} />
     {:else}
-      <div class="fan-icon" class:on={isOn}>
+      <div class="fan-icon" class:on={isOn} class:override={!!iconOverride}>
         {#if iconOverride}
           <span class="icon-span"><Icon name={iconOverride} entity={entity} size="100%" /></span>
         {:else}
@@ -101,6 +101,16 @@
     color: var(--accent);
     background: color-mix(in srgb, var(--accent) 18%, transparent);
     border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+
+  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+  .fan-icon.override {
+    background: transparent;
+    border-color: transparent;
+  }
+  .fan-icon.override.on {
+    background: transparent;
+    border-color: transparent;
   }
 
   .icon-span { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; }

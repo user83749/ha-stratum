@@ -3,6 +3,7 @@
   import type { Tile } from '$lib/types/dashboard';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { appSettings } from '$lib/stores/dashboard';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -17,6 +18,8 @@
     'sm'
   );
   const name = $derived(config.name ?? entity?.attributes?.friendly_name ?? 'Calendar');
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const nextEventTitle = $derived(entity?.attributes?.message as string ?? '');
   const startTime = $derived(entity?.attributes?.start_time as string ?? '');
   const allDay = $derived(entity?.attributes?.all_day as boolean ?? false);
@@ -46,7 +49,17 @@
 <div class="cal-tile" data-size={sizePreset}>
   {#if showHeader}
     <div class="top">
-      <div class="icon-sq"><Icon name="calendar" /></div>
+      <div class="icon-sq" class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
+        {#if iconOverride}
+          {#if overrideIsCustom}
+            <Icon name={iconOverride} entity={entity} />
+          {:else}
+            <Icon name={iconOverride} entity={entity} size="100%" />
+          {/if}
+        {:else}
+          <Icon name="calendar" />
+        {/if}
+      </div>
       <span class="title">{name}</span>
     </div>
   {/if}
@@ -81,6 +94,18 @@
     color: var(--accent); background: color-mix(in srgb, var(--accent) var(--control-chip-fill-strength), transparent);
     border: var(--control-chip-border-width) solid color-mix(in srgb, var(--accent) var(--control-chip-border-strength), transparent);
     flex-shrink: 0;
+  }
+
+  .icon-sq.is-custom {
+    display: block;
+    line-height: 0;
+    overflow: visible;
+  }
+
+  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+  .icon-sq.override {
+    background: transparent;
+    border-color: transparent;
   }
   .title { font-size: var(--secondary-label-size); font-weight: 500; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 

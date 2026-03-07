@@ -4,6 +4,7 @@
   import Icon from '$lib/components/ui/Icon.svelte';
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
   import { lockService } from '$lib/ha/services';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -25,6 +26,9 @@
   const isLocked = $derived(entityState === 'locked');
   const isJammed = $derived(entityState === 'jammed');
   const isUnlocked = $derived(entityState === 'unlocked');
+
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
 
   const lockColor = $derived(
     isJammed ? 'var(--color-danger)' :
@@ -58,9 +62,25 @@
 
   {#snippet icon()}
     <!-- Visual-only lock icon — tile tap handled by TileWrapper -->
-    <div class="lock-icon" class:locked={isLocked} class:jammed={isJammed}>
-      <Icon name={isLocked ? 'lock' : 'lock-open'} size="100%" />
-    </div>
+    {#if iconOverride}
+      {#if overrideIsCustom}
+        <!-- Custom icon override: render directly so YAML width/margins apply; no badge behind. -->
+        <span class="lock-icon-override" style="color: var(--lc);">
+          <Icon name={iconOverride} entity={entity} />
+        </span>
+      {:else}
+        <!-- Built-in icon override: keep centered, but remove the badge behind the icon. -->
+        <div class="lock-icon-override centered" style="color: var(--lc);">
+          <span class="icon-span">
+            <Icon name={iconOverride} entity={entity} size="100%" />
+          </span>
+        </div>
+      {/if}
+    {:else}
+      <div class="lock-icon" class:locked={isLocked} class:jammed={isJammed}>
+        <Icon name={isLocked ? 'lock' : 'lock-open'} size="100%" />
+      </div>
+    {/if}
   {/snippet}
 
   {#snippet below()}
@@ -86,6 +106,27 @@
 
 <style>
   /* ── Lock icon (visual only) ─────────────────────────────────────────── */
+  .lock-icon-override {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+  }
+
+  .lock-icon-override.centered {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .icon-span {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+  }
+
   .lock-icon {
     width: 100%;
     aspect-ratio: 1;

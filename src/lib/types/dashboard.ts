@@ -600,6 +600,7 @@ export interface NavConfig {
 
 	showLabels: boolean;
 	showLabelsOnMobile: boolean;
+	showMobileClock: boolean; // show the clock block above sections in mobile view
 
 	showHeader: boolean;
 	headerTitle?: string;
@@ -766,6 +767,7 @@ export interface DisplayConfig {
 	themeSchedule: ThemeSchedule;
 	kiosk: KioskConfig;
 	screensaver: ScreensaverConfig;
+	hideUpdateTileName: boolean; // hide entity name text on Update tiles (tile view only)
 }
 
 // ─── Notifications ───────────────────────────────────────────────────────────
@@ -888,6 +890,7 @@ export const DEFAULT_NAV: NavConfig = {
 	iconSize: 'md',
 	showLabels: true,
 	showLabelsOnMobile: false,
+	showMobileClock: true,
 	showHeader: false,
 	showConnectionStatus: true,
 	mobileBreakpoint: 768,
@@ -991,7 +994,8 @@ export const DEFAULT_DISPLAY: DisplayConfig = {
 	timeBasedPages: [],
 	themeSchedule: { ...DEFAULT_THEME_SCHEDULE },
 	kiosk: { ...DEFAULT_KIOSK },
-	screensaver: { ...DEFAULT_SCREENSAVER }
+	screensaver: { ...DEFAULT_SCREENSAVER },
+	hideUpdateTileName: false
 };
 
 export const DEFAULT_NOTIFICATIONS: NotificationConfig = {
@@ -1129,6 +1133,7 @@ export function migrateConfig(raw: unknown): DashboardConfig {
 			iconSize: rawNav.iconSize ?? DEFAULT_NAV.iconSize,
 			showLabels: rawNav.showLabels ?? DEFAULT_NAV.showLabels,
 			showLabelsOnMobile: rawNav.showLabelsOnMobile ?? DEFAULT_NAV.showLabelsOnMobile,
+			showMobileClock: rawNav.showMobileClock ?? DEFAULT_NAV.showMobileClock,
 			showHeader: rawNav.showHeader ?? DEFAULT_NAV.showHeader,
 			headerTitle: rawNav.headerTitle ?? DEFAULT_NAV.headerTitle,
 			headerIcon: rawNav.headerIcon ?? DEFAULT_NAV.headerIcon,

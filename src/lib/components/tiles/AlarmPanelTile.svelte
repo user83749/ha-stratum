@@ -4,6 +4,7 @@
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import BaseTile from '$lib/components/tiles/BaseTile.svelte';
 	import { alarmService } from '$lib/ha/services';
+	import { isCustomIcon } from '$lib/icons/customIcons';
 
 	interface Props { tile: Tile; entity: HassEntity | null; }
 	const { tile, entity }: Props = $props();
@@ -20,6 +21,8 @@
 	const entityId    = $derived(entity?.entity_id ?? '');
 	const entityState = $derived(entity?.state ?? 'unknown');
 	const name        = $derived((tile.config.name as string | undefined) ?? (entity?.attributes.friendly_name as string | undefined) ?? 'Alarm');
+	const iconOverride = $derived(((tile.config.icon as string | undefined) ?? '').trim() || undefined);
+	const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
 	const isArmed     = $derived(entityState.startsWith('armed'));
 	const isDisarmed  = $derived(entityState === 'disarmed');
 	const isTriggered = $derived(entityState === 'triggered');
@@ -83,7 +86,17 @@
 <BaseTile {name} state={stateLabel} isOn={isArmed || isPending || isTriggered} style="--c:{stateColor}">
 
 	{#snippet icon()}
-		<div class="ap__icon-wrap"><Icon name={stateIcon} size="100%" /></div>
+		<div class="ap__icon-wrap" class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
+			{#if iconOverride}
+				{#if overrideIsCustom}
+					<Icon name={iconOverride} entity={entity} />
+				{:else}
+					<Icon name={iconOverride} entity={entity} size="100%" />
+				{/if}
+			{:else}
+				<Icon name={stateIcon} size="100%" />
+			{/if}
+		</div>
 	{/snippet}
 
 	{#snippet below()}
@@ -176,6 +189,17 @@
 		align-items: center;
 		justify-content: center;
 		transition: color var(--transition), background var(--transition);
+	}
+
+	.ap__icon-wrap.is-custom {
+		display: block;
+		line-height: 0;
+		overflow: visible;
+	}
+
+	/* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+	.ap__icon-wrap.override {
+		background: transparent;
 	}
 
 	/* Actions */

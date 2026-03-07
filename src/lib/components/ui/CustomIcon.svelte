@@ -426,9 +426,11 @@
 				case 'spot': {
 					const id = Math.random().toString(36).substring(2, 9);
 					const stage = (isOn && isRecent) ? 'on' : (!isOn && isRecent ? 'off' : (isOn && !isRecent ? 'on_timeout' : ''));
+					// Off state must be a consistent HA-style grey (NOT fg-muted), even when used outside button-card tiles.
+					const offFill = 'var(--state-icon-color, #9da0a2)';
 					const lightFill = isOn
 						? (rgbColor !== 'none' ? rgbColor : 'var(--lc, #f5a623)')
-						: 'var(--light-color, var(--state-icon-color, #9da0a2))';
+						: offFill;
 					return `<svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
 	            <g id="spot-${id}">
 		            <style>
@@ -449,8 +451,11 @@
 	              #spot-${id} .on { animation: spot-on-${id} 0.7s; transform-origin: 40% 20%; animation-fill-mode: forwards; animation-delay: -0.1s; }
 		              #spot-${id} .off { animation: spot-off-${id} 0.7s; transform-origin: 40% 20%; animation-fill-mode: forwards; }
 		              #spot-${id} .on_timeout { transform: rotateZ(-15deg); transform-origin: 40% 20%; }
+
+									/* Override global light-color fill so off state matches HA grey everywhere. */
+									#spot-${id} .light-color { fill: ${lightFill}; }
 		            </style>
-		            <path style="clip-path: url(#mask-spot-${id});" fill="var(--state-icon-color, #9da0a2)" d="M40.5.8H17.1c-.1 0-.1 0-.1.1A3.12 3.12 0 0 0 20.1 4h6.1c.1 0 .1 0 .1.1v7.4L18 19.1l3.6 3.5 9.1-8.6c.4-.4.6-1 .7-1.6V4c0-.1 0-.1.1-.1h6c1.7.1 3.1-1.3 3-3.1z"/>
+		            <path style="clip-path: url(#mask-spot-${id});" fill="${offFill}" d="M40.5.8H17.1c-.1 0-.1 0-.1.1A3.12 3.12 0 0 0 20.1 4h6.1c.1 0 .1 0 .1.1v7.4L18 19.1l3.6 3.5 9.1-8.6c.4-.4.6-1 .7-1.6V4c0-.1 0-.1.1-.1h6c1.7.1 3.1-1.3 3-3.1z"/>
 		            <defs>
 		              <clipPath id="mask-spot-${id}">
 		                <path class="${stage}" d="M0 9.1h24l8.3 8.8H50V-9H0z"/>

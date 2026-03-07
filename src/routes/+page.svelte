@@ -438,7 +438,7 @@
 				>
 						<PageView
 					showIntegratedNav={useIntegratedDesktopNav}
-					showMobileClock={showMobileNav}
+					showMobileClock={showMobileNav && (navCfg.showMobileClock ?? true)}
 					onEditSection={(pageId, sectionId) => {
 						editMode.selectSection(pageId, sectionId);
 					}}

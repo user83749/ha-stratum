@@ -3,6 +3,7 @@
   import type { Tile } from '$lib/types/dashboard';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { todoService } from '$lib/ha/services';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -19,6 +20,8 @@
   const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');
   const attrs = $derived(entity?.attributes ?? {});
   const name = $derived(config.name ?? attrs.friendly_name ?? 'To-do');
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
 
   interface TodoItem { uid: string; summary: string; status: 'needs_action' | 'completed'; }
   let items = $state<TodoItem[]>([]);
@@ -62,7 +65,17 @@
 
 <div class="todo-tile" data-size={sizePreset}>
   <div class="header">
-    <div class="icon-bubble"><Icon name="check-square" size={16} /></div>
+    <div class="icon-bubble" class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
+      {#if iconOverride}
+        {#if overrideIsCustom}
+          <Icon name={iconOverride} entity={entity} />
+        {:else}
+          <Icon name={iconOverride} entity={entity} size={16} />
+        {/if}
+      {:else}
+        <Icon name="check-square" size={16} />
+      {/if}
+    </div>
     <span class="title">{name}</span>
     {#if showCount}
       <span class="count">{pending.length} left</span>
@@ -124,6 +137,17 @@
     flex-shrink: 0;
     background: color-mix(in srgb, var(--accent) 14%, transparent);
     color: var(--accent);
+  }
+
+  .icon-bubble.is-custom {
+    display: block;
+    line-height: 0;
+    overflow: visible;
+  }
+
+  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+  .icon-bubble.override {
+    background: transparent;
   }
 
   .title {

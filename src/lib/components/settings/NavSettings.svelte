@@ -58,6 +58,7 @@
 		{#each [
 			['showLabels',           'Show labels',           'Show page names next to icons (desktop)'],
 			['showLabelsOnMobile',   'Show labels on mobile', 'Show page names in the mobile bottom bar'],
+			['showMobileClock',      'Mobile header clock',   'Show the clock block at the top of the page on mobile'],
 			['showConnectionStatus', 'Connection status',     'Show HA connection indicator'],
 		] as [key, label, desc]}
 			<div class="ns__toggle-row">

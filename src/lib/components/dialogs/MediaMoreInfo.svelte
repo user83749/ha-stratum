@@ -434,6 +434,12 @@
 		background: rgba(28, 28, 30, 0.85);
 		border-radius: 32px 32px 0 0;
 		padding: 24px 24px 40px;
+		/* Allow scrolling when there are many speakers */
+		max-height: min(70dvh, 640px);
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior: contain;
+		touch-action: pan-y;
 		box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
 		border-top: 1px solid rgba(255,255,255,0.1);
 	}

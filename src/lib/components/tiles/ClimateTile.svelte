@@ -4,6 +4,7 @@
   import Icon from '$lib/components/ui/Icon.svelte';
   import { clamp } from '$lib/utils/format';
   import { climateService, type HvacMode } from '$lib/ha/services';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -19,6 +20,8 @@
 
   const entityId    = $derived(tile.entity_id ?? entity?.entity_id ?? '');
   const name        = $derived((tile.config.name as string | undefined) ?? entity?.attributes.friendly_name ?? 'Climate');
+  const iconOverride = $derived(((tile.config.icon as string | undefined) ?? '').trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const currentTemp = $derived(entity?.attributes.current_temperature as number | undefined);
   const targetTemp  = $derived(entity?.attributes.temperature as number | undefined);
   const humidity    = $derived(entity?.attributes.current_humidity as number | undefined);
@@ -28,6 +31,11 @@
   const hvacModes   = $derived((entity?.attributes.hvac_modes as string[] | undefined) ?? []);
   const isOff       = $derived(hvacMode === 'off');
   const unavailable = $derived(entity?.state === 'unavailable' || entity?.state === 'unknown');
+
+  // Match BaseTile label semantics so climate "state" text reads like other tiles.
+  const stateTextColor = $derived(
+    isOff ? 'var(--tile-label-off, #97989c)' : 'var(--tile-label-on, var(--control-active-name))'
+  );
 
   const modeColor = $derived(
     isOff                    ? 'var(--fg-subtle)' :
@@ -47,6 +55,7 @@
     hvacMode === 'dry'       ? 'droplets' :
     'power'
   );
+  const mainIcon = $derived(iconOverride ?? modeIcon);
 
   const MODE_LABELS: Record<string, string> = {
     off: 'Off', heat: 'Heating', cool: 'Cooling',
@@ -76,15 +85,19 @@
     <!-- 1x1 Bold Complication — tap handled by TileWrapper (more-info) -->
     <div class="layout-sm">
       <div class="sm-icon" style="color: {modeColor}">
-        <Icon name={modeIcon} />
+        {#if iconOverride && overrideIsCustom}
+          <Icon name={mainIcon} entity={entity} />
+        {:else}
+          <Icon name={mainIcon} />
+        {/if}
       </div>
       {#if currentTemp !== undefined}
         <div class="primary-temp">{Math.round(currentTemp)}{tempUnit}</div>
       {/if}
       <div class="sm-meta">
-        <span class="meta-label">{modeLabel}</span>
+        <span class="meta-label" style="color: {stateTextColor}">{modeLabel}</span>
         {#if targetTemp !== undefined && !isOff}
-          <span class="target-val"> · {Math.round(targetTemp)}°</span>
+          <span class="target-val" style="color: {stateTextColor}; opacity: 0.7;"> · {Math.round(targetTemp)}°</span>
         {/if}
       </div>
     </div>
@@ -94,10 +107,14 @@
     <div class="layout-md">
       <button class="md-left" onclick={togglePower} aria-label="Toggle Power">
         <div class="md-icon" style="color: {modeColor}">
-          <Icon name={modeIcon} size={48} />
+          {#if iconOverride && overrideIsCustom}
+            <Icon name={mainIcon} entity={entity} size={48} />
+          {:else}
+            <Icon name={mainIcon} size={48} />
+          {/if}
         </div>
         <div class="md-status">
-          <div class="status-val" style="color: {isOff ? 'var(--fg-muted)' : 'var(--mc)'}">{modeLabel}</div>
+          <div class="status-val" style="color: {stateTextColor}">{modeLabel}</div>
           <div class="device-name">{name}</div>
         </div>
       </button>
@@ -129,27 +146,31 @@
     <div class="layout-lg" class:is-xl={sizePreset === 'xl'}>
       <div class="lg-top">
         <div class="lg-hero">
-          <div class="lg-icon-box" style="background: color-mix(in srgb, {modeColor} 15%, transparent); color: {modeColor}">
-            <Icon name={modeIcon} size={sizePreset === 'xl' ? 44 : 32} />
+          <div class="lg-icon-box" style="background: {iconOverride ? 'transparent' : `color-mix(in srgb, ${modeColor} 15%, transparent)`}; color: {modeColor}">
+            {#if iconOverride && overrideIsCustom}
+              <Icon name={mainIcon} entity={entity} size={sizePreset === 'xl' ? 44 : 32} />
+            {:else}
+              <Icon name={mainIcon} size={sizePreset === 'xl' ? 44 : 32} />
+            {/if}
           </div>
           <div class="lg-hero-text">
-            <div class="lg-mode" style="color: {modeColor}">{modeLabel}</div>
+            <div class="lg-mode" style="color: {stateTextColor}">{modeLabel}</div>
             <div class="lg-name">{name}</div>
           </div>
         </div>
 
-        <div class="lg-stats">
-          {#if humidity !== undefined}
-            <div class="stat">
-              <Icon name="droplets" size={14} />
-              <span>{humidity}%</span>
-            </div>
-          {/if}
-          <button class="power-toggle" class:active={!isOff} onclick={togglePower}>
-            <Icon name="power" size={16} />
-          </button>
-        </div>
-      </div>
+	        <div class="lg-stats">
+	          {#if humidity !== undefined}
+	            <div class="stat">
+	              <Icon name="droplets" size={14} />
+	              <span>{humidity}%</span>
+	            </div>
+	          {/if}
+	          <button class="power-toggle" class:active={!isOff} onclick={togglePower}>
+	            <Icon name="power" size={16} strokeWidth={2.5} />
+	          </button>
+	        </div>
+	      </div>
 
       <div class="lg-main">
         <div class="temp-display">

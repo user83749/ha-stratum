@@ -2,6 +2,7 @@
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import Icon from '$lib/components/ui/Icon.svelte';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -19,6 +20,8 @@
   const state = $derived(entity?.state ?? 'unknown');
   const attrs = $derived(entity?.attributes ?? {});
   const name = $derived(config.name ?? attrs.friendly_name ?? 'Weather');
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const temp = $derived(attrs.temperature as number | undefined);
   const tempUnit = '°';
   const humidity = $derived(attrs.humidity as number | undefined);
@@ -63,6 +66,8 @@
 
     return d.toLocaleDateString(undefined, { weekday: 'short' });
   }
+
+  const mainIcon = $derived(iconOverride ?? conditionIcon(state));
 </script>
 
 <div class="weather-tile size-{sizePreset}" style="--wc: {conditionColor(state)};">
@@ -70,7 +75,11 @@
     <!-- 1x1 Bold Center Complication -->
     <div class="layout-sm">
       <div class="sm-icon-wrap" style="color: {conditionColor(state)}">
-        <Icon name={conditionIcon(state)} size={42} />
+        {#if iconOverride && overrideIsCustom}
+          <Icon name={mainIcon} entity={entity} size={42} />
+        {:else}
+          <Icon name={mainIcon} size={42} />
+        {/if}
       </div>
       <div class="sm-content">
         {#if temp !== undefined}
@@ -92,7 +101,11 @@
     <!-- 2x1 Horizontal Row -->
     <div class="layout-md">
       <div class="md-icon" style="color: {conditionColor(state)}">
-        <Icon name={conditionIcon(state)} size={48} />
+        {#if iconOverride && overrideIsCustom}
+          <Icon name={mainIcon} entity={entity} size={48} />
+        {:else}
+          <Icon name={mainIcon} size={48} />
+        {/if}
       </div>
       <div class="md-content">
         <div class="md-temp-group">
@@ -119,7 +132,11 @@
       <div class="lg-main">
         <div class="lg-hero">
           <div class="lg-icon" style="color: {conditionColor(state)}">
-            <Icon name={conditionIcon(state)} size={sizePreset === 'xl' ? 92 : 72} />
+            {#if iconOverride && overrideIsCustom}
+              <Icon name={mainIcon} entity={entity} size={sizePreset === 'xl' ? 92 : 72} />
+            {:else}
+              <Icon name={mainIcon} size={sizePreset === 'xl' ? 92 : 72} />
+            {/if}
           </div>
           <div class="lg-hero-text">
             {#if temp !== undefined}

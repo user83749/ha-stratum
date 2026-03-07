@@ -25,13 +25,24 @@
 	let { name: rawName, size, strokeWidth = 1.75, fill = 'none', class: className = '', color, entity = null }: Props = $props();
 	const name = $derived(rawName ?? '');
 
-	// Iconify format detection: contains a colon (e.g. "mdi:home", "ph:gear")
-	const isIconify = $derived(name.includes(':'));
+	// Normalize a few deprecated Lucide alias names to the current icon set.
+	// (lucide-svelte exports aliases as components, but the `icons` map only includes canonical names.)
+	const normName = $derived.by(() => {
+		switch (name) {
+			case 'arrow-up-circle': return 'circle-arrow-up';
+			case 'check-circle': return 'circle-check';
+			case 'check-circle-2': return 'circle-check';
+			default: return name;
+		}
+	});
 
-	const isHueLight = $derived(name === 'hue-light');
-	const isAirplay = $derived(name === 'airplay');
-	const isCustom = $derived(isCustomIcon(name));
-	const customMeta = $derived(getCustomIconMeta(name));
+	// Iconify format detection: contains a colon (e.g. "mdi:home", "ph:gear")
+	const isIconify = $derived(normName.includes(':'));
+
+	const isHueLight = $derived(normName === 'hue-light');
+	const isAirplay = $derived(normName === 'airplay');
+	const isCustom = $derived(isCustomIcon(normName));
+	const customMeta = $derived(getCustomIconMeta(normName));
 
 	function mixChannel(a: number, b: number, t: number): number {
 		return Math.round(a + (b - a) * t);
@@ -63,7 +74,7 @@
 	const DynIcon = $derived(
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(!isIconify && !isHueLight && !isAirplay && !isCustom)
-			? (icons[toKey(name) as keyof typeof icons] ?? null) as unknown as Component<IconProps> | null
+			? (icons[toKey(normName) as keyof typeof icons] ?? null) as unknown as Component<IconProps> | null
 			: null
 	);
 
@@ -157,7 +168,7 @@
 					style="width:{customMeta.width};height:100%;margin-left:{customMeta.marginLeft};margin-top:{customMeta.marginTop};display:block;{extraStyle}"
 					aria-hidden="true"
 				>
-					<CustomIcon {name} {entity} />
+					<CustomIcon name={normName} {entity} />
 				</span>
 			</span>
 		{:else}
@@ -166,7 +177,7 @@
 				style="width:{customMeta.width};margin-left:{customMeta.marginLeft};margin-top:{customMeta.marginTop};display:block;flex-shrink:0;{extraStyle}"
 				aria-hidden="true"
 			>
-				<CustomIcon {name} {entity} />
+				<CustomIcon name={normName} {entity} />
 			</span>
 		{/if}
 	{:else if isAirplay}
@@ -189,14 +200,14 @@
 	{:else if isIconify}
 		<!-- Iconify icon — supports mdi:*, ph:*, etc. -->
 		<Iconify
-			icon={name}
+			icon={normName}
 			width={resolvedSize}
 			height={resolvedSize}
 			class={className}
 		/>
 	{:else if DynIcon}
 		<DynIcon {...iconProps} />
-	{:else if name}
+	{:else if normName}
 		<!-- Fallback: rounded-square question mark for unrecognised icon names -->
 		<svg
 			xmlns="http://www.w3.org/2000/svg"

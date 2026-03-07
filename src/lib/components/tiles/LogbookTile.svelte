@@ -2,6 +2,7 @@
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import Icon from '$lib/components/ui/Icon.svelte';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -16,6 +17,8 @@
     'sm'
   );
   const name = $derived(config.name ?? entity?.attributes?.friendly_name ?? 'Logbook');
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const recentState = $derived(entity?.state ?? '');
   const lastChanged = $derived(entity?.last_changed ?? '');
   const showHeader = $derived(sizePreset !== 'sm');
@@ -37,7 +40,17 @@
 <div class="logbook-tile" data-size={sizePreset}>
   {#if showHeader}
     <div class="top">
-      <div class="icon-sq"><Icon name="scroll-text" /></div>
+      <div class="icon-sq" class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
+        {#if iconOverride}
+          {#if overrideIsCustom}
+            <Icon name={iconOverride} entity={entity} />
+          {:else}
+            <Icon name={iconOverride} entity={entity} size="100%" />
+          {/if}
+        {:else}
+          <Icon name="scroll-text" />
+        {/if}
+      </div>
       <span class="title">{name}</span>
     </div>
   {/if}
@@ -65,6 +78,18 @@
     display: flex; align-items: center; justify-content: center;
     color: var(--fg-muted); background: color-mix(in srgb, var(--fg) 8%, transparent);
     border: var(--control-chip-border-width) solid var(--border); flex-shrink: 0;
+  }
+
+  .icon-sq.is-custom {
+    display: block;
+    line-height: 0;
+    overflow: visible;
+  }
+
+  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+  .icon-sq.override {
+    background: transparent;
+    border-color: transparent;
   }
   .title { font-size: var(--secondary-label-size); font-weight: 500; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 

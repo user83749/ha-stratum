@@ -3,6 +3,7 @@
   import type { Tile } from '$lib/types/dashboard';
   import Icon from '$lib/components/ui/Icon.svelte';
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
+  import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -19,6 +20,8 @@
   const state = $derived(entity?.state ?? '0');
   const attrs = $derived(entity?.attributes ?? {});
   const name = $derived(config.name ?? attrs.friendly_name ?? 'Energy');
+  const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
+  const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const unit = $derived(attrs.unit_of_measurement as string ?? 'W');
   const deviceClass = $derived(attrs.device_class as string ?? '');
   const value = $derived(parseFloat(state) || 0);
@@ -47,8 +50,16 @@
 <BaseTile {name} state={displayValue} isOn={isPositive} style="--ec: {flowColor};">
 
   {#snippet icon()}
-    <div class="icon-sq">
-      <Icon name={iconForClass(deviceClass)} size="100%" />
+    <div class="icon-sq" class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
+      {#if iconOverride}
+        {#if overrideIsCustom}
+          <Icon name={iconOverride} entity={entity} />
+        {:else}
+          <Icon name={iconOverride} entity={entity} size="100%" />
+        {/if}
+      {:else}
+        <Icon name={iconForClass(deviceClass)} size="100%" />
+      {/if}
     </div>
   {/snippet}
 
@@ -72,6 +83,18 @@
     background: color-mix(in srgb, var(--ec) var(--control-chip-fill-strength), transparent);
     border: var(--control-chip-border-width) solid color-mix(in srgb, var(--ec) var(--control-chip-border-strength), transparent);
     transition: all var(--transition);
+  }
+
+  .icon-sq.is-custom {
+    display: block;
+    line-height: 0;
+    overflow: visible;
+  }
+
+  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
+  .icon-sq.override {
+    background: transparent;
+    border-color: transparent;
   }
 
   .meta-chip {
