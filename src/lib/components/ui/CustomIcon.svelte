@@ -120,7 +120,11 @@
 
 	const entityState = $derived(entity?.state ?? 'off');
 	const attrs = $derived(entity?.attributes ?? {});
-	const isOn  = $derived(entityState === 'on' || entityState === 'playing' || entityState === 'open' || entityState === 'opening' || entityState === 'cool' || entityState === 'fan_only');
+	// Mirror your HA button-card `variables.state_on` semantics so icon animations
+	// (e.g. `closet`) trigger on lock unlock and other non-"on" active states.
+	const isOn = $derived(
+		['on', 'home', 'cool', 'fan_only', 'playing', 'open', 'opening', 'active', 'unlocked'].includes(entityState)
+	);
 
 	// rgb_color as CSS rgb() string, or 'none' if unavailable
 	const rgbColor = $derived.by(() => {
@@ -570,17 +574,63 @@
 			case 'fan2': {
 				const id = Math.random().toString(36).substring(2, 9);
 				const path = `<circle cx="25" cy="25" r="6.6"/><path d="M31.9 30.4c-.5.6-1.1 1.1-1.7 1.5-1.4 1.1-3.2 1.7-5.2 1.7-2.3 0-4.5-.9-6-2.4-.9 1.1-1.6 2.3-2.3 3.2l-4.9 5.4c-1.8 2.7.3 5.6 2.5 7 3.9 2.4 9.8 3.1 14.1 1.9 4.6-1.3 7.9-4.7 7.4-9.7-.2-3.4-1.9-6-3.9-8.6zM17 28.3c-.4-1-.6-2.1-.6-3.3a8.7 8.7 0 0 1 6.4-8.4l-1.6-3.5L19 6.2c-1.5-2.8-5-2.5-7.3-1.2-4 2.2-7.5 6.9-8.7 11.3-1.2 4.6.2 9.2 4.7 11.3 3.1 1.3 6.1 1.2 9.3.7zm26.9-17.6c-3.3-3.4-8-4.6-12.1-1.8-2.8 1.8-4.2 4.6-5.5 7.5 4.2.6 7.4 4.2 7.4 8.6 0 .9-.1 1.7-.4 2.5 1.3.2 2.8.3 3.8.4 2.3.4 4.7 1.3 7.1 1.7 3.2.3 4.7-3 4.8-5.6.3-4.6-1.9-10.1-5.1-13.3z"/>`;
-				const fill = isOn ? '#5daeea' : '#9ca2a5';
+				const stage = (isOn && isRecent)
+					? 'on'
+					: (!isOn && isRecent ? 'off' : (isOn ? 'on_timeout' : ''));
+
 				return `<svg viewBox="0 0 50 50">
             <style>
               @keyframes fan-rotate-${id} {
-                0% { transform: rotate(0deg) translateZ(0); }
-                100% { transform: rotate(1080deg) translateZ(0); }
+                0% {
+                  visibility: visible;
+                  transform: rotate(0deg) translateZ(0);
+                }
+                100% {
+                  transform: rotate(1080deg) translateZ(0);
+                }
               }
-              .fan-spin { animation: fan-rotate-${id} 5.5s linear infinite; transform-origin: center; fill: ${fill}; will-change: transform; }
-              .fan-off { fill: #9ca2a5; }
+              /* Faster overall than before, with a brief accel + steady spin. */
+              .start {
+                animation: fan-rotate-${id} 1.6s ease-in;
+                transform-origin: center;
+                fill: #5daeea;
+                visibility: hidden;
+                will-change: transform;
+              }
+              .on {
+                animation: fan-rotate-${id} 1.1s linear infinite;
+                transform-origin: center;
+                fill: #5daeea;
+                animation-delay: 1.6s;
+                visibility: hidden;
+                will-change: transform;
+              }
+              /* When turned off, keep spinning briefly and ease out. */
+              .off {
+                animation: fan-rotate-${id} 1.6s;
+                transform-origin: center;
+                fill: #9ca2a5;
+                animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1);
+                will-change: transform;
+              }
+              /* Steady-state on after the recent-change window elapses. */
+              .on_timeout {
+                animation: fan-rotate-${id} 1.1s linear infinite;
+                transform-origin: center;
+                fill: #5daeea;
+                visibility: hidden;
+                will-change: transform;
+              }
+              .end_timeout { fill: #9ca2a5; }
             </style>
-            <g class="${isOn ? 'fan-spin' : 'fan-off'}">${path}</g>
+            ${stage === 'on'
+							? `<g class="start">${path}</g><g class="on">${path}</g>`
+							: stage === 'off'
+								? `<g class="off">${path}</g>`
+								: stage === 'on_timeout'
+									? `<g class="on_timeout">${path}</g>`
+									: `<g class="end_timeout">${path}</g>`
+						}
           </svg>`;
 			}
 

@@ -69,6 +69,10 @@
 		return [...ordered, ...missing];
 	});
 
+	// If there is only one page, don't render the page list on desktop.
+	// (Favorites can still render below.)
+	const showPageNav = $derived(editing || pages.length > 1);
+
 	function navigate(pageId: string) {
 		uiStore.navigateTo(pageId);
 	}
@@ -164,45 +168,47 @@
 
 	<div class="rail__nav" aria-label="Pages">
 		<ul class="rail__list" role="list">
-			{#each orderedPageIds as pageId (pageId)}
-				{@const page = pageMap.get(pageId)}
-				{#if page}
-					{@const active = currentPageId === page.id}
-					{@const badge = badgeMap.get(page.id)}
-					<li class="rail__item">
-						<div class="rail__row" class:rail__row--editing={editing}>
-							<button
-								class="rail__link"
-								class:rail__link--active={active}
-								onclick={() => navigate(page.id)}
-								data-page-drop-id={page.id}
-								aria-current={active ? 'page' : undefined}
-							>
-								<span class="rail__icon">
-									<Icon name={page.icon} />
-									{#if badge}
-										<span class="rail__badge" aria-hidden="true"></span>
-									{/if}
-								</span>
-								<span class="rail__label">{page.name}</span>
-							</button>
-							{#if editing}
+			{#if showPageNav}
+				{#each orderedPageIds as pageId (pageId)}
+					{@const page = pageMap.get(pageId)}
+					{#if page}
+						{@const active = currentPageId === page.id}
+						{@const badge = badgeMap.get(page.id)}
+						<li class="rail__item">
+							<div class="rail__row" class:rail__row--editing={editing}>
 								<button
-									class="rail__edit-btn"
-									onclick={(event) => { event.stopPropagation(); editMode.openPageEditor(page.id); }}
-									title="Edit room"
-									aria-label={`Edit room ${page.name}`}
+									class="rail__link"
+									class:rail__link--active={active}
+									onclick={() => navigate(page.id)}
+									data-page-drop-id={page.id}
+									aria-current={active ? 'page' : undefined}
 								>
-									<Icon name="pencil" size={12} />
+									<span class="rail__icon">
+										<Icon name={page.icon} />
+										{#if badge}
+											<span class="rail__badge" aria-hidden="true"></span>
+										{/if}
+									</span>
+									<span class="rail__label">{page.name}</span>
 								</button>
-							{/if}
-						</div>
-					</li>
-				{/if}
-			{/each}
+								{#if editing}
+									<button
+										class="rail__edit-btn"
+										onclick={(event) => { event.stopPropagation(); editMode.openPageEditor(page.id); }}
+										title="Edit room"
+										aria-label={`Edit room ${page.name}`}
+									>
+										<Icon name="pencil" size={12} />
+									</button>
+								{/if}
+							</div>
+						</li>
+					{/if}
+				{/each}
+			{/if}
 
 			{#if favorites.showInNav && favoriteEntities.length > 0}
-				<li class="rail__divider" aria-hidden="true"></li>
+				{#if showPageNav}<li class="rail__divider" aria-hidden="true"></li>{/if}
 				{#each favoriteEntities as fav (fav.id)}
 					{@const entity = fav.entity}
 					{@const active = entity ? isActive(entity) : false}

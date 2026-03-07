@@ -78,10 +78,16 @@
 		}
 		return null;
 	});
-	const title  = $derived(
-		entity ? getEntityName(entity) :
-		(selectedTile ? ((selectedTile.config.name as string | undefined) ?? selectedTile.type) : entityId)
-	);
+	const title = $derived.by(() => {
+		// For update.* entity detail dialogs, keep the shell header generic.
+		// The content area already shows the entity name + status.
+		if (entityId.startsWith('update.')) return 'Details';
+
+		const tileName = (selectedTile?.config?.name as string | undefined)?.trim();
+		if (tileName) return tileName;
+		if (entity) return getEntityName(entity);
+		return selectedTile ? selectedTile.type : entityId;
+	});
 
 	// ─── Domain routing ───────────────────────────────────────────────────────
 
@@ -155,7 +161,7 @@
 	{:else if domain === 'input_select' || domain === 'select'}
 		<SelectMoreInfo {entityId} />
 	{:else if domain === 'sensor' || domain === 'binary_sensor'}
-		<SensorMoreInfo {entityId} />
+		<SensorMoreInfo {entityId} tile={selectedTile} />
 	{:else if domain === 'siren'}
 		<SirenMoreInfo {entityId} />
 	{:else if domain === 'switch' || domain === 'input_boolean'}

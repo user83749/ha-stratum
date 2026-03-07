@@ -6,6 +6,7 @@
 	import { isUnavailable, isActive } from '$lib/ha/entities';
 	import { entities } from '$lib/ha/websocket';
 	import { handleAction } from '$lib/ha/services';
+	import { lockService } from '$lib/ha/services';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore } from '$lib/stores/ui';
 	import Icon from '$lib/components/ui/Icon.svelte';
@@ -48,18 +49,38 @@
 		editing && $multiSelection.includes(tile.id)
 	);
 
-		const entityActive = $derived.by(() => {
-			if (!entity) return false;
+	const entityActive = $derived.by(() => {
+		if (!entity) return false;
 
-			// Match HA button-card "state_on" semantics for the standard Media Player tile:
-			// treat any non-off-ish state as active so the tile "lights up" like the other tiles.
-			if (tile.type === 'media_player') {
-				const s = entity.state;
-				return !['off', 'idle', 'standby', 'unknown', 'unavailable'].includes(s);
-			}
+		// Match HA button-card "state_on" semantics for the standard Media Player tile:
+		// treat any non-off-ish state as active so the tile "lights up" like the other tiles.
+		if (tile.type === 'media_player') {
+			const s = entity.state;
+			return !['off', 'idle', 'standby', 'unknown', 'unavailable'].includes(s);
+		}
 
-			return isActive(entity);
-		});
+		// Locks should "light up" when unlocked (not locked).
+		if (tile.type === 'lock') {
+			return entity.state === 'unlocked' || entity.state === 'unlocking';
+		}
+
+		// Update tiles can target update.* entities OR summary sensors (e.g. sensor.hassio_updates_available).
+		// Treat them as active when updates are available.
+		if (tile.type === 'update') {
+			const domain = entity.entity_id.split('.')[0] ?? '';
+			if (domain === 'update') return entity.state === 'on';
+			const n = Number(entity.state);
+			if (Number.isFinite(n)) return n > 0;
+			const a = (entity.attributes ?? {}) as any;
+			const candidates = [a.update_entities, a.total, a.home_assistant];
+			return candidates.some((v) => {
+				const num = typeof v === 'number' ? v : Number(v);
+				return Number.isFinite(num) && num > 0;
+			});
+		}
+
+		return isActive(entity);
+	});
 	const entityDomain = $derived(entity?.entity_id?.split('.')[0] ?? tile.entity_id?.split('.')[0] ?? '');
 
 	// ─── HA button-card compatible light color vars ───────────────────────────
@@ -258,6 +279,19 @@
 
 		if (action.type === 'more-info') {
 			uiStore.openDialog(tile.entity_id ?? entity?.entity_id ?? '', undefined, tile.type, tile.id);
+			return;
+		}
+
+		// Home Assistant has no generic "toggle" for locks via homeassistant.toggle.
+		// If the user configured tap=toggle (or defaults), map it to lock/unlock.
+		if (action.type === 'toggle' && tile.type === 'lock') {
+			const id = tile.entity_id ?? entity?.entity_id ?? '';
+			const s = entity?.state ?? 'unknown';
+			if (!id) return;
+			if (s === 'locked') { lockService.unlock(id).catch(() => {}); return; }
+			if (s === 'unlocked') { lockService.lock(id).catch(() => {}); return; }
+			// Fallback: open more-info if state is nonstandard.
+			uiStore.openDialog(id, undefined, tile.type, tile.id);
 			return;
 		}
 

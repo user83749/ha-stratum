@@ -4,6 +4,7 @@
 	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
+	import { getEntityIcon, getEntityName } from '$lib/ha/entities';
 
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
@@ -19,6 +20,15 @@
 	const title = $derived(entity?.attributes.title as string | undefined);
 
 	const isUpdateAvailable = $derived(entity?.state === 'on');
+	const iconName = $derived(entity ? getEntityIcon(entity) : 'download');
+	const displayName = $derived.by(() => {
+		if (!entity) return 'Update';
+		const raw = (title ?? getEntityName(entity) ?? entityId).trim();
+		// Many HA update entities use a friendly name like "Hassio Update" —
+		// avoid duplicating "Update" since the subtitle already states availability.
+		const cleaned = raw.replace(/\s*update\s*$/i, '').trim();
+		return cleaned || raw;
+	});
 
 	function install() {
 		if (isUnavail) return;
@@ -41,10 +51,10 @@
 <div class="umi">
 	<div class="umi__header">
 		<div class="umi__icon-wrap" class:umi__icon-wrap--active={isUpdateAvailable}>
-			<Icon name="download" size={28} />
+			<Icon name={iconName} entity={entity} size={28} />
 		</div>
 		<div class="umi__titles">
-			<h2 class="umi__title">{title ?? (entity?.attributes.friendly_name || 'Update')}</h2>
+			<h2 class="umi__title">{displayName}</h2>
 			<span class="umi__subtitle">{isUpdateAvailable ? 'Update Available' : 'Up to Date'}</span>
 		</div>
 		{#if isUpdateAvailable}

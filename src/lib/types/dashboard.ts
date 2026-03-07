@@ -767,7 +767,6 @@ export interface DisplayConfig {
 	themeSchedule: ThemeSchedule;
 	kiosk: KioskConfig;
 	screensaver: ScreensaverConfig;
-	hideUpdateTileName: boolean; // hide entity name text on Update tiles (tile view only)
 }
 
 // ─── Notifications ───────────────────────────────────────────────────────────
@@ -995,7 +994,6 @@ export const DEFAULT_DISPLAY: DisplayConfig = {
 	themeSchedule: { ...DEFAULT_THEME_SCHEDULE },
 	kiosk: { ...DEFAULT_KIOSK },
 	screensaver: { ...DEFAULT_SCREENSAVER },
-	hideUpdateTileName: false
 };
 
 export const DEFAULT_NOTIFICATIONS: NotificationConfig = {

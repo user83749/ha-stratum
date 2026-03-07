@@ -32,7 +32,7 @@
 
   const lockColor = $derived(
     isJammed ? 'var(--color-danger)' :
-    isLocked ? 'var(--color-on)' :
+    isLocked ? 'var(--fg-subtle)' :
     'var(--color-warning)'
   );
   const stateLabel = $derived(isLocked ? 'Locked' : isJammed ? 'Jammed!' : isUnlocked ? 'Unlocked' : entityState);
@@ -58,7 +58,7 @@
   }
 </script>
 
-<BaseTile {name} state={stateLabel} isOn={isLocked} style="--lc: {lockColor};">
+<BaseTile {name} state={stateLabel} isOn={isUnlocked} style="--lc: {lockColor};">
 
   {#snippet icon()}
     <!-- Visual-only lock icon — tile tap handled by TileWrapper -->

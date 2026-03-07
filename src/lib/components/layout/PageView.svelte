@@ -472,12 +472,12 @@
 		--rail-width: clamp(244px, calc(104px + 17vw), 360px);
 		--rail-body-size: clamp(15px, 1.6vw, 20px);
 		--rail-body-line: clamp(20px, 2.2vw, 28px);
-		--rail-time-size: clamp(48px, 5.4vw, 82px);
-		--rail-time-line: clamp(38px, 4.3vw, 64px);
-		--rail-date-size: clamp(16px, 1.6vw, 21px);
-		--rail-weather-size: clamp(15px, 1.38vw, 19px);
-		--rail-nav-size: clamp(16px, 1.52vw, 21px);
-		--rail-icon-size: clamp(14px, 1.5vw, 20px);
+		--rail-time-size: clamp(54px, 5.9vw, 92px);
+		--rail-time-line: clamp(42px, 4.7vw, 72px);
+		--rail-date-size: clamp(18px, 1.75vw, 24px);
+		--rail-weather-size: clamp(16px, 1.5vw, 21px);
+		--rail-nav-size: clamp(18px, 1.7vw, 24px);
+		--rail-icon-size: clamp(16px, 1.7vw, 22px);
 		--rail-link-gap: clamp(8px, 0.6vw, 12px);
 		--rail-link-pad-y: clamp(7px, 0.5vw, 10px);
 		--rail-list-gap: clamp(1px, 0.12vw, 3px);

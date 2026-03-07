@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
-  import { dashboardStore } from '$lib/stores/dashboard';
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { callService } from '$lib/ha/services';
@@ -25,8 +24,7 @@
   const isUnavail = $derived(!entity || entityState === 'unavailable' || entityState === 'unknown');
   const attrs = $derived(entity?.attributes ?? {});
   const name = $derived(config.name ?? attrs.friendly_name ?? 'Update');
-  const hideNameGlobal = $derived($dashboardStore.display.hideUpdateTileName ?? false);
-  const showName = $derived(config.show_name !== false && !hideNameGlobal);
+  const showName = $derived(config.show_name !== false);
   const showState = $derived(config.show_state !== false);
   const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
   const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);

@@ -110,23 +110,49 @@
 	};
 
 	let LoadedComponent = $state<TileComponent | null>(null);
+	let loadedType = $state<Tile['type'] | null>(null);
 	let pendingLoad = 0;
+	const componentCache: Partial<Record<Tile['type'], TileComponent>> = {};
 
 	$effect(() => {
-		const loadId = ++pendingLoad;
-		const loader = componentLoaders[activeTile.type];
-		LoadedComponent = null;
-		if (loader) {
-			void loader().then((component) => {
-				if (loadId === pendingLoad) {
-					LoadedComponent = component;
-				}
-			}).catch((err) => {
-				console.error('[stratum] Failed to load tile component:', activeTile.type, err);
-			});
-		} else {
-			console.warn('[stratum] No loader found for tile type:', activeTile.type);
+		const type = activeTile.type;
+
+		// Avoid flicker during edit-mode dragging/resizing: the tile object changes
+		// frequently (layout updates) but the component type rarely does. Only load
+		// when `type` changes or a component hasn't been cached yet.
+		if (LoadedComponent && loadedType === type) return;
+
+		const cached = componentCache[type];
+		if (cached) {
+			LoadedComponent = cached;
+			loadedType = type;
+			return;
 		}
+
+		const loader = componentLoaders[type];
+		if (!loader) {
+			console.warn('[stratum] No loader found for tile type:', type);
+			LoadedComponent = null;
+			loadedType = null;
+			return;
+		}
+
+		// Clear only when the type actually changes (prevents showing wrong component).
+		if (loadedType !== type) {
+			LoadedComponent = null;
+		}
+
+		const loadId = ++pendingLoad;
+		void loader()
+			.then((component) => {
+				if (loadId !== pendingLoad) return;
+				componentCache[type] = component;
+				LoadedComponent = component;
+				loadedType = type;
+			})
+			.catch((err) => {
+				console.error('[stratum] Failed to load tile component:', type, err);
+			});
 	});
 
 	const shouldShow = $derived.by(() => {

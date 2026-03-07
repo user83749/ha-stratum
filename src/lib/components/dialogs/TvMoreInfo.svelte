@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
-	import { remoteService } from '$lib/ha/services';
+	import { mediaService, remoteService } from '$lib/ha/services';
 	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 
@@ -12,63 +12,88 @@
 	const isDemo = $derived(browser ? isDemoMode() : false);
 	const state = $derived(entity?.state ?? 'off');
 	const isUnavail = $derived(state === 'unavailable' || !entity);
-	const isOn = $derived(state === 'on');
+	const domain = $derived(entityId.split('.')[0] ?? '');
+	const isRemote = $derived(domain === 'remote');
+	const isPowered = $derived.by(() => {
+		if (isRemote) return state === 'on';
+		// media_player.* power-ish heuristic
+		return !['off', 'standby', 'unknown', 'unavailable'].includes(state);
+	});
 
 	function sendCmd(cmd: string) {
 		if (isUnavail) return;
 		if (isDemo) return;
-		remoteService.sendCommand(entityId, [cmd]).catch(() => {});
+
+		// If this is a remote.* entity, send navigation/rocker commands.
+		if (isRemote) {
+			remoteService.sendCommand(entityId, [cmd]).catch(() => {});
+			return;
+		}
+
+		// For media_player.* TVs, only map commands that HA supports universally.
+		switch (cmd) {
+			case 'volume_up': mediaService.volumeUp(entityId).catch(() => {}); return;
+			case 'volume_down': mediaService.volumeDown(entityId).catch(() => {}); return;
+			case 'channel_up': mediaService.next(entityId).catch(() => {}); return;
+			case 'channel_down': mediaService.previous(entityId).catch(() => {}); return;
+			default: return;
+		}
 	}
 
 	function toggle() {
 		if (isUnavail) return;
-		if (isDemo) applyPatch(entityId, { state: isOn ? 'off' : 'on' });
-		else (isOn ? remoteService.turnOff(entityId) : remoteService.turnOn(entityId)).catch(() => {});
+		if (isDemo) applyPatch(entityId, { state: isPowered ? 'off' : 'on' });
+		else (isRemote
+			? (isPowered ? remoteService.turnOff(entityId) : remoteService.turnOn(entityId))
+			: (isPowered ? mediaService.turnOff(entityId) : mediaService.turnOn(entityId))
+		).catch(() => {});
 	}
 </script>
 
 <div class="tvmi">
 	<!-- Hero Status Row -->
 	<div class="tvmi__hero">
-		<div class="tvmi__icon" class:tvmi__icon--active={isOn}>
+		<div class="tvmi__icon" class:tvmi__icon--active={isPowered}>
 			<Icon name="tv" size={26} />
 		</div>
 		<div class="tvmi__hero-copy">
-			<div class="tvmi__value">{isOn ? 'Powered On' : 'Standby'}</div>
+			<div class="tvmi__value">{isPowered ? 'Powered On' : 'Standby'}</div>
 			<div class="tvmi__sub">Television Status</div>
 		</div>
-		<button class="tvmi__power" class:tvmi__power--on={isOn} onclick={toggle} disabled={isUnavail}>
+		<button class="tvmi__power" class:tvmi__power--on={isPowered} onclick={toggle} disabled={isUnavail}>
 			<Icon name="power" size={18} />
 		</button>
 	</div>
 
 	<div class="tvmi__body">
-		<!-- System Row -->
-		<div class="tvmi__grid">
-			<button class="tvmi__btn" onclick={() => sendCmd('house')} disabled={isUnavail}>
-				<Icon name="house" size={18} />
-				<span>Home</span>
-			</button>
-			<button class="tvmi__btn" onclick={() => sendCmd('back')} disabled={isUnavail}>
-				<Icon name="undo-2" size={18} />
-				<span>Back</span>
-			</button>
-			<button class="tvmi__btn" onclick={() => sendCmd('menu')} disabled={isUnavail}>
-				<Icon name="menu" size={18} />
-				<span>Menu</span>
-			</button>
-		</div>
-
-		<!-- D-Pad -->
-		<div class="tvmi__navigation">
-			<div class="tvmi__dpad">
-				<button class="tvmi__dpad-btn tvmi__dpad-btn--up" onclick={() => sendCmd('up')} disabled={isUnavail}><Icon name="chevron-up" size={22} /></button>
-				<button class="tvmi__dpad-btn tvmi__dpad-btn--left" onclick={() => sendCmd('left')} disabled={isUnavail}><Icon name="chevron-left" size={22} /></button>
-				<button class="tvmi__dpad-center" onclick={() => sendCmd('select')} disabled={isUnavail}>OK</button>
-				<button class="tvmi__dpad-btn tvmi__dpad-btn--right" onclick={() => sendCmd('right')} disabled={isUnavail}><Icon name="chevron-right" size={22} /></button>
-				<button class="tvmi__dpad-btn tvmi__dpad-btn--down" onclick={() => sendCmd('down')} disabled={isUnavail}><Icon name="chevron-down" size={22} /></button>
+		{#if isRemote}
+			<!-- System Row -->
+			<div class="tvmi__grid">
+				<button class="tvmi__btn" onclick={() => sendCmd('house')} disabled={isUnavail}>
+					<Icon name="house" size={18} />
+					<span>Home</span>
+				</button>
+				<button class="tvmi__btn" onclick={() => sendCmd('back')} disabled={isUnavail}>
+					<Icon name="undo-2" size={18} />
+					<span>Back</span>
+				</button>
+				<button class="tvmi__btn" onclick={() => sendCmd('menu')} disabled={isUnavail}>
+					<Icon name="menu" size={18} />
+					<span>Menu</span>
+				</button>
 			</div>
-		</div>
+
+			<!-- D-Pad -->
+			<div class="tvmi__navigation">
+				<div class="tvmi__dpad">
+					<button class="tvmi__dpad-btn tvmi__dpad-btn--up" onclick={() => sendCmd('up')} disabled={isUnavail}><Icon name="chevron-up" size={22} /></button>
+					<button class="tvmi__dpad-btn tvmi__dpad-btn--left" onclick={() => sendCmd('left')} disabled={isUnavail}><Icon name="chevron-left" size={22} /></button>
+					<button class="tvmi__dpad-center" onclick={() => sendCmd('select')} disabled={isUnavail}>OK</button>
+					<button class="tvmi__dpad-btn tvmi__dpad-btn--right" onclick={() => sendCmd('right')} disabled={isUnavail}><Icon name="chevron-right" size={22} /></button>
+					<button class="tvmi__dpad-btn tvmi__dpad-btn--down" onclick={() => sendCmd('down')} disabled={isUnavail}><Icon name="chevron-down" size={22} /></button>
+				</div>
+			</div>
+		{/if}
 
 		<!-- Rockers -->
 		<div class="tvmi__rockers">

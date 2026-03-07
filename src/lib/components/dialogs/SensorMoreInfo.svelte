@@ -3,10 +3,11 @@
 	import { optimisticEntities } from '$lib/ha/optimistic';
 	import { getDomain, getEntityIcon, getEntityName, formatState } from '$lib/ha/entities';
 	import { updateService } from '$lib/ha/services';
-	import { uiStore } from '$lib/stores/ui';
+	import type { Tile } from '$lib/types/dashboard';
+	import { isCustomIcon } from '$lib/icons/customIcons';
 
-	interface Props { entityId: string; }
-	const { entityId }: Props = $props();
+	interface Props { entityId: string; tile?: Tile | null; }
+	const { entityId, tile = null }: Props = $props();
 
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const domain = $derived(getDomain(entityId));
@@ -52,11 +53,49 @@
 		return Number.isFinite(fallback) ? Math.floor(fallback) : updateEntitiesOn.length;
 	});
 
-	function openUpdate(id: string) {
-		uiStore.openDialog(id, undefined, 'update');
-	}
 	function installUpdate(id: string) { updateService.install(id).catch(() => {}); }
 	function skipUpdate(id: string) { updateService.skip(id).catch(() => {}); }
+
+	const tileIconOverride = $derived(((tile?.config?.icon as string | undefined) ?? '').trim() || undefined);
+	const overrideIsCustom = $derived(tileIconOverride ? isCustomIcon(tileIconOverride) : false);
+	const summaryIcon = $derived(updateSummaryCount > 0 ? 'circle-arrow-up' : 'circle-check');
+	const summaryTitle = $derived(
+		updateSummaryCount > 0
+			? `${updateSummaryCount} update${updateSummaryCount === 1 ? '' : 's'} available`
+			: 'Up to Date'
+	);
+
+	function badgeText(name: string) {
+		const cleaned = name.replace(/\\bupdate\\b/ig, '').trim();
+		if (/home\\s*assistant/i.test(cleaned)) return 'HA';
+		const parts = cleaned.split(/\\s+/).filter(Boolean);
+		if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+		if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+		return 'UP';
+	}
+
+	let activeUpdateId = $state<string | null>(null);
+	const activeUpdate = $derived(activeUpdateId ? ($optimisticEntities[activeUpdateId] ?? null) : null);
+	const activeIsAvail = $derived(activeUpdate?.state === 'on');
+	const activeInstalled = $derived((activeUpdate?.attributes.installed_version as string | undefined) ?? '');
+	const activeLatest = $derived((activeUpdate?.attributes.latest_version as string | undefined) ?? '');
+
+	function openUpdate(id: string) {
+		activeUpdateId = id;
+	}
+	function backToList() {
+		activeUpdateId = null;
+	}
+
+	function installActive() {
+		if (!activeUpdateId) return;
+		installUpdate(activeUpdateId);
+	}
+	function skipActive() {
+		if (!activeUpdateId) return;
+		skipUpdate(activeUpdateId);
+	}
+
 	const attrs = $derived.by(() => {
 		if (!entity) return [] as Array<{ key: string; label: string; value: string }>;
 		const hidden = new Set([
@@ -89,26 +128,52 @@
 {#if isUpdateSummary}
 	<div class="usmi">
 		<div class="usmi__hero">
-			<div class="usmi__icon"><Icon name="package-up" size={24} /></div>
+			<div class="usmi__icon" class:usmi__icon--custom={overrideIsCustom}>
+				{#if tileIconOverride}
+					<Icon name={tileIconOverride} entity={entity} size="100%" />
+				{:else}
+					<Icon name={summaryIcon} size="100%" />
+				{/if}
+			</div>
 			<div class="usmi__copy">
-				<div class="usmi__title">{entity ? getEntityName(entity) : entityId}</div>
-				<div class="usmi__subtitle">
-					{#if updateSummaryCount > 0}
-						{updateSummaryCount} update{updateSummaryCount === 1 ? '' : 's'} available
-					{:else}
-						No updates available
-					{/if}
-				</div>
+				<div class="usmi__title">{summaryTitle}</div>
 			</div>
 		</div>
 
-		{#if updateEntitiesOn.length > 0}
+		{#if activeUpdateId && activeUpdate}
+			<div class="usmi__detail">
+				<button class="usmi__back" onclick={backToList} aria-label="Back to updates list">
+					<Icon name="chevron-left" size={18} />
+					<span>Back</span>
+				</button>
+
+				<div class="usmi__detail-card">
+					<div class="usmi__detail-top">
+						<div class="usmi__detail-name">{(activeUpdate.attributes.friendly_name as string | undefined) ?? activeUpdateId}</div>
+						<div class="usmi__detail-sub">{activeIsAvail ? 'Update Available' : 'Up to Date'}</div>
+					</div>
+
+					<div class="usmi__detail-versions">
+						<span class="usmi__pill">{activeInstalled}{activeInstalled && activeLatest ? ' → ' : ''}{activeLatest}</span>
+					</div>
+
+					{#if activeIsAvail}
+						<div class="usmi__detail-actions">
+							<button class="usmi__btn" onclick={installActive}>Install</button>
+							<button class="usmi__btn usmi__btn--ghost" onclick={skipActive}>Skip</button>
+						</div>
+					{/if}
+				</div>
+			</div>
+		{:else if updateEntitiesOn.length > 0}
 			<div class="usmi__list">
 				{#each updateEntitiesOn as u (u.id)}
 					<div class="usmi__row">
 						<button class="usmi__name" onclick={() => openUpdate(u.id)} title={u.id}>
 							{#if u.picture}
 								<img class="usmi__img" src={u.picture} alt={u.name} />
+							{:else}
+								<div class="usmi__img usmi__img--placeholder" aria-hidden="true">{badgeText(u.name)}</div>
 							{/if}
 							<span class="usmi__name-text">{u.name.replace(/\\bupdate\\b/ig, '').trim() || u.name}</span>
 						</button>
@@ -121,6 +186,10 @@
 						</div>
 					</div>
 				{/each}
+			</div>
+		{:else}
+			<div class="usmi__empty">
+				<span>No pending updates</span>
 			</div>
 		{/if}
 	</div>
@@ -264,9 +333,9 @@
 		border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
 		flex-shrink: 0;
 	}
+	.usmi__icon--custom { overflow: visible; }
 	.usmi__copy { min-width: 0; }
 	.usmi__title { font-size: 1rem; font-weight: 700; color: var(--fg); line-height: 1.15; }
-	.usmi__subtitle { margin-top: 3px; font-size: 0.82rem; color: var(--fg-subtle); }
 
 	.usmi__list { display: flex; flex-direction: column; gap: 10px; padding: 4px 20px 20px; }
 	.usmi__row {
@@ -287,6 +356,17 @@
 		min-width: 0;
 	}
 	.usmi__img { width: 34px; height: 34px; border-radius: 8px; object-fit: contain; background: rgba(0,0,0,0.15); flex-shrink: 0; }
+	.usmi__img--placeholder {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.78rem;
+		font-weight: 800;
+		letter-spacing: 0.02em;
+		color: var(--fg-muted);
+		background: color-mix(in srgb, var(--fg) 8%, transparent);
+		border: 1px solid color-mix(in srgb, var(--fg) 12%, transparent);
+	}
 	.usmi__name-text { font-size: 0.9rem; font-weight: 650; color: var(--fg); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 	.usmi__ver { display: flex; }
@@ -319,5 +399,37 @@
 		background: transparent;
 		border-color: var(--border);
 		color: var(--fg-muted);
+	}
+
+	.usmi__detail { display: flex; flex-direction: column; gap: 10px; padding: 4px 20px 20px; }
+	.usmi__back {
+		all: unset;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		cursor: pointer;
+		color: var(--fg-muted);
+		font-weight: 650;
+		font-size: 0.86rem;
+		padding: 6px 4px;
+		border-radius: 8px;
+	}
+	.usmi__back:hover { background: var(--hover); color: var(--fg); }
+	.usmi__detail-card {
+		border: 1px solid var(--border);
+		background: var(--hover);
+		border-radius: var(--radius);
+		padding: 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.usmi__detail-name { font-size: 0.95rem; font-weight: 750; color: var(--fg); }
+	.usmi__detail-sub { font-size: 0.82rem; color: var(--fg-subtle); margin-top: 2px; }
+	.usmi__detail-actions { display: flex; gap: 8px; }
+	.usmi__empty {
+		padding: 10px 20px 20px;
+		color: var(--fg-subtle);
+		font-size: 0.9rem;
 	}
 </style>
