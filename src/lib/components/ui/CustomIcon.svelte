@@ -713,11 +713,10 @@
 
 			case 'fan2': {
 				const id = Math.random().toString(36).substring(2, 9);
-				// Use currentColor on both the blades and the center circle so they always match.
-				const path = `<circle cx="25" cy="25" r="6.6" fill="currentColor"/><path fill="currentColor" d="M31.9 30.4c-.5.6-1.1 1.1-1.7 1.5-1.4 1.1-3.2 1.7-5.2 1.7-2.3 0-4.5-.9-6-2.4-.9 1.1-1.6 2.3-2.3 3.2l-4.9 5.4c-1.8 2.7.3 5.6 2.5 7 3.9 2.4 9.8 3.1 14.1 1.9 4.6-1.3 7.9-4.7 7.4-9.7-.2-3.4-1.9-6-3.9-8.6zM17 28.3c-.4-1-.6-2.1-.6-3.3a8.7 8.7 0 0 1 6.4-8.4l-1.6-3.5L19 6.2c-1.5-2.8-5-2.5-7.3-1.2-4 2.2-7.5 6.9-8.7 11.3-1.2 4.6.2 9.2 4.7 11.3 3.1 1.3 6.1 1.2 9.3.7zm26.9-17.6c-3.3-3.4-8-4.6-12.1-1.8-2.8 1.8-4.2 4.6-5.5 7.5 4.2.6 7.4 4.2 7.4 8.6 0 .9-.1 1.7-.4 2.5 1.3.2 2.8.3 3.8.4 2.3.4 4.7 1.3 7.1 1.7 3.2.3 4.7-3 4.8-5.6.3-4.6-1.9-10.1-5.1-13.3z"/>`;
+				const path = `<circle cx="25" cy="25" r="6.6"/><path d="M31.9 30.4c-.5.6-1.1 1.1-1.7 1.5-1.4 1.1-3.2 1.7-5.2 1.7-2.3 0-4.5-.9-6-2.4-.9 1.1-1.6 2.3-2.3 3.2l-4.9 5.4c-1.8 2.7.3 5.6 2.5 7 3.9 2.4 9.8 3.1 14.1 1.9 4.6-1.3 7.9-4.7 7.4-9.7-.2-3.4-1.9-6-3.9-8.6zM17 28.3c-.4-1-.6-2.1-.6-3.3a8.7 8.7 0 0 1 6.4-8.4l-1.6-3.5L19 6.2c-1.5-2.8-5-2.5-7.3-1.2-4 2.2-7.5 6.9-8.7 11.3-1.2 4.6.2 9.2 4.7 11.3 3.1 1.3 6.1 1.2 9.3.7zm26.9-17.6c-3.3-3.4-8-4.6-12.1-1.8-2.8 1.8-4.2 4.6-5.5 7.5 4.2.6 7.4 4.2 7.4 8.6 0 .9-.1 1.7-.4 2.5 1.3.2 2.8.3 3.8.4 2.3.4 4.7 1.3 7.1 1.7 3.2.3 4.7-3 4.8-5.6.3-4.6-1.9-10.1-5.1-13.3z"/>`;
 				const stage = (isOn && isRecent)
-					? 'on'
-					: (!isOn && isRecent ? 'off' : (isOn ? 'on_timeout' : ''));
+					? 'on_recent'
+					: (!isOn && isRecent ? 'off_recent' : (isOn ? 'on_timeout' : 'off_timeout'));
 
 				return `<svg viewBox="0 0 50 50">
             <style>
@@ -730,44 +729,41 @@
                   transform: rotate(1080deg) translateZ(0);
                 }
               }
-              /* Faster overall than before, with a brief accel + steady spin. */
               .start {
-                animation: fan-rotate-${id} 1.6s ease-in;
+                animation: fan-rotate-${id} 2.8s ease-in;
                 transform-origin: center;
-                color: #5daeea;
+                fill: #5daeea;
                 visibility: hidden;
                 will-change: transform;
               }
               .on {
-                animation: fan-rotate-${id} 1.1s linear infinite;
+                animation: fan-rotate-${id} 1.8s linear infinite;
                 transform-origin: center;
-                color: #5daeea;
-                animation-delay: 1.6s;
+                fill: #5daeea;
+                animation-delay: 2.8s;
                 visibility: hidden;
                 will-change: transform;
               }
-              /* When turned off, keep spinning briefly and ease out. */
-              .off {
-                animation: fan-rotate-${id} 1.6s;
+              .end {
+                animation: fan-rotate-${id} 2.8s;
                 transform-origin: center;
-                color: #9ca2a5;
+                fill: #9ca2a5;
                 animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1);
                 will-change: transform;
               }
-              /* Steady-state on after the recent-change window elapses. */
               .on_timeout {
-                animation: fan-rotate-${id} 1.1s linear infinite;
+                animation: fan-rotate-${id} 1.8s linear infinite;
                 transform-origin: center;
-                color: #5daeea;
+                fill: #5daeea;
                 visibility: hidden;
                 will-change: transform;
               }
-              .end_timeout { color: #9ca2a5; }
+              .end_timeout { fill: #9ca2a5; }
             </style>
-            ${stage === 'on'
+            ${stage === 'on_recent'
 							? `<g class="start">${path}</g><g class="on">${path}</g>`
-							: stage === 'off'
-								? `<g class="off">${path}</g>`
+							: stage === 'off_recent'
+								? `<g class="end">${path}</g>`
 								: stage === 'on_timeout'
 									? `<g class="on_timeout">${path}</g>`
 									: `<g class="end_timeout">${path}</g>`
