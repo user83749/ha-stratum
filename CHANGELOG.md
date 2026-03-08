@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.27] - 2026-03-08
+
+### Changed
+- Refined haptics utility and integration.
+- Global styling and HTML structure optimizations.
+
 ## [1.0.26] - 2026-03-07
 
 ### Changed

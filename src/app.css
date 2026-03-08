@@ -51,13 +51,13 @@
   --font-family: "Inter", system-ui, sans-serif;
   --font-size: 14px;
 
-	  /* Home Assistant button-card compatibility tokens (defaults) */
-	  --state-icon-color: #9da0a2;
-	  --state-icon-active-color: #3182b7;
-	  --button-card-light-color-temp: hsl(204, 58%, 38%);
-	  --button-card-light-color: var(--state-icon-active-color);
-	  /* HA custom:grid-layout gap token */
-	  --custom-layout-card-padding: 3.3vw;
+  /* Home Assistant button-card compatibility tokens (defaults) */
+  --state-icon-color: #9da0a2;
+  --state-icon-active-color: #3182b7;
+  --button-card-light-color-temp: hsl(204, 58%, 38%);
+  --button-card-light-color: var(--state-icon-active-color);
+  /* HA custom:grid-layout gap token */
+  --custom-layout-card-padding: 3.3vw;
 
   /* Tile spacing */
   --tile-padding: 12px;
@@ -79,10 +79,10 @@
   --blur-amount: 12px;
   --glass-bg: rgba(24 24 27 / 0.8);
 
-	  /* Motion */
-	  --transition: 150ms ease;
-	  --transition-slow: 300ms ease;
-	  --transition-hover: 180ms ease;
+  /* Motion */
+  --transition: 150ms ease;
+  --transition-slow: 300ms ease;
+  --transition-hover: 180ms ease;
 
   /* Semantic status colours */
   --color-on: #f97316;
@@ -119,12 +119,21 @@
 
 html,
 body {
-  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   overflow: hidden;
+  margin: 0;
+  padding: 0;
   /* Use the theme gradient/color as the background — falls back to --bg if
      --theme-bg-css hasn't been set yet (before JS runs). */
   background: var(--theme-bg-css, var(--bg));
   background-attachment: fixed;
+  /* We use fixed positioning to lock exactly to the iframe bounds.
+     box-sizing isn't strictly necessary with inset: 0, but safe. */
+  box-sizing: border-box;
 }
 
 body {

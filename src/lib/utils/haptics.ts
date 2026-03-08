@@ -25,21 +25,22 @@ export type HapticType =
     | 'warning'
     | 'error';
 
-/** Send a single haptic impulse if the HA iOS bridge is available. */
-export function haptic(type: HapticType = 'selection'): void {
+/** Send a single haptic impulse via HA iOS bridge. */
+export function haptic(type: HapticType = 'light'): void {
     try {
+        // The HA iOS companion app injects this into all frames (forMainFrameOnly: false)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).webkit?.messageHandlers?.haptic?.postMessage?.(type);
     } catch {
-        // Not running in HA iOS companion — silently ignore.
+        // Silently ignore lack of bridge
     }
 }
 
 /**
- * Fire two quick "selection" taps in succession — used for double-tap feedback.
+ * Fire two quick light taps in succession — used for double-tap feedback.
  * The 80 ms gap matches UIKit's natural double-tap cadence.
  */
 export function hapticDouble(): void {
-    haptic('selection');
-    setTimeout(() => haptic('selection'), 80);
+    haptic('light');
+    setTimeout(() => haptic('light'), 80);
 }
