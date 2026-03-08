@@ -23,7 +23,12 @@
   const icon        = $derived(entity ? (cfg.icon ?? getEntityIcon(entity)) : (cfg.icon ?? 'circle-dot'));
   const name        = $derived(entity ? (cfg.name ?? getEntityName(entity)) : (cfg.name ?? tile.entity_id ?? ''));
   const stateText   = $derived(entity ? formatState(entity) : '—');
-  const entityColor = $derived(entity ? getStateColor(entity) : 'var(--fg-subtle)');
+  const entityColor = $derived.by(() => {
+    if (!entity) return 'var(--fg-subtle)';
+    if (isUnavailable(entity)) return 'var(--tile-label-unavailable, var(--fg-subtle))';
+    if (isActive(entity)) return getStateColor(entity);
+    return 'var(--tile-label-off, #97989c)';
+  });
   const active      = $derived(entity ? isActive(entity) : false);
   const unavailable = $derived(entity ? isUnavailable(entity) : false);
   const iconIsCustom = $derived(typeof icon === 'string' && isCustomIcon(icon));

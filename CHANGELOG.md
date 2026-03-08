@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.34] - 2026-03-08
+
+### Changed
+- Improved `EntityTile` and `LightTile` component logic.
+- Refactored `TileEditor` UI for better tile management.
+- Enhanced server-side logic in `server.js`.
+- Refined `haptics` utility for better device feedback.
+
 ## [1.0.33] - 2026-03-08
 
 ### Changed

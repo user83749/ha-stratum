@@ -67,7 +67,18 @@
 		for (const u of updateEntitiesOn) {
 			if (imageErrorById[u.id]) next[u.id] = true;
 		}
-		imageErrorById = next;
+		const currentKeys = Object.keys(imageErrorById);
+		const nextKeys = Object.keys(next);
+		if (currentKeys.length !== nextKeys.length) {
+			imageErrorById = next;
+			return;
+		}
+		for (const key of nextKeys) {
+			if (!imageErrorById[key]) {
+				imageErrorById = next;
+				return;
+			}
+		}
 	});
 
 	function getInstallState(id: string): 'idle' | 'installing' | 'queued' | 'error' {

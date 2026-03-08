@@ -51,15 +51,10 @@
 		uiStore.setBreakpoint(bp);
 	});
 
-	// Let the integrated desktop rail yield a bit earlier so the layout switches
-	// to the mobile nav before the left rail starts feeling cramped.
-	const SIDEBAR_HIDE_EARLY_PX = 32;
-	const mobileNavBreakpoint = $derived(
-		navCfg.position === 'left'
-			? navCfg.mobileBreakpoint + SIDEBAR_HIDE_EARLY_PX
-			: navCfg.mobileBreakpoint
-	);
-	const isMobile = $derived(windowWidth < mobileNavBreakpoint);
+	// Match YAML-style breakpoint behavior exactly: mobile starts at and below
+	// the configured breakpoint (e.g. <= 800).
+	const mobileNavBreakpoint = $derived(navCfg.mobileBreakpoint);
+	const isMobile = $derived(windowWidth <= mobileNavBreakpoint);
 	const showMobileNav = $derived(isMobile && navCfg.mobileStyle !== 'hidden');
 	const useIntegratedDesktopNav = $derived(navCfg.position === 'left' && !isMobile);
 	const suppressShellSidebar = $derived(isMobile || useIntegratedDesktopNav);

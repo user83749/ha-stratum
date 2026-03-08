@@ -45,18 +45,26 @@
   );
 
   const modeColor = $derived(
-    isOff                    ? 'var(--fg-subtle)' :
+    isOff                    ? 'var(--tile-label-off, #97989c)' :
     effectiveState === 'cool' || effectiveState === 'cooling' ? 'var(--color-info)' :
     effectiveState === 'heat' || effectiveState === 'heating' ? 'var(--color-warning)' :
     effectiveState === 'heat_cool' ? 'var(--color-on)' :
     effectiveState === 'auto' ? 'var(--color-on)' :
     'var(--fg-muted)'
   );
+  const nameTextColor = $derived(
+    isOff
+      ? 'var(--tile-label-off, #97989c)'
+      : 'var(--tile-label-on, var(--control-active-name))'
+  );
   // Match BaseTile label semantics so climate "state" text reads like other tiles.
   const stateTextColor = $derived(
     isOff
       ? 'var(--tile-label-off, #97989c)'
       : (isHeatingOrCooling ? modeColor : 'var(--tile-label-on, var(--control-active-name))')
+  );
+  const setpointTextColor = $derived(
+    isOff ? 'var(--tile-label-off, #97989c)' : 'var(--fg)'
   );
 
   const modeIcon = $derived(
@@ -99,7 +107,9 @@
     <!-- 1x1 Bold Complication — tap handled by TileWrapper (more-info) -->
     <div class="layout-sm">
       {#if targetTemp !== undefined && !isOff}
-        <div class="sm-setpoint">{Math.round(targetTemp)}°</div>
+        <div class="sm-setpoint" style="color: {setpointTextColor}">
+          <span>{Math.round(targetTemp)}</span><span class="sm-setpoint-unit">°</span>
+        </div>
       {/if}
       <div class="sm-icon" style="color: {modeColor}">
         {#if iconOverride && overrideIsCustom}
@@ -129,7 +139,7 @@
         </div>
         <div class="md-status">
           <div class="status-val" style="color: {stateTextColor}">{modeLabel}</div>
-          <div class="device-name">{name}</div>
+          <div class="device-name" style="color: {nameTextColor}">{name}</div>
         </div>
       </button>
 
@@ -169,7 +179,7 @@
           </div>
           <div class="lg-hero-text">
             <div class="lg-mode" style="color: {stateTextColor}">{modeLabel}</div>
-            <div class="lg-name">{name}</div>
+            <div class="lg-name" style="color: {nameTextColor}">{name}</div>
           </div>
         </div>
 
@@ -280,15 +290,23 @@
 
   .sm-setpoint {
     position: absolute;
-    top: 0;
-    right: 0;
-    font-size: var(--secondary-label-size);
-    font-weight: 500;
+    top: 2%;
+    right: 6%;
+    font-size: var(--c-font-size, 14px);
+    font-weight: var(--c-font-weight, 700);
+    letter-spacing: var(--c-letter-spacing, -0.02rem);
     line-height: 1;
-    color: var(--fg-muted);
     text-align: right;
     white-space: nowrap;
     pointer-events: none;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sm-setpoint-unit {
+    font-size: var(--c-unit-font-size, 10.5px);
+    margin-left: 0.2px;
+    transform: translateY(-0.38em);
+    display: inline-block;
   }
 
   .sm-meta {

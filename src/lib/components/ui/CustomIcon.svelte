@@ -751,21 +751,23 @@
                 animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1);
                 will-change: transform;
               }
-              .on_timeout {
+              .start_timeout {
                 animation: fan-rotate-${id} 1.8s linear infinite;
                 transform-origin: center;
                 fill: #5daeea;
                 visibility: hidden;
                 will-change: transform;
               }
-              .end_timeout { fill: #9ca2a5; }
+              .end_timeout {
+                fill: #9ca2a5;
+              }
             </style>
             ${stage === 'on_recent'
 							? `<g class="start">${path}</g><g class="on">${path}</g>`
 							: stage === 'off_recent'
 								? `<g class="end">${path}</g>`
 								: stage === 'on_timeout'
-									? `<g class="on_timeout">${path}</g>`
+									? `<g class="start_timeout">${path}</g>`
 									: `<g class="end_timeout">${path}</g>`
 						}
           </svg>`;

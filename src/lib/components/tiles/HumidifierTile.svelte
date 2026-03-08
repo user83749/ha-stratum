@@ -62,8 +62,9 @@
     if (entityId) humidifierService.setMode(entityId, m);
   }
 
-  const modeColor = $derived(isOn ? 'var(--color-info)' : 'var(--fg-muted)');
+  const modeColor = $derived(isOn ? 'var(--color-info)' : 'var(--tile-label-off, #97989c)');
   const activeColor = 'var(--tile-label-on, var(--control-active-name))';
+  const offColor = 'var(--tile-label-off, #97989c)';
   const mainIcon = $derived(iconOverride ?? 'droplets');
 </script>
 
@@ -71,7 +72,7 @@
   {#if sizePreset === 'sm'}
     <!-- 1x1 Bold Complication -->
     <button class="layout-sm" onclick={toggle}>
-      <div class="sm-icon" style="color: {isOn ? activeColor : modeColor}">
+      <div class="sm-icon" style="color: {isOn ? activeColor : offColor}">
         {#if iconOverride && overrideIsCustom}
           <Icon name={mainIcon} entity={entity} size={38} />
         {:else}
@@ -84,7 +85,7 @@
         <div class="primary-hum" style="color: {isOn ? activeColor : 'var(--fg)'}">{Math.round(targetHum)}%</div>
       {/if}
       <div class="sm-meta">
-        <span class="meta-label" style="color: {isOn ? activeColor : 'var(--fg-muted)'}">{isOn ? 'On' : 'Off'}</span>
+        <span class="meta-label" style="color: {isOn ? activeColor : offColor}">{isOn ? 'On' : 'Off'}</span>
         {#if isOn}
           <span class="sep" style="color: {activeColor}; opacity: 0.2;">•</span>
           <span class="target-val" style="color: {activeColor}">{targetHum}%</span>
@@ -96,7 +97,7 @@
     <!-- 2x1 Horizontal Row -->
     <div class="layout-md">
       <button class="md-left" onclick={toggle} aria-label="Toggle Power">
-        <div class="md-icon" style="background: {iconOverride ? 'transparent' : isOn ? 'color-mix(in srgb, var(--mc) 20%, transparent)' : 'color-mix(in srgb, var(--fg) 8%, transparent)'}; color: {isOn ? 'var(--mc)' : 'var(--fg-muted)'}">
+        <div class="md-icon" style="background: {iconOverride ? 'transparent' : isOn ? 'color-mix(in srgb, var(--mc) 20%, transparent)' : 'color-mix(in srgb, var(--fg) 8%, transparent)'}; color: {isOn ? 'var(--mc)' : offColor}">
           {#if iconOverride && overrideIsCustom}
             <Icon name={mainIcon} entity={entity} size={32} />
           {:else}
@@ -104,8 +105,8 @@
           {/if}
         </div>
         <div class="md-status">
-          <div class="status-val" style="color: {isOn ? activeColor : 'var(--fg-muted)'}">{isOn ? 'Humidifying' : 'Off'}</div>
-          <div class="device-name" style="color: {isOn ? activeColor : 'var(--fg-subtle)'}; opacity: {isOn ? 0.7 : 1}">{name}</div>
+          <div class="status-val" style="color: {isOn ? activeColor : offColor}">{isOn ? 'Humidifying' : 'Off'}</div>
+          <div class="device-name" style="color: {isOn ? activeColor : offColor}; opacity: {isOn ? 0.7 : 1}">{name}</div>
         </div>
       </button>
 
@@ -142,8 +143,8 @@
             {/if}
           </div>
           <div class="lg-hero-text">
-            <div class="lg-mode" style="color: {isOn ? activeColor : modeColor}">{isOn ? 'Humidifying' : 'Off'}</div>
-            <div class="lg-name" style="color: {isOn ? activeColor : 'var(--fg-subtle)'}; opacity: {isOn ? 0.7 : 1}">{name}</div>
+            <div class="lg-mode" style="color: {isOn ? activeColor : offColor}">{isOn ? 'Humidifying' : 'Off'}</div>
+            <div class="lg-name" style="color: {isOn ? activeColor : offColor}; opacity: {isOn ? 0.7 : 1}">{name}</div>
           </div>
         </div>
 

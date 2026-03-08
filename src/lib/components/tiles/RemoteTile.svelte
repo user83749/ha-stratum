@@ -96,7 +96,7 @@
   .name-small {
     font-size: var(--secondary-label-size);
     font-weight: 500;
-    color: var(--fg-muted);
+    color: var(--tile-label-off, #97989c);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -115,7 +115,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: var(--fg-subtle);
+    color: var(--tile-label-off, #97989c);
     border: 1px solid var(--border);
     background: color-mix(in srgb, var(--fg) 6%, transparent);
     transition: all var(--transition);

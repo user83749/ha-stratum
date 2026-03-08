@@ -46,7 +46,13 @@
     : entityState
   );
 
-  const coverColor = $derived(isOpen ? 'var(--color-on)' : isMoving ? 'var(--color-warning)' : 'var(--fg-muted)');
+  const coverColor = $derived(
+    isOpen
+      ? 'var(--color-on)'
+      : isMoving
+        ? 'var(--color-warning)'
+        : 'var(--tile-label-off, #97989c)'
+  );
   const showDirectControls = $derived(sizePreset !== 'sm');
   const showSliderOverlay = $derived((sizePreset === 'lg' || sizePreset === 'xl') && pos !== undefined);
 
@@ -145,7 +151,7 @@
     align-items: center;
     justify-content: center;
     /* Match HA default off icon shade */
-    color: var(--state-icon-color, #9da0a2);
+    color: var(--tile-label-off, #97989c);
     background: color-mix(in srgb, var(--fg) var(--control-chip-fill-strength), transparent);
     border: var(--control-chip-border-width) solid color-mix(in srgb, var(--fg) var(--control-chip-border-strength), transparent);
     transition: all var(--transition);
