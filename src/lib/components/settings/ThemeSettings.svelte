@@ -5,6 +5,7 @@
 	import type { RadiusScale } from '$lib/types/dashboard';
 
 	let cfg = $derived($dashboardStore.theme);
+	let app = $derived($dashboardStore.settings);
 
 	const activeId = $derived(cfg.themeId ?? 'onyx');
 
@@ -29,6 +30,26 @@
 	];
 
 	const FONTS = ['Inter', 'Plus Jakarta Sans', 'Geist', 'DM Sans'];
+
+	// ── Locale validation ───────────────────────────────────────────────────
+	let localeInput = $state('en');
+	let localeError = $state<string | null>(null);
+
+	$effect(() => {
+		localeInput = app.locale ?? 'en';
+	});
+
+	function commitLocale(nextRaw: string) {
+		const next = nextRaw.trim() || 'en';
+		try {
+			new Intl.DateTimeFormat(next);
+			localeError = null;
+			dashboardStore.setSettings({ locale: next });
+		} catch {
+			localeError = 'Invalid locale (use a BCP‑47 tag like en, en-US, de, fr, ar).';
+			localeInput = app.locale ?? 'en';
+		}
+	}
 </script>
 
 <div class="ts">
@@ -166,6 +187,44 @@
 		</div>
 	</div>
 
+	<!-- ══ Locale & time ═════════════════════════════════════════════════════ -->
+	<div class="ts__section">
+		<span class="ts__label">Locale &amp; time</span>
+
+		<div class="ts__field">
+			<span class="ts__field-label">Locale</span>
+			<input
+				class="ts__input"
+				type="text"
+				placeholder="en"
+				value={localeInput}
+				oninput={(e) => {
+					localeInput = (e.target as HTMLInputElement).value;
+					localeError = null;
+				}}
+				onkeydown={(e) => {
+					if (e.key === 'Enter') commitLocale(localeInput);
+				}}
+				onblur={() => commitLocale(localeInput)}
+				aria-invalid={localeError ? 'true' : 'false'}
+			/>
+			<span class="ts__hint">{localeError ?? 'BCP‑47 language tag, e.g. en, en-US, de, fr, ar'}</span>
+		</div>
+
+		<div class="ts__field">
+			<span class="ts__field-label">Time format</span>
+			<div class="ts__pills">
+				{#each [['12h', '12-hour'], ['24h', '24-hour']] as [val, label]}
+					<button
+						class="ts__pill"
+						class:ts__pill--active={app.timeFormat === val}
+						onclick={() => dashboardStore.setSettings({ timeFormat: val as '12h' | '24h' })}
+					>{label}</button>
+				{/each}
+			</div>
+		</div>
+	</div>
+
 </div>
 
 <style>
@@ -208,7 +267,9 @@
 
 	.ts__grid {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
+		/* minmax(0, 1fr) prevents the 3rd column from overflowing/clipping when
+		   grid items have long min-content widths (common with nowrap labels). */
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 10px;
 	}
 
@@ -221,6 +282,7 @@
 		padding: 0;
 		cursor: pointer;
 		text-align: left;
+		min-width: 0;
 	}
 
 	.ts__canvas {
@@ -244,7 +306,8 @@
 
 	.ts__card--active .ts__canvas {
 		border-color: var(--accent);
-		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+		/* Inset so it can't get clipped by the settings panel's overflow rules */
+		box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
 	}
 
 	/* Fake tiles inside the canvas preview */
@@ -298,6 +361,7 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 4px;
+		min-width: 0;
 	}
 
 	.ts__card-name {
@@ -307,6 +371,7 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		min-width: 0;
 		transition: color var(--transition);
 	}
 
@@ -431,13 +496,82 @@
 		margin-top: 2px;
 	}
 
+	/* ── Locale & time ─────────────────────────── */
+
+	.ts__field {
+		display: flex;
+		flex-direction: column;
+		gap: 7px;
+	}
+
+	.ts__field-label {
+		font-size: 0.78rem;
+		font-weight: 600;
+		color: var(--fg-muted);
+	}
+
+	.ts__input {
+		padding: 7px 11px;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--border);
+		background: var(--hover);
+		color: var(--fg);
+		font-size: 0.875rem;
+		box-sizing: border-box;
+		width: 100%;
+		transition:
+			border-color var(--transition),
+			background-color var(--transition);
+	}
+
+	.ts__input:focus {
+		border-color: var(--accent);
+		outline: none;
+		background: var(--bg-elevated);
+	}
+
+	.ts__hint {
+		font-size: 0.73rem;
+		color: var(--fg-subtle);
+		line-height: 1.4;
+	}
+
+	.ts__pills {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 5px;
+	}
+
+	.ts__pill {
+		padding: 5px 12px;
+		border-radius: 999px;
+		font-size: 0.78rem;
+		font-weight: 500;
+		border: 1px solid var(--border);
+		background: var(--hover);
+		color: var(--fg-muted);
+		cursor: pointer;
+		transition:
+			background-color var(--transition),
+			color var(--transition),
+			border-color var(--transition);
+	}
+
+	.ts__pill:hover { color: var(--fg); border-color: var(--fg-muted); }
+
+	.ts__pill--active {
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		color: var(--accent);
+		border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+	}
+
 	/* ── Mobile Overrides ───────────────────────── */
 	@media (max-width: 640px) {
 		.ts__mobile-only { display: inline-flex; }
 		.ts__desktop-only { display: none; }
 		
 		.ts__grid {
-			grid-template-columns: repeat(2, 1fr);
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 			gap: 8px;
 		}
 		.ts__canvas {

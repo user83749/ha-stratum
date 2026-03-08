@@ -8,12 +8,9 @@
 	import ConnectionSettings from './ConnectionSettings.svelte';
 	import ThemeSettings from './ThemeSettings.svelte';
 	import NavSettings from './NavSettings.svelte';
-	import DisplaySettings from './DisplaySettings.svelte';
-	import AppSettings from './AppSettings.svelte';
 	import DialogSettings from './DialogSettings.svelte';
-	import FavoritesSettings from './FavoritesSettings.svelte';
-	import ProfilesSettings from './ProfilesSettings.svelte';
 	import KeyboardShortcuts from './KeyboardShortcuts.svelte';
+	import ProfilesSettings from './ProfilesSettings.svelte';
 	import ResetSettings from './ResetSettings.svelte';
 	import { settingsTab } from '$lib/stores/ui';
 
@@ -32,22 +29,16 @@
 		| 'connection'
 		| 'theme'
 		| 'nav'
-		| 'display'
-		| 'app'
 		| 'dialog'
-		| 'favorites'
 		| 'profiles'
 		| 'shortcuts'
 		| 'reset';
 
 	const TABS: { id: TabId; icon: string; label: string }[] = [
 		{ id: 'connection', icon: 'plug',             label: 'Connection'   },
-		{ id: 'theme',      icon: 'palette',          label: 'Theme'        },
+		{ id: 'theme',      icon: 'palette',          label: 'Appearance'   },
 		{ id: 'nav',        icon: 'layout-dashboard', label: 'Navigation'   },
-		{ id: 'display',    icon: 'monitor',          label: 'Display'      },
-		{ id: 'app',        icon: 'settings',         label: 'App'          },
 		{ id: 'dialog',     icon: 'panel-right',      label: 'Dialog'       },
-		{ id: 'favorites',  icon: 'star',             label: 'Favorites'    },
 		{ id: 'profiles',   icon: 'users',            label: 'Profiles'     },
 		{ id: 'shortcuts',  icon: 'keyboard',         label: 'Shortcuts'    },
 		{ id: 'reset',      icon: 'rotate-ccw',       label: 'Reset'        },
@@ -55,15 +46,29 @@
 
 	const validTabIds = new Set(TABS.map((t) => t.id));
 	let activeTab = $state<TabId>('theme');
+	let bodyEl = $state<HTMLDivElement | null>(null);
 
 	// When the panel opens, jump to whichever tab was requested
 	$effect(() => {
 		if (open) {
 			const requested = $settingsTab;
-			if (requested && validTabIds.has(requested as TabId)) {
+			if (requested === 'favorites') {
+				activeTab = 'nav';
+			} else if (requested === 'display') {
+				activeTab = 'nav';
+			} else if (requested === 'app') {
+				activeTab = 'theme';
+			} else if (requested && validTabIds.has(requested as TabId)) {
 				activeTab = requested as TabId;
 			}
 		}
+	});
+
+	// If you scroll a tab, then switch tabs, always start at the top.
+	$effect(() => {
+		activeTab;
+		if (!bodyEl) return;
+		queueMicrotask(() => bodyEl?.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
 	});
 
 	// ── Keyboard close ─────────────────────────────────────────────────────
@@ -103,7 +108,10 @@
 				<button
 					class="sp__tab"
 					class:sp__tab--active={activeTab === tab.id}
-					onclick={() => (activeTab = tab.id)}
+					onclick={() => {
+						activeTab = tab.id;
+						bodyEl?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+					}}
 					aria-label={tab.label}
 					aria-current={activeTab === tab.id ? 'page' : undefined}
 				>
@@ -121,21 +129,15 @@
 					{TABS.find((t) => t.id === activeTab)?.label ?? 'Settings'}
 				</span>
 			</div>
-			<div class="sp__body">
+			<div class="sp__body" bind:this={bodyEl}>
 				{#if activeTab === 'connection'}
 					<ConnectionSettings />
 				{:else if activeTab === 'theme'}
 					<ThemeSettings />
 				{:else if activeTab === 'nav'}
 					<NavSettings />
-				{:else if activeTab === 'display'}
-					<DisplaySettings />
-				{:else if activeTab === 'app'}
-					<AppSettings />
 				{:else if activeTab === 'dialog'}
 					<DialogSettings />
-				{:else if activeTab === 'favorites'}
-					<FavoritesSettings />
 				{:else if activeTab === 'profiles'}
 					<ProfilesSettings />
 				{:else if activeTab === 'shortcuts'}
@@ -175,6 +177,12 @@
 		box-shadow: var(--shadow-lg);
 		transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 		overflow: hidden;
+	}
+
+	@media (max-width: 800px) {
+		.sp {
+			width: min(490px, 90dvw);
+		}
 	}
 
 	@starting-style {

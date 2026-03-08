@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { sirenService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
@@ -9,7 +8,7 @@
 	const { entityId }: Props = $props();
 
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const isOn = $derived(entity?.state === 'on');
 	
@@ -18,13 +17,13 @@
 
 	function toggle() {
 		if (isUnavail) return;
-		if (isDemo) applyPatch(entityId, { state: isOn ? 'off' : 'on' });
+		if (optimisticPreviewEnabled) applyPatch(entityId, { state: isOn ? 'off' : 'on' });
 		else (isOn ? sirenService.turnOff(entityId) : sirenService.turnOn(entityId)).catch(() => {});
 	}
 
 	function setTone(next: string) {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			applyPatch(entityId, { state: 'on', attributes: { tone: next } });
 			return;
 		}

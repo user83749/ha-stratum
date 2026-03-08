@@ -11,6 +11,7 @@
 
 	let cfg = $derived($dashboardStore);
 	let profiles = $derived(cfg.profiles);
+	let activeProfileId = $derived(cfg.activeProfileId);
 
 	// ── Add profile ────────────────────────────────────────────────────────
 
@@ -21,6 +22,7 @@
 			name: 'New Profile'
 		};
 		dashboardStore.addProfile(profile);
+		dashboardStore.setActiveProfile(id);
 	}
 
 	// ── Rename ─────────────────────────────────────────────────────────────
@@ -43,6 +45,10 @@
 				if (confirmDeleteId === id) confirmDeleteId = null;
 			}, 3000);
 		}
+	}
+
+	function setActiveProfile(id: string) {
+		dashboardStore.setActiveProfile(id);
 	}
 </script>
 
@@ -69,8 +75,8 @@
 		</div>
 	{:else}
 		<div class="ps__list">
-			{#each profiles as profile, i}
-				<div class="ps__item" class:ps__item--first={i === 0}>
+			{#each profiles as profile}
+				<div class="ps__item" class:ps__item--first={activeProfileId === profile.id}>
 					<!-- Avatar/icon -->
 					<div class="ps__avatar">
 						{#if profile.avatar?.startsWith('mdi:')}
@@ -91,9 +97,15 @@
 							onchange={(e) => rename(profile.id, (e.target as HTMLInputElement).value)}
 							aria-label="Profile name"
 						/>
-						{#if i === 0}
-							<span class="ps__badge">Default</span>
-						{/if}
+						<button
+							class="ps__badge"
+							class:ps__badge--active={activeProfileId === profile.id}
+							onclick={() => setActiveProfile(profile.id)}
+							aria-label="Set active profile"
+							title="Set active profile"
+						>
+							{activeProfileId === profile.id ? 'Active' : 'Set Active'}
+						</button>
 					</div>
 
 					<!-- Delete button -->
@@ -255,12 +267,20 @@
 		flex-shrink: 0;
 		font-size: 0.62rem;
 		font-weight: 600;
-		padding: 2px 7px;
+		padding: 3px 8px;
 		border-radius: 999px;
-		background: color-mix(in srgb, var(--accent) 15%, transparent);
-		color: var(--accent);
+		background: var(--hover);
+		border: 1px solid var(--border);
+		color: var(--fg-muted);
+		cursor: pointer;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
+	}
+
+	.ps__badge--active {
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+		color: var(--accent);
 	}
 
 	/* ── Delete ────────────────────────────────────────────────────────────── */

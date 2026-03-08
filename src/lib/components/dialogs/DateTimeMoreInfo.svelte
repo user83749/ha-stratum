@@ -2,13 +2,12 @@
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { inputDatetimeService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const hasDate = $derived((entity?.attributes.has_date as boolean | undefined) ?? true);
 	const hasTime = $derived((entity?.attributes.has_time as boolean | undefined) ?? true);
@@ -35,7 +34,7 @@
 
 	function save() {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			const nextState = hasDate && hasTime ? `${localDate} ${localTime}:00` : hasDate ? localDate : localTime;
 			applyPatch(entityId, { state: nextState });
 			return;

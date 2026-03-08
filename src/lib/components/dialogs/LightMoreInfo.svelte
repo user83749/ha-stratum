@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { lightService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
@@ -11,7 +10,7 @@
 	const entity    = $derived($optimisticEntities[entityId] ?? null);
 	const isOn      = $derived(entity?.state === 'on');
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
-	const isDemo    = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 
 	// ─── Brightness ───────────────────────────────────────────────────────────
 
@@ -25,7 +24,7 @@
 		localBrightness = v;
 		if (bDebounce) clearTimeout(bDebounce);
 		bDebounce = setTimeout(() => {
-			if (isDemo) applyPatch(entityId, { state: 'on', attributes: { brightness: Math.round(v / 100 * 255) } });
+			if (optimisticPreviewEnabled) applyPatch(entityId, { state: 'on', attributes: { brightness: Math.round(v / 100 * 255) } });
 			else lightService.setBrightness(entityId, v).catch(() => {});
 		}, 120);
 	}
@@ -91,7 +90,7 @@
 	function commitColor(r: number, g: number, b: number) {
 		if (colorDebounce) clearTimeout(colorDebounce);
 		colorDebounce = setTimeout(() => {
-			if (isDemo) applyPatch(entityId, { state: 'on', attributes: { rgb_color: [r, g, b] } });
+			if (optimisticPreviewEnabled) applyPatch(entityId, { state: 'on', attributes: { rgb_color: [r, g, b] } });
 			else lightService.setRgb(entityId, r, g, b).catch(() => {});
 		}, 80);
 	}
@@ -146,11 +145,11 @@
 		if (ctDebounce) clearTimeout(ctDebounce);
 		ctDebounce = setTimeout(() => {
 			if (useKelvinScale) {
-				if (isDemo) applyPatch(entityId, { attributes: { color_temp_kelvin: v } });
+				if (optimisticPreviewEnabled) applyPatch(entityId, { attributes: { color_temp_kelvin: v } });
 				else lightService.setColorTemp(entityId, v).catch(() => {});
 				return;
 			}
-			if (isDemo) applyPatch(entityId, { attributes: { color_temp: v } });
+			if (optimisticPreviewEnabled) applyPatch(entityId, { attributes: { color_temp: v } });
 			else lightService.turnOn(entityId, { color_temp: v }).catch(() => {});
 		}, 120);
 	}
@@ -162,7 +161,7 @@
 
 	function setEffect(effect: string) {
 		if (!isOn || isUnavail) return;
-		if (isDemo) applyPatch(entityId, { attributes: { effect } });
+		if (optimisticPreviewEnabled) applyPatch(entityId, { attributes: { effect } });
 		else lightService.setEffect(entityId, effect).catch(() => {});
 	}
 
@@ -171,7 +170,7 @@
 	let toggling = $state(false);
 	async function toggle() {
 		if (toggling || isUnavail) return;
-		if (isDemo) { applyPatch(entityId, { state: isOn ? 'off' : 'on' }); return; }
+		if (optimisticPreviewEnabled) { applyPatch(entityId, { state: isOn ? 'off' : 'on' }); return; }
 		toggling = true;
 		try { if (isOn) await lightService.turnOff(entityId); else await lightService.turnOn(entityId); }
 		catch { /* silent */ }
@@ -217,7 +216,7 @@
 		const v = getValueFromPointer(e);
 		localBrightness = v;
 		if (bDebounce) clearTimeout(bDebounce);
-		if (isDemo) applyPatch(entityId, { state: 'on', attributes: { brightness: Math.round(v / 100 * 255) } });
+		if (optimisticPreviewEnabled) applyPatch(entityId, { state: 'on', attributes: { brightness: Math.round(v / 100 * 255) } });
 		else lightService.setBrightness(entityId, v).catch(() => {});
 	}
 

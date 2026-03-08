@@ -10,6 +10,7 @@
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore } from '$lib/stores/ui';
 	import Icon from '$lib/components/ui/Icon.svelte';
+	import { getUpdateCount } from '$lib/ha/updateSummary';
 
 	// ─── Props ───────────────────────────────────────────────────────────────
 
@@ -67,16 +68,7 @@
 		// Update tiles can target update.* entities OR summary sensors (e.g. sensor.hassio_updates_available).
 		// Treat them as active when updates are available.
 		if (tile.type === 'update') {
-			const domain = entity.entity_id.split('.')[0] ?? '';
-			if (domain === 'update') return entity.state === 'on';
-			const n = Number(entity.state);
-			if (Number.isFinite(n)) return n > 0;
-			const a = (entity.attributes ?? {}) as any;
-			const candidates = [a.update_entities, a.total, a.home_assistant];
-			return candidates.some((v) => {
-				const num = typeof v === 'number' ? v : Number(v);
-				return Number.isFinite(num) && num > 0;
-			});
+			return getUpdateCount(entity, $entities) > 0;
 		}
 
 		return isActive(entity);

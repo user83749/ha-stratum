@@ -1,21 +1,20 @@
 <script lang="ts">
-	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
+	import { optimisticEntities } from '$lib/ha/optimistic';
 	import { updateService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
-	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { getEntityIcon, getEntityName } from '$lib/ha/entities';
+	import { sanitizeHtml } from '$lib/utils/sanitizeHtml';
 
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	
 	const installed = $derived(entity?.attributes.installed_version as string | undefined);
 	const latest = $derived(entity?.attributes.latest_version as string | undefined);
 	const releaseNotes = $derived(entity?.attributes.release_notes as string | undefined);
+	const sanitizedReleaseNotes = $derived(sanitizeHtml(releaseNotes));
 	const releaseUrl = $derived(entity?.attributes.release_url as string | undefined);
 	const title = $derived(entity?.attributes.title as string | undefined);
 
@@ -32,17 +31,12 @@
 
 	function install() {
 		if (isUnavail) return;
-		if (isDemo) { 
-			applyPatch(entityId, { state: 'off', attributes: { installed_version: latest ?? installed } }); 
-			return; 
-		}
 		updateService.install(entityId).catch(() => {});
 	}
 
 	function skip() {
 		if (isUnavail) return;
 		if (isUpdateAvailable) {
-			if (isDemo) return;
 			updateService.skip(entityId).catch(() => {});
 		}
 	}
@@ -93,9 +87,9 @@
 			<div class="umi__section">
 				<h3 class="umi__section-title">Release Information</h3>
 				<div class="umi__release-box">
-					{#if releaseNotes}
+					{#if sanitizedReleaseNotes}
 						<div class="umi__release-notes">
-							{@html releaseNotes}
+							{@html sanitizedReleaseNotes}
 						</div>
 					{/if}
 					{#if releaseUrl}

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { humidifierService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { clamp } from '$lib/utils/format';
@@ -10,7 +9,7 @@
 	const { entityId }: Props = $props();
 
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const isOn = $derived(entity?.state === 'on');
 	
@@ -76,7 +75,7 @@
 		dragging = false;
 
 		const next = localHum;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			applyPatch(entityId, { attributes: { humidity: next } });
 		} else {
 			humidifierService.setHumidity(entityId, next).catch(() => {});
@@ -85,13 +84,13 @@
 
 	function toggle() {
 		if (isUnavail) return;
-		if (isDemo) applyPatch(entityId, { state: isOn ? 'off' : 'on' });
+		if (optimisticPreviewEnabled) applyPatch(entityId, { state: isOn ? 'off' : 'on' });
 		else (isOn ? humidifierService.turnOff(entityId) : humidifierService.turnOn(entityId)).catch(() => {});
 	}
 
 	function setMode(next: string) {
 		if (isUnavail) return;
-		if (isDemo) applyPatch(entityId, { attributes: { mode: next } });
+		if (optimisticPreviewEnabled) applyPatch(entityId, { attributes: { mode: next } });
 		else humidifierService.setMode(entityId, next).catch(() => {});
 	}
 </script>

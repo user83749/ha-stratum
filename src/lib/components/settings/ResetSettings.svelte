@@ -155,7 +155,7 @@
 			<div class="rs__danger-info">
 				<span class="rs__danger-title">Reset to defaults</span>
 				<span class="rs__danger-desc">
-					Resets theme, navigation, and app settings to defaults. Pages are preserved.
+					Resets all settings back to defaults (theme, navigation, display, favorites, dialogs, etc.). Pages are preserved.
 				</span>
 			</div>
 			<button

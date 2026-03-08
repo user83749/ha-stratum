@@ -2,13 +2,12 @@
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { counterService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const value = $derived(Number(entity?.state ?? 0));
 	const step = $derived(Number(entity?.attributes.step ?? 1));
@@ -19,7 +18,7 @@
 
 	function run(action: 'increment' | 'decrement' | 'reset') {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			if (action === 'reset') setValue(0);
 			if (action === 'increment') setValue(value + step);
 			if (action === 'decrement') setValue(value - step);

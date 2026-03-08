@@ -3,14 +3,13 @@
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { automationService, buttonService, inputButtonService, sceneService, scriptService } from '$lib/ha/services';
 	import { getDomain } from '$lib/ha/entities';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const domain = $derived(getDomain(entityId));
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const name = $derived((entity?.attributes.friendly_name as string | undefined) ?? entityId);
 
@@ -32,7 +31,7 @@
 
 	function runPrimary() {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			if (domain === 'automation') applyPatch(entityId, { state: 'on' });
 			if (domain === 'script') applyPatch(entityId, { state: 'on' });
 			return;
@@ -46,7 +45,7 @@
 
 	function runSecondary(action: 'toggle' | 'disable' | 'stop') {
 		if (isUnavail || domain === 'button' || domain === 'input_button' || domain === 'scene') return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			if (domain === 'script' && action === 'stop') applyPatch(entityId, { state: 'off' });
 			if (domain === 'automation' && action === 'toggle') {
 				applyPatch(entityId, { state: entity?.state === 'on' ? 'off' : 'on' });

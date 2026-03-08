@@ -3,14 +3,13 @@
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { inputTextService, textService } from '$lib/ha/services';
 	import { getDomain } from '$lib/ha/entities';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const domain = $derived(getDomain(entityId));
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	let draft = $state('');
 
@@ -21,7 +20,7 @@
 	function save() {
 		if (isUnavail) return;
 		const value = draft;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			applyPatch(entityId, { state: value });
 			return;
 		}

@@ -197,8 +197,12 @@
 
 	function updateClock() {
 		const now = new Date();
-		clockTime = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s?[AP]M/i, '');
-		clockDate = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+		const locale = cfg.settings.locale || undefined;
+		const hour12 = cfg.settings.timeFormat === '12h';
+		clockTime = now
+			.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12 })
+			.replace(/\s?[AP]M/i, '');
+		clockDate = now.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
 	}
 
 	const weatherEntity = $derived(
@@ -322,27 +326,31 @@
 							</div>
 						{:else}
 							<!-- Mobile / no-nav -->
-							{#if showMobileClock}
-								<div class="mobile-page-clock" aria-live="off">
+							<div
+								class="mobile-page-clock"
+								class:mobile-page-clock--clock-hidden={!showMobileClock}
+								aria-live="off"
+							>
+								{#if showMobileClock}
 									<span class="mobile-page-clock__time">{clockTime}</span>
-									<div class="mobile-page-clock__sub">
-										<span class="mobile-page-clock__date">{clockDate}</span>
-										{#if weatherStr}
-											<span class="mobile-page-clock__weather">{weatherStr}</span>
-										{/if}
-									</div>
-									{#each mobileHeroEntities as hero (hero.id)}
-										{@const ent = $entities[hero.entityId]}
-										{@const state = ent?.state ?? '—'}
-										{@const unit = ent?.attributes?.unit_of_measurement ?? ''}
-										{@const label = hero.label || ent?.attributes?.friendly_name || hero.entityId}
-										<div class="mobile-page-clock__hero">
-											<span class="mobile-page-clock__hero-label">{label}</span>
-											<span class="mobile-page-clock__hero-value">{state}{unit}</span>
-										</div>
-									{/each}
+								{/if}
+								<div class="mobile-page-clock__sub">
+									<span class="mobile-page-clock__date">{clockDate}</span>
+									{#if weatherStr}
+										<span class="mobile-page-clock__weather">{weatherStr}</span>
+									{/if}
 								</div>
-							{/if}
+								{#each mobileHeroEntities as hero (hero.id)}
+									{@const ent = $entities[hero.entityId]}
+									{@const state = ent?.state ?? '—'}
+									{@const unit = ent?.attributes?.unit_of_measurement ?? ''}
+									{@const label = hero.label || ent?.attributes?.friendly_name || hero.entityId}
+									<div class="mobile-page-clock__hero">
+										<span class="mobile-page-clock__hero-label">{label}</span>
+										<span class="mobile-page-clock__hero-value">{state}{unit}</span>
+									</div>
+								{/each}
+							</div>
 
 								<div
 									class="page-sections-grid"
@@ -632,6 +640,11 @@
 		align-items: flex-start;
 		gap: 6px;
 		padding: 3.3vw 0 0.5vw 0;
+	}
+
+	.mobile-page-clock--clock-hidden {
+		/* Keep the "header" block, but remove the big top padding reserved for the time. */
+		padding-top: 1.2vw;
 	}
 
 	.mobile-page-clock__time {

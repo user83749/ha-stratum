@@ -24,12 +24,8 @@
 			]
 		},
 		{
-			category: 'Tile nudge (edit mode)',
+			category: 'Tile resize (edit mode)',
 			items: [
-				{ keys: ['↑'],                    desc: 'Nudge tile up'         },
-				{ keys: ['↓'],                    desc: 'Nudge tile down'       },
-				{ keys: ['←'],                    desc: 'Nudge tile left'       },
-				{ keys: ['→'],                    desc: 'Nudge tile right'      },
 				{ keys: ['Shift', '↑'],           desc: 'Grow tile height'      },
 				{ keys: ['Shift', '↓'],           desc: 'Shrink tile height'    },
 				{ keys: ['Shift', '←'],           desc: 'Shrink tile width'     },

@@ -5,7 +5,7 @@
 
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { configStore } from '$lib/stores/config';
-	import { connectionStatus, disconnect as disconnectHA } from '$lib/ha/websocket';
+	import { connectionStatus, disconnect as disconnectHA, pauseReconnect } from '$lib/ha/websocket';
 	import { isAddon as isAddonStore } from '$lib/stores/app';
 
 	const isAddon = $derived($isAddonStore);
@@ -79,6 +79,9 @@
 	}
 
 	function disconnect() {
+		// Prevent the auto-reconnect loop (especially in add-on mode) from
+		// immediately reconnecting and making this button feel non-functional.
+		pauseReconnect(30_000);
 		disconnectHA();
 		configStore.clear();
 		testResult  = 'idle';

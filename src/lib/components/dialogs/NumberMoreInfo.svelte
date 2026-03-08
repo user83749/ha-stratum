@@ -2,14 +2,13 @@
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { getDomain } from '$lib/ha/entities';
 	import { inputNumberService, numberService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const domain = $derived(getDomain(entityId));
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const min = $derived((entity?.attributes.min as number | undefined) ?? 0);
 	const max = $derived((entity?.attributes.max as number | undefined) ?? 100);
@@ -23,7 +22,7 @@
 		localValue = next;
 		if (debounce) clearTimeout(debounce);
 		debounce = setTimeout(() => {
-			if (isDemo) { applyPatch(entityId, { state: String(next) }); return; }
+			if (optimisticPreviewEnabled) { applyPatch(entityId, { state: String(next) }); return; }
 			if (domain === 'input_number') inputNumberService.setValue(entityId, next).catch(() => {});
 			else numberService.setValue(entityId, next).catch(() => {});
 		}, 120);

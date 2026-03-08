@@ -57,8 +57,6 @@ function createDashboardStore() {
 
 	async function persistConfig(config: DashboardConfig): Promise<void> {
 		if (!browser) return;
-		// NEVER PERSIST IF IN DEMO MODE — prevents demo config from overwriting the real dashboard.json
-		if (localStorage.getItem('stratum_demo') === 'true') return;
 
 		try {
 			await fetch(`${base}/api-stratum/config`, {
@@ -82,8 +80,6 @@ function createDashboardStore() {
 
 	return {
 		subscribe,
-
-		// ── Demo / seed (bypasses persistence) ────────────────────────────
 
 		seed(config: DashboardConfig) {
 			set(config);
@@ -191,7 +187,10 @@ function createDashboardStore() {
 		// ── Profiles ───────────────────────────────────────────────────────
 
 		addProfile(profile: UserProfile) {
-			mutate((c) => c.profiles.push(profile));
+			mutate((c) => {
+				c.profiles.push(profile);
+				if (!c.activeProfileId) c.activeProfileId = profile.id;
+			});
 		},
 
 		updateProfile(profileId: string, patch: Partial<Omit<UserProfile, 'id'>>) {
@@ -204,6 +203,19 @@ function createDashboardStore() {
 		deleteProfile(profileId: string) {
 			mutate((c) => {
 				c.profiles = c.profiles.filter((p) => p.id !== profileId);
+				if (c.activeProfileId === profileId) {
+					c.activeProfileId = c.profiles[0]?.id;
+				}
+			});
+		},
+
+		setActiveProfile(profileId: string | undefined) {
+			mutate((c) => {
+				if (!profileId) {
+					c.activeProfileId = undefined;
+					return;
+				}
+				c.activeProfileId = c.profiles.some((p) => p.id === profileId) ? profileId : c.activeProfileId;
 			});
 		},
 

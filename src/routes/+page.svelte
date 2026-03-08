@@ -28,7 +28,6 @@
 	import type { Section } from '$lib/types/dashboard';
 	import { getAdaptiveColumns, getSectionMaxColumns, MOBILE_SECTION_COLS } from '$lib/layout/sectionLayout';
 	import { getAllowedPresets } from '$lib/layout/tileSizing';
-	import { isDemoMode } from '$lib/demo';
 
 	const cfg    = $derived($dashboardStore);
 	const navCfg = $derived(cfg.nav);
@@ -62,7 +61,11 @@
 	);
 	const isMobile = $derived(windowWidth < mobileNavBreakpoint);
 	const showMobileNav = $derived(isMobile && navCfg.mobileStyle !== 'hidden');
-	const useIntegratedDesktopNav = $derived(navCfg.position === 'left' && !showMobileNav);
+	const useIntegratedDesktopNav = $derived(navCfg.position === 'left' && !isMobile);
+	const suppressShellSidebar = $derived(isMobile || useIntegratedDesktopNav);
+	const mobileBottomInsetPx = $derived(
+		showMobileNav && navCfg.mobileStyle === 'bottom-bar' ? 48 : 0
+	);
 
 	// ── Init ───────────────────────────────────────────────────────────────────
 
@@ -70,6 +73,16 @@
 		const display = cfg.display;
 		const firstId = cfg.pages[0]?.id;
 		uiStore.initPage(display.defaultPageId, firstId);
+	});
+
+	// Keep UI page selection valid after config loads/migrates.
+	// If the stored active page no longer exists, select default/first page.
+	$effect(() => {
+		if (cfg.pages.length === 0) return;
+		const current = $activePageId;
+		const exists = !!current && cfg.pages.some((p) => p.id === current);
+		if (exists) return;
+		uiStore.navigateTo(cfg.display.defaultPageId ?? cfg.pages[0].id);
 	});
 
 	// ── Edit state ─────────────────────────────────────────────────────────────
@@ -396,9 +409,9 @@
 	ontouchend={handleTouchEnd}
 />
 
-<AppShell integratedLeftNav={useIntegratedDesktopNav}>
+<AppShell integratedLeftNav={suppressShellSidebar}>
 	{#snippet nav()}
-		{#if !useIntegratedDesktopNav && !showMobileNav && navCfg.position !== 'bottom'}
+		{#if !isMobile && !useIntegratedDesktopNav && navCfg.position !== 'bottom'}
 			<AppNav />
 		{/if}
 	{/snippet}
@@ -431,9 +444,7 @@
 		>
 				<div
 					style={
-						showMobileNav
-							? 'padding-bottom: calc(48px + env(safe-area-inset-bottom)); flex: 1; min-height: 0; display: flex; flex-direction: column;'
-							: 'flex: 1; min-height: 0; display: flex; flex-direction: column;'
+						`padding-bottom: calc(${mobileBottomInsetPx}px + env(safe-area-inset-bottom)); flex: 1; min-height: 0; display: flex; flex-direction: column;`
 					}
 				>
 						<PageView

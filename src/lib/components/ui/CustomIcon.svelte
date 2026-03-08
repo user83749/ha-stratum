@@ -78,7 +78,28 @@
 			const selectorRaw = css.slice(start, open).trim();
 			const scopedSelector = selectorRaw
 				.split(',')
-				.map((s) => `${scopeSelector} ${s.trim()}`)
+				.flatMap((sel) => {
+					const s = sel.trim();
+					if (!s) return [];
+
+					// If the selector explicitly targets the svg root, replace it with the scoped root.
+					if (s === 'svg') return [scopeSelector];
+					if (s.startsWith('svg')) {
+						const rest = s.slice(3);
+						// `svg.on`, `svg#id`, `svg[foo]`, `svg:...`, `svg > ...`
+						if (rest.length === 0 || /^[.#[:\s>+~]/.test(rest)) {
+							return [`${scopeSelector}${rest}`];
+						}
+					}
+
+					// Many HA SVGs put classes on the root `<svg class="on">`.
+					// Prefixing with a descendant combinator would break those rules.
+					if (/^[.#[:]/.test(s)) {
+						return [`${scopeSelector}${s}`, `${scopeSelector} ${s}`];
+					}
+
+					return [`${scopeSelector} ${s}`];
+				})
 				.join(', ');
 
 			let depth = 1;
@@ -104,12 +125,58 @@
 		// Add scope attribute to the root svg tag (first one only).
 		let scoped = svg.replace(/<svg\b(?![^>]*\bdata-ci=)/, `<svg data-ci="${scopeId}"`);
 
+		const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+		// Scope any SVG ids that are referenced via url(#...) to avoid cross-icon collisions
+		// (e.g. gradients/masks/clipPaths like id="A").
+		const usedIds = new Set<string>();
+		scoped.replace(/url\(#([^)]+)\)/g, (_m, id: string) => {
+			usedIds.add(String(id));
+			return _m;
+		});
+		if (usedIds.size > 0) {
+			for (const id of usedIds) {
+				const scopedId = `ci-${scopeId}-${id}`;
+				// id="..."
+				scoped = scoped.replace(new RegExp(`\\bid=(["'])${escapeRegExp(id)}\\1`, 'g'), (_m, q: string) => {
+					return `id=${q}${scopedId}${q}`;
+				});
+				// url(#...)
+				scoped = scoped.replace(new RegExp(`url\\(#${escapeRegExp(id)}\\)`, 'g'), `url(#${scopedId})`);
+				// href="#..." / xlink:href="#..."
+				scoped = scoped.replace(new RegExp(`\\b(href|xlink:href)=(["'])#${escapeRegExp(id)}\\2`, 'g'), (_m, attr: string, q: string) => {
+					return `${attr}=${q}#${scopedId}${q}`;
+				});
+			}
+		}
+
 		scoped = scoped.replace(/<style>([\s\S]*?)<\/style>/g, (_m, cssText: string) => {
 			let css = String(cssText);
 
-			// Avoid global keyframe name collisions for the generic "on" animation.
-			css = css.replace(/@keyframes\s+on\b/g, `@keyframes ci-${scopeId}-on`);
-			css = css.replace(/(\banimation(?:-name)?\s*:\s*)on\b/g, `$1ci-${scopeId}-on`);
+			// Avoid global keyframe name collisions. Keyframes are global by name even if we scope selectors.
+			// Many of your ported HA SVGs use generic names like "on"/"off"/"rotate".
+			const keyframes = new Set<string>();
+			css.replace(/@keyframes\s+([a-zA-Z0-9_-]+)\b/g, (_k, name: string) => {
+				keyframes.add(String(name));
+				return _k;
+			});
+
+			if (keyframes.size > 0) {
+				for (const kf of keyframes) {
+					const scopedKf = `ci-${scopeId}-${kf}`;
+					css = css.replace(new RegExp(`@keyframes\\s+${kf}\\b`, 'g'), `@keyframes ${scopedKf}`);
+
+					// Rewrite uses inside animation / animation-name declarations only.
+					css = css.replace(/(\banimation-name\s*:\s*)([^;]+);/g, (_mm, head: string, val: string) => {
+						const next = val.replace(new RegExp(`\\b${kf}\\b`, 'g'), scopedKf);
+						return `${head}${next};`;
+					});
+					css = css.replace(/(\banimation\s*:\s*)([^;]+);/g, (_mm, head: string, val: string) => {
+						const next = val.replace(new RegExp(`\\b${kf}\\b`, 'g'), scopedKf);
+						return `${head}${next};`;
+					});
+				}
+			}
 
 			css = prefixCssRules(css, scopeSelector);
 			return `<style>${css}</style>`;
@@ -395,13 +462,86 @@
 			}
 
 			case 'tv': {
-				const color = isOn ? '#7fdbe9' : '#9da0a2';
-				const tvPath = `<path d="M46 9.2v27.5H4.1V9.2H46m2.4-2.4H1.6v32.3h46.7c.1 0 .1-32.3.1-32.3zM11.9 43.2h26.3c.6 0 1.1-.4 1.1-1v-.3c0-.6-.4-1.1-1-1.1H11.9c-.6 0-1.1.4-1.1 1v.3a1.11 1.11 0 0 0 1.1 1.1z" fill="${isOn ? '#616161' : '#9da0a2'}"/>`;
-				return `<svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
-            <defs><linearGradient id="tv-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#64acb7"/><stop offset="100%" stop-color="#7fdbe9"/></linearGradient></defs>
-            ${isOn ? `<rect x="3" y="8" width="44" height="30" fill="url(#tv-grad)" opacity="0.8"/>` : ''}
-            ${tvPath}
-          </svg>`;
+				// TVs are commonly `media_player.*` with states like idle/paused even when "on".
+				const tvOn = entity?.entity_id?.startsWith('media_player.')
+					? ['on', 'playing', 'paused', 'idle'].includes(entityState)
+					: isOn;
+				const recentOn = tvOn && isRecent;
+				const recentOff = !tvOn && isRecent;
+
+				const style = `
+          <style>
+            @keyframes on {
+              from { transform: scaleY(0); }
+              to { transform: scaleY(1); }
+            }
+            .on {
+              animation: on 1s;
+              transform-origin: -100% 46%;
+              animation-fill-mode: forwards;
+            }
+            @keyframes off {
+              from { transform: scaleY(1); }
+              to { transform: scaleY(0); }
+            }
+            .off {
+              animation: off 1s;
+              transform-origin: -100% 46%;
+              animation-fill-mode: forwards;
+            }
+          </style>
+        `;
+
+				const frameFill = tvOn ? '#616161' : '#9da0a2';
+				const framePath = `<path fill="${frameFill}" d="M46 9.2v27.5H4.1V9.2H46m2.4-2.4H1.6v32.3h46.7c.1 0 .1-32.3.1-32.3zM11.9 43.2h26.3c.6 0 1.1-.4 1.1-1v-.3c0-.6-.4-1.1-1-1.1H11.9c-.6 0-1.1.4-1.1 1v.3a1.11 1.11 0 0 0 1.1 1.1z"/>`;
+
+				const gradient = `
+            <linearGradient id="A" gradientUnits="userSpaceOnUse" x1="5.401" y1="34.714" x2="43.817" y2="11.74">
+              <stop offset="0" stop-color="#64acb7"/>
+              <stop offset="1" stop-color="#7fdbe9"/>
+            </linearGradient>
+        `;
+
+				if (recentOn) {
+					return `
+            <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+              ${style}
+              <defs>${gradient}</defs>
+              <path d="M2.9,8h44.3v29.9H2.9V8z" fill="#20262890"/>
+              <path class="on" d="M2.9,8h44.3v29.9H2.9V8z" fill="url(#A)"/>
+              ${framePath}
+            </svg>
+          `;
+				}
+
+				if (tvOn && !isRecent) {
+					return `
+            <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+              <defs>${gradient}</defs>
+              <path d="M2.9,8h44.3v29.9H2.9V8z" fill="#20262890"/>
+              <path d="M2.9,8h44.3v29.9H2.9V8z" fill="url(#A)"/>
+              ${framePath}
+            </svg>
+          `;
+				}
+
+				if (recentOff) {
+					return `
+            <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+              ${style}
+              <defs>${gradient}</defs>
+              <path class="off" d="M2.9,8h44.3v29.9H2.9V8z" fill="url(#A)"/>
+              ${framePath}
+            </svg>
+          `;
+				}
+
+				return `
+          <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+            ${style}
+            ${framePath}
+          </svg>
+        `;
 			}
 
 			case 'ps5': {
@@ -573,7 +713,8 @@
 
 			case 'fan2': {
 				const id = Math.random().toString(36).substring(2, 9);
-				const path = `<circle cx="25" cy="25" r="6.6"/><path d="M31.9 30.4c-.5.6-1.1 1.1-1.7 1.5-1.4 1.1-3.2 1.7-5.2 1.7-2.3 0-4.5-.9-6-2.4-.9 1.1-1.6 2.3-2.3 3.2l-4.9 5.4c-1.8 2.7.3 5.6 2.5 7 3.9 2.4 9.8 3.1 14.1 1.9 4.6-1.3 7.9-4.7 7.4-9.7-.2-3.4-1.9-6-3.9-8.6zM17 28.3c-.4-1-.6-2.1-.6-3.3a8.7 8.7 0 0 1 6.4-8.4l-1.6-3.5L19 6.2c-1.5-2.8-5-2.5-7.3-1.2-4 2.2-7.5 6.9-8.7 11.3-1.2 4.6.2 9.2 4.7 11.3 3.1 1.3 6.1 1.2 9.3.7zm26.9-17.6c-3.3-3.4-8-4.6-12.1-1.8-2.8 1.8-4.2 4.6-5.5 7.5 4.2.6 7.4 4.2 7.4 8.6 0 .9-.1 1.7-.4 2.5 1.3.2 2.8.3 3.8.4 2.3.4 4.7 1.3 7.1 1.7 3.2.3 4.7-3 4.8-5.6.3-4.6-1.9-10.1-5.1-13.3z"/>`;
+				// Use currentColor on both the blades and the center circle so they always match.
+				const path = `<circle cx="25" cy="25" r="6.6" fill="currentColor"/><path fill="currentColor" d="M31.9 30.4c-.5.6-1.1 1.1-1.7 1.5-1.4 1.1-3.2 1.7-5.2 1.7-2.3 0-4.5-.9-6-2.4-.9 1.1-1.6 2.3-2.3 3.2l-4.9 5.4c-1.8 2.7.3 5.6 2.5 7 3.9 2.4 9.8 3.1 14.1 1.9 4.6-1.3 7.9-4.7 7.4-9.7-.2-3.4-1.9-6-3.9-8.6zM17 28.3c-.4-1-.6-2.1-.6-3.3a8.7 8.7 0 0 1 6.4-8.4l-1.6-3.5L19 6.2c-1.5-2.8-5-2.5-7.3-1.2-4 2.2-7.5 6.9-8.7 11.3-1.2 4.6.2 9.2 4.7 11.3 3.1 1.3 6.1 1.2 9.3.7zm26.9-17.6c-3.3-3.4-8-4.6-12.1-1.8-2.8 1.8-4.2 4.6-5.5 7.5 4.2.6 7.4 4.2 7.4 8.6 0 .9-.1 1.7-.4 2.5 1.3.2 2.8.3 3.8.4 2.3.4 4.7 1.3 7.1 1.7 3.2.3 4.7-3 4.8-5.6.3-4.6-1.9-10.1-5.1-13.3z"/>`;
 				const stage = (isOn && isRecent)
 					? 'on'
 					: (!isOn && isRecent ? 'off' : (isOn ? 'on_timeout' : ''));
@@ -593,14 +734,14 @@
               .start {
                 animation: fan-rotate-${id} 1.6s ease-in;
                 transform-origin: center;
-                fill: #5daeea;
+                color: #5daeea;
                 visibility: hidden;
                 will-change: transform;
               }
               .on {
                 animation: fan-rotate-${id} 1.1s linear infinite;
                 transform-origin: center;
-                fill: #5daeea;
+                color: #5daeea;
                 animation-delay: 1.6s;
                 visibility: hidden;
                 will-change: transform;
@@ -609,7 +750,7 @@
               .off {
                 animation: fan-rotate-${id} 1.6s;
                 transform-origin: center;
-                fill: #9ca2a5;
+                color: #9ca2a5;
                 animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1);
                 will-change: transform;
               }
@@ -617,11 +758,11 @@
               .on_timeout {
                 animation: fan-rotate-${id} 1.1s linear infinite;
                 transform-origin: center;
-                fill: #5daeea;
+                color: #5daeea;
                 visibility: hidden;
                 will-change: transform;
               }
-              .end_timeout { fill: #9ca2a5; }
+              .end_timeout { color: #9ca2a5; }
             </style>
             ${stage === 'on'
 							? `<g class="start">${path}</g><g class="on">${path}</g>`

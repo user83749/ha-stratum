@@ -797,7 +797,8 @@
 		.section__title {
 			font-size: 5.5vw;
 			line-height: 6vw;
-			margin: 2vw 0 0 0;
+			margin: 1.2vw 0 0 0;
+			padding: 0.2vw 0 1.6vw 0;
 		}
 	}
 

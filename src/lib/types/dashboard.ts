@@ -647,11 +647,6 @@ export interface AppSettings {
 	locale: string;              // BCP 47 e.g. 'en', 'de', 'fr', 'ar'
 	timeFormat: '12h' | '24h';
 	unitSystem: 'metric' | 'imperial' | 'auto'; // auto = read from HA config
-	temperatureUnit: 'auto' | 'c' | 'f';        // auto = read from HA config
-	numberFormat: 'dot' | 'comma';              // decimal separator
-	firstDayOfWeek: 0 | 1;                      // 0=Sunday 1=Monday
-	currency: string;                           // ISO 4217 e.g. 'USD'
-	reducedMotion: boolean;                     // override for motion-sensitive users
 }
 
 // ─── Tile Defaults ───────────────────────────────────────────────────────────
@@ -869,6 +864,7 @@ export interface DashboardConfig {
 	resources: CustomResources;
 	pages: Page[];
 	profiles: UserProfile[];
+	activeProfileId?: string;
 }
 
 // ─── Defaults ────────────────────────────────────────────────────────────────
@@ -914,12 +910,7 @@ export const DEFAULT_HEADER: HeaderConfig = {
 export const DEFAULT_SETTINGS: AppSettings = {
 	locale: 'en',
 	timeFormat: '12h',
-	unitSystem: 'auto',
-	temperatureUnit: 'auto',
-	numberFormat: 'dot',
-	firstDayOfWeek: 1,
-	currency: 'USD',
-	reducedMotion: false
+	unitSystem: 'auto'
 };
 
 export const DEFAULT_TILE_DEFAULTS: TileDefaults = {
@@ -1086,7 +1077,8 @@ export function defaultConfig(): DashboardConfig {
 		notifications: { ...DEFAULT_NOTIFICATIONS },
 		resources: {},
 		pages: [defaultPage()],
-		profiles: []
+		profiles: [],
+		activeProfileId: undefined
 	};
 }
 
@@ -1096,8 +1088,16 @@ export function migrateConfig(raw: unknown): DashboardConfig {
 	if (!raw || typeof raw !== 'object') return defaultConfig();
 
 	const input = raw as Partial<DashboardConfig>;
+	const migratedProfiles = input.profiles ?? [];
 	const rawTheme = (input.theme ?? {}) as Partial<ThemeConfig>;
 	const rawNav = (input.nav ?? {}) as Partial<NavConfig>;
+	const rawMobileStyle = rawNav.mobileStyle as string | undefined;
+	const normalizedMobileStyle: NavConfig['mobileStyle'] =
+		rawMobileStyle === 'bottom-bar' || rawMobileStyle === 'drawer' || rawMobileStyle === 'hidden'
+			? rawMobileStyle
+			: rawMobileStyle === 'bottom' || rawMobileStyle === 'bar'
+				? 'bottom-bar'
+				: DEFAULT_NAV.mobileStyle;
 
 	return {
 		version: SCHEMA_VERSION,
@@ -1137,7 +1137,7 @@ export function migrateConfig(raw: unknown): DashboardConfig {
 			headerIcon: rawNav.headerIcon ?? DEFAULT_NAV.headerIcon,
 			showConnectionStatus: rawNav.showConnectionStatus ?? DEFAULT_NAV.showConnectionStatus,
 			mobileBreakpoint: rawNav.mobileBreakpoint ?? DEFAULT_NAV.mobileBreakpoint,
-			mobileStyle: rawNav.mobileStyle ?? DEFAULT_NAV.mobileStyle,
+			mobileStyle: normalizedMobileStyle,
 			heroEntities: rawNav.heroEntities ?? [],
 			order: rawNav.order ?? [],
 			extras: rawNav.extras ?? [],
@@ -1171,7 +1171,10 @@ export function migrateConfig(raw: unknown): DashboardConfig {
 		notifications: { ...DEFAULT_NOTIFICATIONS, ...(input.notifications ?? {}) },
 		resources: { ...(input.resources ?? {}) },
 		pages: (input.pages ?? [defaultPage()]).map(migratePageV5),
-		profiles: input.profiles ?? []
+		profiles: migratedProfiles,
+		activeProfileId: migratedProfiles.some((p) => p.id === input.activeProfileId)
+			? input.activeProfileId
+			: migratedProfiles[0]?.id
 	};
 }
 

@@ -3,7 +3,6 @@
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { callService } from '$lib/ha/services';
 	import { getEntityName } from '$lib/ha/entities';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 
 	interface Props { entityId: string; }
@@ -14,11 +13,11 @@
 	const members = $derived(memberIds.map((id) => ({ id, entity: $optimisticEntities[id] ?? null })));
 	const isOn = $derived(entity?.state === 'on');
 	const isUnavail = $derived(!entity || entity.state === 'unavailable' || entity.state === 'unknown');
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 
 	async function setGroup(nextOn: boolean) {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			applyPatch(entityId, { state: nextOn ? 'on' : 'off' });
 			return;
 		}

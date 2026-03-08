@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { coverService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
@@ -9,7 +8,7 @@
 	const { entityId }: Props = $props();
 
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const __state = $derived((entity?.state as string | undefined) ?? 'unknown');
 	const position = $derived((entity?.attributes.current_position as number | undefined) ?? (__state === 'open' ? 100 : 0));
@@ -27,7 +26,7 @@
 	function onChange(e: Event) {
 		dragging = false;
 		const next = Number((e.target as HTMLInputElement).value);
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			applyPatch(entityId, { state: next > 0 ? 'open' : 'closed', attributes: { current_position: next } });
 		} else {
 			coverService.setPosition(entityId, next).catch(() => {});
@@ -36,7 +35,7 @@
 
 	function run(action: 'open' | 'stop' | 'close') {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			if (action === 'open') applyPatch(entityId, { state: 'open', attributes: { current_position: 100 } });
 			if (action === 'close') applyPatch(entityId, { state: 'closed', attributes: { current_position: 0 } });
 			return;

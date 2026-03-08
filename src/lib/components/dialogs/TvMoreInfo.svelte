@@ -2,14 +2,13 @@
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { mediaService, remoteService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const state = $derived(entity?.state ?? 'off');
 	const isUnavail = $derived(state === 'unavailable' || !entity);
 	const domain = $derived(entityId.split('.')[0] ?? '');
@@ -22,7 +21,7 @@
 
 	function sendCmd(cmd: string) {
 		if (isUnavail) return;
-		if (isDemo) return;
+		if (optimisticPreviewEnabled) return;
 
 		// If this is a remote.* entity, send navigation/rocker commands.
 		if (isRemote) {
@@ -42,7 +41,7 @@
 
 	function toggle() {
 		if (isUnavail) return;
-		if (isDemo) applyPatch(entityId, { state: isPowered ? 'off' : 'on' });
+		if (optimisticPreviewEnabled) applyPatch(entityId, { state: isPowered ? 'off' : 'on' });
 		else (isRemote
 			? (isPowered ? remoteService.turnOff(entityId) : remoteService.turnOn(entityId))
 			: (isPowered ? mediaService.turnOff(entityId) : mediaService.turnOn(entityId))

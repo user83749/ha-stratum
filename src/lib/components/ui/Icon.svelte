@@ -160,7 +160,7 @@
 		{#if hasExplicitSize}
 			<span
 				class="ci-box"
-				style="width:{cssSize};height:{cssSize};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"
+				style="width:{cssSize};height:{cssSize};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden;"
 				aria-hidden="true"
 			>
 				<span

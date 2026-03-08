@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { lockService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
@@ -9,7 +8,7 @@
 	const { entityId }: Props = $props();
 
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const __state = $derived((entity?.state as string | undefined) ?? 'unknown');
 	const isLocked = $derived(__state === 'locked');
@@ -35,10 +34,10 @@
 			}
 			clearTimeout(timer);
 			confirming = false;
-			if (isDemo) applyPatch(entityId, { state: 'unlocked' });
+			if (optimisticPreviewEnabled) applyPatch(entityId, { state: 'unlocked' });
 			else lockService.unlock(entityId).catch(() => {});
 		} else {
-			if (isDemo) applyPatch(entityId, { state: 'locked' });
+			if (optimisticPreviewEnabled) applyPatch(entityId, { state: 'locked' });
 			else lockService.lock(entityId).catch(() => {});
 		}
 	}

@@ -3,7 +3,6 @@
   import type { Tile } from '$lib/types/dashboard';
   import Icon from '$lib/components/ui/Icon.svelte';
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
-  import { haService, sceneService, scriptService, automationService, inputButtonService, buttonService } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
@@ -30,18 +29,9 @@
     return 'Activate';
   }
 
-  async function activate() {
-    if (!entityId) return;
-    if (domain === 'scene') { sceneService.turnOn(entityId); }
-    else if (domain === 'automation') { automationService.trigger(entityId); }
-    else if (domain === 'script') { scriptService.turnOn(entityId); }
-    else if (domain === 'input_button') { inputButtonService.press(entityId); }
-    else if (domain === 'button') { buttonService.press(entityId); }
-    else { haService.turnOn(entityId); }
-  }
 </script>
 
-<!-- Button tiles are activated by TileWrapper tap_action; activate() is available for tap_action override -->
+<!-- Button tiles are activated by TileWrapper tap_action. -->
 <BaseTile {name} state={domainLabel()} {isOn}>
 
   {#snippet icon()}

@@ -25,6 +25,7 @@
 
 	const cfg       = $derived($dashboardStore);
 	const nav       = $derived(cfg.nav);
+	const settings  = $derived(cfg.settings);
 	const pages     = $derived(cfg.pages);
 	const favorites = $derived(cfg.favorites);
 
@@ -99,8 +100,12 @@
 
 	function updateClock() {
 		const now = new Date();
-		clockTime = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s?[AP]M/i, '');
-		clockDate = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+		const locale = settings.locale || undefined;
+		const hour12 = settings.timeFormat === '12h';
+		clockTime = now
+			.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12 })
+			.replace(/\s?[AP]M/i, '');
+		clockDate = now.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
 	}
 
 	const weatherEntity = $derived(

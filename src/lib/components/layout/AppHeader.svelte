@@ -4,17 +4,9 @@
 	import { uiStore, activePageId } from '$lib/stores/ui';
 	import { editMode, isEditing } from '$lib/stores/editMode';
 	import Icon from '$lib/components/ui/Icon.svelte';
-	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
-	import { deactivateDemo, isDemoMode } from '$lib/demo/index';
 	import { entities } from '$lib/ha/websocket';
 	import { getDomain, getEntityName, isActive } from '$lib/ha/entities';
-
-	const isDemo = $derived(browser ? isDemoMode() : false);
-
-	function exitDemo() {
-		deactivateDemo();
-	}
 
 	onMount(() => {
 		isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
@@ -87,14 +79,6 @@
 	<!-- ── Main row ─────────────────────────────────────────────────────────── -->
 	<div class="ha-header__row" style="height: {header.height}px;">
 		<div class="ha-header__spacer"></div>
-
-		<!-- Demo badge -->
-		{#if isDemo}
-			<button class="demo-badge" onclick={exitDemo} title="Exit demo mode">
-				<span class="demo-dot"></span>
-				Demo
-			</button>
-		{/if}
 
 		<!-- Right actions -->
 		<div class="ha-header__actions">
@@ -281,41 +265,6 @@
 
 	.ha-header__search-kbd-meta {
 		font-size: 0.75rem;
-	}
-
-	/* ── Demo badge ──────────────────────────────────────────────────────── */
-	.demo-badge {
-		display: flex;
-		align-items: center;
-		gap: 5px;
-		height: 26px;
-		padding: 0 10px;
-		border-radius: 999px;
-		border: 1px solid color-mix(in srgb, var(--color-warning) 40%, transparent);
-		background: color-mix(in srgb, var(--color-warning) 12%, transparent);
-		color: var(--color-warning);
-		font-size: 0.6875rem;
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		cursor: pointer;
-		transition: background-color var(--transition), border-color var(--transition);
-	}
-	.demo-badge:hover {
-		background: color-mix(in srgb, var(--color-warning) 20%, transparent);
-		border-color: var(--color-warning);
-	}
-	.demo-dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		background: var(--color-warning);
-		animation: pulse-demo 2s ease-in-out infinite;
-		flex-shrink: 0;
-	}
-	@keyframes pulse-demo {
-		0%, 100% { opacity: 1; }
-		50%       { opacity: 0.4; }
 	}
 
 	/* ── Favorites row ────────────────────────────────────────────────────── */

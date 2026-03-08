@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { climateService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
@@ -9,7 +8,7 @@
 	const { entityId }: Props = $props();
 
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const hvacMode = $derived((entity?.state as string | undefined) ?? 'off');
 	const hvacModes = $derived((entity?.attributes.hvac_modes as string[] | undefined) ?? []);
@@ -44,7 +43,7 @@
 		localTemp = next;
 		if (tempDebounce) clearTimeout(tempDebounce);
 		tempDebounce = setTimeout(() => {
-			if (isDemo) {
+			if (optimisticPreviewEnabled) {
 				applyPatch(entityId, { attributes: { temperature: next } });
 			} else {
 				climateService.setTemperature(entityId, next).catch(() => {});
@@ -60,7 +59,7 @@
 		rangeDebounce = setTimeout(() => {
 			const low = kind === 'low' ? next : localTempLow;
 			const high = kind === 'high' ? next : localTempHigh;
-			if (isDemo) {
+			if (optimisticPreviewEnabled) {
 				applyPatch(entityId, { attributes: { target_temp_low: low, target_temp_high: high } });
 			} else {
 				climateService.setTargetTempRange(entityId, low, high).catch(() => {});
@@ -70,7 +69,7 @@
 
 	function setMode(mode: string) {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			applyPatch(entityId, { state: mode });
 			return;
 		}

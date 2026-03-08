@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.22] - 2026-03-07
+
+### Added
+- New update summary utility and HTML sanitization service.
+
+### Changed
+- Extensive refactor of settings panels (Profiles, Reset, Theme, General).
+- Improved tile components (Button, MediaHero, TileRenderer, TileWrapper, Update).
+- Cleaned up demo data and moved to production-ready Ha stores.
+- Enhanced Home Assistant websocket and service handling.
+- Optimized formatting and theme application logic.
+- Updated main layout and page view for better responsiveness.
+
+### Fixed
+- Improved icon rendering and custom iconography reliability.
+
 ## [1.0.21] - 2026-03-07
 
 ### Added

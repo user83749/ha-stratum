@@ -2,7 +2,6 @@
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { todoService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 
 	interface Props { entityId: string; }
@@ -15,7 +14,7 @@
 
 	const { entityId }: Props = $props();
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const items = $derived(((entity?.attributes.items as TodoItem[] | undefined) ?? []).slice());
 	const pending = $derived(items.filter((item) => item.status !== 'completed'));
@@ -31,7 +30,7 @@
 		const summary = draft.trim();
 		if (!summary || isUnavail) return;
 		draft = '';
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			patchItems([
 				...items,
 				{ uid: `draft-${Date.now()}`, summary, status: 'needs_action' }
@@ -44,7 +43,7 @@
 	function toggleItem(item: TodoItem) {
 		if (isUnavail) return;
 		const nextStatus = item.status === 'completed' ? 'needs_action' : 'completed';
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			patchItems(
 				items.map((entry) =>
 					(entry.uid ?? entry.summary) === (item.uid ?? item.summary)
@@ -59,7 +58,7 @@
 
 	function removeItem(item: TodoItem) {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			patchItems(
 				items.filter((entry) => (entry.uid ?? entry.summary) !== (item.uid ?? item.summary))
 			);
@@ -70,7 +69,7 @@
 
 	function clearCompleted() {
 		if (isUnavail || completed.length === 0) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			patchItems(pending);
 			return;
 		}

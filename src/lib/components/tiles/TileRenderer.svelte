@@ -165,8 +165,6 @@
 
 		// 2. Entity-less tiles without conditions always show
 		return true;
-
-		return true;
 	});
 
 	const componentProps = $derived.by(() => {

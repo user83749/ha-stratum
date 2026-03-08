@@ -89,7 +89,7 @@
 	.ha-shell {
 		display: flex;
 		width: 100%;
-		height: 100dvh;
+		height: var(--stratum-vh, 100dvh);
 		overflow: hidden;
 		/* Theme background: gradient or solid, set by applyTheme() via --theme-bg-css.
 		   Falls back to --bg (plain dark/light base color) for custom pages. */
@@ -107,7 +107,7 @@
 
 	.ha-shell__sidebar {
 		flex-shrink: 0;
-		height: 100dvh;
+		height: var(--stratum-vh, 100dvh);
 		overflow: hidden;
 		transition: width var(--transition-slow);
 		border-right: 1px solid var(--border-strong);
@@ -121,7 +121,7 @@
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		height: 100dvh;
+		height: var(--stratum-vh, 100dvh);
 		overflow: hidden;
 	}
 
@@ -186,13 +186,4 @@
 		width: 100%;
 	}
 
-
-
-	/* ── Mobile Sidebar override ─────────────────────────────────────────── */
-	@media (max-width: 768px) {
-		.ha-shell__header,
-		.ha-shell__sidebar {
-			display: none !important;
-		}
-	}
 </style>

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { fanService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
@@ -11,7 +10,7 @@
 	const entity    = $derived($optimisticEntities[entityId] ?? null);
 	const isOn      = $derived(entity?.state === 'on');
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
-	const isDemo    = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 
 	// ─── Attributes ───────────────────────────────────────────────────────────
 
@@ -42,7 +41,7 @@
 		const v = parseInt((e.target as HTMLInputElement).value);
 		localPct = v;
 		if (speedDebounce) clearTimeout(speedDebounce);
-		if (isDemo) applyPatch(entityId, { attributes: { percentage: v } });
+		if (optimisticPreviewEnabled) applyPatch(entityId, { attributes: { percentage: v } });
 		else fanService.setPercentage(entityId, v).catch(() => {});
 	}
 
@@ -51,7 +50,7 @@
 	let toggling = $state(false);
 	async function toggle() {
 		if (toggling || isUnavail) return;
-		if (isDemo) { applyPatch(entityId, { state: isOn ? 'off' : 'on' }); return; }
+		if (optimisticPreviewEnabled) { applyPatch(entityId, { state: isOn ? 'off' : 'on' }); return; }
 		toggling = true;
 		try { if (isOn) await fanService.turnOff(entityId); else await fanService.turnOn(entityId); }
 		catch { /* silent */ }
@@ -60,20 +59,20 @@
 
 	function oscillate() {
 		if (isUnavail) return;
-		if (isDemo) { applyPatch(entityId, { attributes: { oscillating: !oscillating } }); return; }
+		if (optimisticPreviewEnabled) { applyPatch(entityId, { attributes: { oscillating: !oscillating } }); return; }
 		fanService.oscillate(entityId, !oscillating).catch(() => {});
 	}
 
 	function toggleDirection() {
 		if (isUnavail) return;
 		const next = direction === 'reverse' ? 'forward' : 'reverse';
-		if (isDemo) { applyPatch(entityId, { attributes: { direction: next } }); return; }
+		if (optimisticPreviewEnabled) { applyPatch(entityId, { attributes: { direction: next } }); return; }
 		fanService.setDirection(entityId, next).catch(() => {});
 	}
 
 	function setPreset(mode: string) {
 		if (isUnavail) return;
-		if (isDemo) { applyPatch(entityId, { attributes: { preset_mode: mode } }); return; }
+		if (optimisticPreviewEnabled) { applyPatch(entityId, { attributes: { preset_mode: mode } }); return; }
 		fanService.setPresetMode(entityId, mode).catch(() => {});
 	}
 </script>

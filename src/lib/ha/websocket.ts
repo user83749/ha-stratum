@@ -113,3 +113,17 @@ export const entityDomains = derived(entities, ($entities) => {
 	}
 	return Array.from(domains).sort();
 });
+
+// ── Reconnect pause (UI "Disconnect" button) ────────────────────────────────
+// In add-on/ingress mode we auto-reconnect. When the user hits "Disconnect" we
+// want a real disconnect state (at least briefly) instead of reconnecting
+// immediately and making the button feel broken.
+let reconnectPausedUntil = 0;
+
+export function pauseReconnect(ms = 30_000): void {
+	reconnectPausedUntil = Date.now() + ms;
+}
+
+export function reconnectAllowed(): boolean {
+	return Date.now() >= reconnectPausedUntil;
+}

@@ -2,19 +2,18 @@
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { inputSelectService, selectService } from '$lib/ha/services';
 	import { getDomain } from '$lib/ha/entities';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const domain = $derived(getDomain(entityId));
 	const options = $derived((entity?.attributes.options as string[] | undefined) ?? []);
 	const selected = $derived((entity?.state as string | undefined) ?? '');
 	function setOption(next: string) {
 		if (isUnavail) return;
-		if (isDemo) { applyPatch(entityId, { state: next }); return; }
+		if (optimisticPreviewEnabled) { applyPatch(entityId, { state: next }); return; }
 		if (domain === 'input_select') inputSelectService.selectOption(entityId, next).catch(() => {});
 		else selectService.selectOption(entityId, next).catch(() => {});
 	}

@@ -2,7 +2,6 @@
 	import { getDomain, getEntityName, getEntityIcon, getStateColor, formatState } from '$lib/ha/entities';
 	import { callService } from '$lib/ha/services';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
@@ -20,7 +19,7 @@
 	const iconName   = $derived(entity ? getEntityIcon(entity) : 'circle-help');
 	const unit       = $derived(entity?.attributes.unit_of_measurement as string | undefined);
 	const isUnavailable = $derived(!entity || entity.state === 'unavailable' || entity.state === 'unknown');
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 
 	// ─── Attributes ──────────────────────────────────────────────────────────
 
@@ -56,9 +55,9 @@
 		run:      () => Promise<void>;
 	}
 
-	async function safe(fn: () => Promise<void>, demoFn?: () => void) {
+	async function safe(fn: () => Promise<void>, fallbackFn?: () => void) {
 		if (isUnavailable) return;
-		if (isDemo) { demoFn?.(); return; }
+		if (optimisticPreviewEnabled) { fallbackFn?.(); return; }
 		try { await fn(); } catch { /* silent */ }
 	}
 

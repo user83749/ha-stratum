@@ -68,11 +68,11 @@
   });
 
   const STATIC_TILES: { type: TileType; label: string; icon: string }[] = [
-    { type: 'media_hero', label: 'Custom Player', icon: 'tv-2' },
+    { type: 'media_hero', label: 'Custom Media', icon: 'tv' },
     { type: 'clock', label: 'Clock', icon: 'clock' },
     { type: 'markdown', label: 'Text', icon: 'type' },
     { type: 'divider', label: 'Divider', icon: 'minus' },
-    { type: 'iframe', label: 'Web page', icon: 'globe' },
+    { type: 'iframe', label: 'Webpage', icon: 'globe' },
     { type: 'image', label: 'Image', icon: 'image' }
   ];
 
@@ -128,8 +128,8 @@
     history: { label: 'History', icon: 'chart-no-axes-combined' },
     climate: { label: 'Climate', icon: 'thermometer' },
     camera: { label: 'Camera', icon: 'camera' },
-    media_player: { label: 'Media', icon: 'tv-2' },
-    media_hero: { label: 'Custom Player', icon: 'tv-2' },
+    media_player: { label: 'Media', icon: 'tv' },
+    media_hero: { label: 'Custom Media', icon: 'tv' },
     fan: { label: 'Fan', icon: 'fan' },
     lock: { label: 'Lock', icon: 'lock' },
     cover: { label: 'Cover', icon: 'blinds' },
@@ -147,11 +147,11 @@
     humidifier: { label: 'Humidifier', icon: 'droplets' },
     water_heater: { label: 'Heater', icon: 'flame' },
     siren: { label: 'Siren', icon: 'siren' },
-    remote: { label: 'Remote', icon: 'tv-2' },
+    remote: { label: 'Remote', icon: 'tv' },
     clock: { label: 'Clock', icon: 'clock' },
     markdown: { label: 'Text', icon: 'type' },
     divider: { label: 'Divider', icon: 'minus' },
-    iframe: { label: 'Web page', icon: 'globe' },
+    iframe: { label: 'Webpage', icon: 'globe' },
     image: { label: 'Image', icon: 'image' }
   };
 
@@ -204,8 +204,16 @@
     return preview;
   });
 
+  const previewCols = $derived.by(() => {
+    const hinted = Math.max(1, Math.floor(columnHint || 0));
+    if (hinted > 0) return Math.min(6, hinted);
+    if (breakpoint === 'sm') return 2;
+    if (breakpoint === 'md') return 3;
+    return 4;
+  });
+
   // Fixed row height that gives tiles enough room to render properly.
-  const previewRowHeight = 140;
+  const previewRowHeight = 156;
 
   const previewShellMinHeight = $derived.by(() => {
     const rows = previewTile?.layout?.h ?? 1;
@@ -352,7 +360,7 @@
         </div>
 
         <div class="tp-preview-shell" style="min-height:{previewShellMinHeight}px;">
-          <div class="tp-preview-grid" style="grid-auto-rows:{previewRowHeight}px;">
+          <div class="tp-preview-grid" style="grid-auto-rows:{previewRowHeight}px;--tp-preview-cols:{previewCols};">
             {#if previewTile}
               {@const cols = previewTile.layout?.w ?? 1}
               {@const rows = previewTile.layout?.h ?? 1}
@@ -461,6 +469,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 10px;
+    justify-items: center;
   }
 
   .tp-static-btn,
@@ -472,9 +481,21 @@
     padding: 12px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
+    gap: 8px;
+    text-align: center;
     font: inherit;
     cursor: pointer;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .tp-static-btn > span,
+  .tp-type-btn > span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
 
   .tp-static-btn:hover,
@@ -569,13 +590,15 @@
   }
 
   .tp-preset-row {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
     gap: 8px;
   }
 
   .tp-preset-btn {
     height: 38px;
+    min-width: 96px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border);
     background: transparent;
@@ -596,22 +619,22 @@
     padding: 18px;
     background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
     display: flex;
-    overflow: hidden;
+    overflow: auto;
   }
 
   .tp-preview-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--tp-preview-cols, 4), minmax(0, 1fr));
     gap: 10px;
     align-items: stretch;
     width: 100%;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .tp-preview-slot {
     display: flex;
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   /* Force the tile-wrapper to fill its preview cell completely */
@@ -619,7 +642,7 @@
     width: 100%;
     height: 100%;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .tp-confirm {

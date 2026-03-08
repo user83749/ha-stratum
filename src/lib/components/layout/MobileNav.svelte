@@ -27,7 +27,7 @@
 </script>
 
 <!-- ── Bottom tab bar ──────────────────────────────────────────────────────── -->
-{#if nav.mobileStyle === 'bottom-bar' || nav.mobileStyle === 'drawer'}
+{#if nav.mobileStyle === 'bottom-bar'}
 	<nav class="mob-bar" aria-label="Mobile navigation">
 		{#each tabPages as page (page.id)}
 			{@const isActive = currentPageId === page.id}
@@ -44,7 +44,7 @@
 			</button>
 		{/each}
 
-		{#if hasOverflow || nav.mobileStyle === 'drawer'}
+		{#if hasOverflow}
 			<button
 				class="mob-bar__tab"
 				class:mob-bar__tab--active={drawerOpen}
@@ -69,6 +69,27 @@
 			{/if}
 		</button>
 	</nav>
+{/if}
+
+<!-- ── Drawer launcher (drawer mode) ─────────────────────────────────────── -->
+{#if nav.mobileStyle === 'drawer'}
+	<div class="mob-dock" aria-label="Mobile navigation controls">
+		<button
+			class="mob-dock__btn"
+			class:mob-dock__btn--active={drawerOpen}
+			onclick={() => uiStore.toggleMobileNav()}
+			aria-label="Open navigation"
+		>
+			<Icon name="menu" size={22} />
+		</button>
+		<button
+			class="mob-dock__btn"
+			onclick={() => uiStore.openSettings()}
+			aria-label="Settings"
+		>
+			<Icon name="settings" size={20} />
+		</button>
+	</div>
 {/if}
 
 <!-- ── Drawer overlay ──────────────────────────────────────────────────────── -->
@@ -104,9 +125,12 @@
 						class:mob-drawer__link--active={isActive}
 						onclick={() => navigate(page.id)}
 						aria-current={isActive ? 'page' : undefined}
+						aria-label={page.name}
 					>
 						<Icon name={page.icon} size={20} />
-						<span>{page.name}</span>
+						{#if nav.showLabelsOnMobile}
+							<span>{page.name}</span>
+						{/if}
 					</button>
 				</li>
 			{/each}
@@ -124,9 +148,12 @@
 							target={extra.newTab ? '_blank' : undefined}
 							rel={extra.newTab ? 'noopener noreferrer' : undefined}
 							onclick={() => uiStore.closeMobileNav()}
+							aria-label={extra.label}
 						>
 							<Icon name={extra.icon} size={20} />
-							<span>{extra.label}</span>
+							{#if nav.showLabelsOnMobile}
+								<span>{extra.label}</span>
+							{/if}
 						</a>
 					</li>
 				{/if}
@@ -177,6 +204,37 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		max-width: 100%;
+	}
+
+	/* ── Drawer launcher ─────────────────────────────────────────────────── */
+	.mob-dock {
+		position: fixed;
+		left: 12px;
+		bottom: calc(10px + env(safe-area-inset-bottom));
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		z-index: 31;
+	}
+
+	.mob-dock__btn {
+		width: 42px;
+		height: 42px;
+		border-radius: 12px;
+		border: 1px solid var(--border);
+		background: var(--surface);
+		color: var(--fg-muted);
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		backdrop-filter: blur(var(--blur-amount));
+		-webkit-backdrop-filter: blur(var(--blur-amount));
+		box-shadow: var(--shadow-md);
+	}
+
+	.mob-dock__btn--active {
+		color: var(--accent);
+		border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
 	}
 
 	/* ── Drawer backdrop ───────────────────────────────────────────────────── */

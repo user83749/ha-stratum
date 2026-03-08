@@ -29,7 +29,7 @@ function resolveTheme(cfg: ThemeConfig): ThemeDefinition {
 	return found ?? SYSTEM_THEMES[0];
 }
 
-export function applyTheme(cfg: ThemeConfig, reducedMotion = false): void {
+export function applyTheme(cfg: ThemeConfig): void {
 	if (typeof document === 'undefined') return;
 	const root = document.documentElement;
 	const theme = resolveTheme(cfg);
@@ -75,7 +75,7 @@ export function applyTheme(cfg: ThemeConfig, reducedMotion = false): void {
 	);
 
 	// ── Motion ──────────────────────────────────────────────────────────────
-	const anim = !reducedMotion && (cfg.animations ?? theme.animations ?? true);
+	const anim = (cfg.animations ?? theme.animations ?? true);
 	root.style.setProperty('--transition', anim ? '150ms ease' : '0ms');
 	root.style.setProperty('--transition-slow', anim ? '300ms ease' : '0ms');
 	root.style.setProperty('--transition-hover', anim ? '180ms ease' : '0ms');
@@ -148,13 +148,13 @@ function applyVisualStyle(root: HTMLElement, vs: VisualStyle, isDark: boolean): 
 }
 
 export function watchSystemScheme(
-	getCurrentCfg: () => { theme: ThemeConfig; reducedMotion: boolean }
+	getCurrentCfg: () => { theme: ThemeConfig }
 ): () => void {
 	if (typeof window === 'undefined') return () => { };
 	const mq = window.matchMedia('(prefers-color-scheme: dark)');
 	const handler = () => {
 		const current = getCurrentCfg();
-		applyTheme(current.theme, current.reducedMotion);
+		applyTheme(current.theme);
 	};
 	mq.addEventListener('change', handler);
 	return () => mq.removeEventListener('change', handler);

@@ -6,6 +6,7 @@
 	import type { Tile } from '$lib/types/dashboard';
 	import { isCustomIcon } from '$lib/icons/customIcons';
 	import { uiStore } from '$lib/stores/ui';
+	import { getUpdateCount } from '$lib/ha/updateSummary';
 
 	interface Props { entityId: string; tile?: Tile | null; }
 	const { entityId, tile = null }: Props = $props();
@@ -47,11 +48,8 @@
 
 	const updateSummaryCount = $derived.by(() => {
 		if (!isUpdateSummary) return 0;
-		const raw = Number(entity?.state ?? 0);
-		if (Number.isFinite(raw) && raw > 0) return Math.floor(raw);
-		const a = (entity?.attributes ?? {}) as any;
-		const fallback = Number(a.update_entities ?? a.total ?? a.home_assistant ?? 0);
-		return Number.isFinite(fallback) ? Math.floor(fallback) : updateEntitiesOn.length;
+		const count = getUpdateCount(entity, $optimisticEntities);
+		return count > 0 ? count : updateEntitiesOn.length;
 	});
 
 	function installUpdate(id: string) { updateService.install(id).catch(() => {}); }

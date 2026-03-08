@@ -761,6 +761,9 @@
 		justify-content: center;
 		width: 32px;
 		height: 32px;
+		position: relative;
+		overflow: hidden;
+		isolation: isolate;
 		transition: transform var(--transition);
 	}
 

@@ -2,24 +2,6 @@
 // Stratum — Formatting utilities
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ─── Number formatting ────────────────────────────────────────────────────────
-
-/**
- * Format a number with given decimal places, using dot or comma separator.
- * If `precision` is omitted the function uses 0 decimals for whole numbers
- * and 1 decimal for fractional values.
- */
-export function formatNumber(
-	value: number,
-	precision?: number,
-	numberFormat?: 'dot' | 'comma'
-): string {
-	const effectivePrecision =
-		precision !== undefined ? precision : Number.isInteger(value) ? 0 : 1;
-	const formatted = value.toFixed(effectivePrecision);
-	return numberFormat === 'comma' ? formatted.replace('.', ',') : formatted;
-}
-
 /**
  * Format a numeric state value with an optional unit.
  * Non-numeric strings (e.g. 'on', 'unavailable') are returned as-is.
@@ -27,13 +9,14 @@ export function formatNumber(
 export function formatStateValue(
 	value: string | number,
 	precision?: number,
-	unit?: string,
-	numberFormat?: 'dot' | 'comma'
+	unit?: string
 ): string {
 	const numeric = typeof value === 'number' ? value : parseFloat(value as string);
+	const effectivePrecision =
+		precision !== undefined ? precision : Number.isInteger(numeric) ? 0 : 1;
 	const formatted = Number.isNaN(numeric)
 		? String(value)
-		: formatNumber(numeric, precision, numberFormat);
+		: numeric.toFixed(effectivePrecision);
 	return unit ? `${formatted}\u202f${unit}` : formatted;
 }
 
@@ -55,7 +38,7 @@ export function fahrenheitToCelsius(f: number): number {
  */
 export function formatTemperature(value: number, unit: 'c' | 'f' = 'c', precision = 1): string {
 	const symbol = unit === 'f' ? '°F' : '°C';
-	return `${formatNumber(value, precision)}${symbol}`;
+	return `${value.toFixed(precision)}${symbol}`;
 }
 
 // ─── Duration ────────────────────────────────────────────────────────────────
@@ -177,7 +160,22 @@ export function formatTime(
 		...(showSeconds ? { second: '2-digit' } : {}),
 		...(timezone ? { timeZone: timezone } : {})
 	};
-	return new Intl.DateTimeFormat(undefined, opts).format(date);
+	try {
+		return new Intl.DateTimeFormat(undefined, opts).format(date);
+	} catch {
+		return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', hour12: format === '12h' }).format(date);
+	}
+}
+
+function safeLocale(locale?: string): string | undefined {
+	const l = (locale ?? '').trim();
+	if (!l) return undefined;
+	try {
+		const [canon] = Intl.getCanonicalLocales(l);
+		return canon ?? undefined;
+	} catch {
+		return undefined;
+	}
 }
 
 export function formatDate(date: Date, locale?: string, timezone?: string): string {
@@ -187,7 +185,11 @@ export function formatDate(date: Date, locale?: string, timezone?: string): stri
 		day: 'numeric',
 		...(timezone ? { timeZone: timezone } : {})
 	};
-	return new Intl.DateTimeFormat(locale ?? undefined, opts).format(date);
+	try {
+		return new Intl.DateTimeFormat(safeLocale(locale), opts).format(date);
+	} catch {
+		return new Intl.DateTimeFormat(undefined, opts).format(date);
+	}
 }
 
 export function formatDatetime(
@@ -205,7 +207,11 @@ export function formatDatetime(
 		hour12: timeFormat === '12h',
 		...(timezone ? { timeZone: timezone } : {})
 	};
-	return new Intl.DateTimeFormat(locale ?? undefined, opts).format(date);
+	try {
+		return new Intl.DateTimeFormat(safeLocale(locale), opts).format(date);
+	} catch {
+		return new Intl.DateTimeFormat(undefined, opts).format(date);
+	}
 }
 
 // ─── State labels ─────────────────────────────────────────────────────────────

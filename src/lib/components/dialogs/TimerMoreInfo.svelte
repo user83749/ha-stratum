@@ -1,19 +1,18 @@
 <script lang="ts">
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { timerService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const stateLabel = $derived((entity?.state as string | undefined) ?? 'idle');
 	const remaining = $derived((entity?.attributes.remaining as string | undefined) ?? (entity?.attributes.duration as string | undefined) ?? '00:00:00');
 	function run(action: 'start' | 'pause' | 'cancel') {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			if (action === 'start') applyPatch(entityId, { state: 'active' });
 			if (action === 'pause') applyPatch(entityId, { state: 'paused' });
 			if (action === 'cancel') applyPatch(entityId, { state: 'idle' });

@@ -2,7 +2,6 @@
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { mediaService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	import { formatDuration } from '$lib/utils/format';
 
@@ -10,7 +9,7 @@
 	const { entityId }: Props = $props();
 
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const __state = $derived(entity?.state ?? 'off');
 	const isUnavail = $derived(__state === 'unavailable' || !entity);
 	const isPlaying = $derived(__state === 'playing');
@@ -48,7 +47,7 @@
 
 	function call(fn: () => Promise<any>) { if (!isUnavail) fn().catch(() => {}); }
 	function togglePlay() { 
-		if (isDemo) applyPatch(entityId, { state: isPlaying ? 'paused' : 'playing' });
+		if (optimisticPreviewEnabled) applyPatch(entityId, { state: isPlaying ? 'paused' : 'playing' });
 		else call(() => mediaService.playPause(entityId));
 	}
 
@@ -135,7 +134,7 @@
 						value={volume} 
 						oninput={(e) => {
 							const v = (e.target as HTMLInputElement).valueAsNumber;
-							if (isDemo) applyPatch(entityId, { attributes: { volume_level: v } });
+							if (optimisticPreviewEnabled) applyPatch(entityId, { attributes: { volume_level: v } });
 							else call(() => mediaService.setVolume(entityId, v));
 						}} 
 						class="ios-media__slider" 

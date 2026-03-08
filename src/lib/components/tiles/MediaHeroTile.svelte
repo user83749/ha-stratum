@@ -334,7 +334,7 @@
 	  }
 
 		.icon-inner {
-			width: 27%;
+			width: 24%;
 			margin-left: 0;
 			color: currentColor;
 			fill: currentColor;

@@ -3,7 +3,6 @@
 	import { callService } from '$lib/ha/services';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { getDomain, getEntityName } from '$lib/ha/entities';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 
 	interface Props { entityId: string; }
@@ -14,11 +13,11 @@
 	const name = $derived(entity ? getEntityName(entity) : entityId);
 	const isOn = $derived(entity?.state === 'on');
 	const isUnavail = $derived(!entity || entity.state === 'unavailable' || entity.state === 'unknown');
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 
 	async function setState(nextOn: boolean) {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			applyPatch(entityId, { state: nextOn ? 'on' : 'off' });
 			return;
 		}

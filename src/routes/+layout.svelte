@@ -9,7 +9,7 @@
 	import { isAddon as isAddonStore } from '$lib/stores/app';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { applyTheme, watchSystemScheme } from '$lib/themes/apply';
-	import { loadDemoIfActive, isDemoMode } from '$lib/demo/index';
+	import { reconnectAllowed } from '$lib/ha/websocket';
 
 	let { data, children } = $props();
 
@@ -24,29 +24,59 @@
 	// ── Theme ─────────────────────────────────────────────────────────────────
 	$effect(() => {
 		if (!browser) return;
-		applyTheme($dashboardStore.theme, $dashboardStore.settings.reducedMotion);
+		applyTheme($dashboardStore.theme);
 	});
 
 	let stopWatchingScheme: (() => void) | null = null;
-	let loadedMode = $state<'demo' | 'live' | null>(null);
+	let stopViewportHeightWatch: (() => void) | null = null;
 
 	onMount(() => {
-		applyTheme($dashboardStore.theme, $dashboardStore.settings.reducedMotion);
+		// Mobile Safari + iframes (HA dashboard/kiosk) can report viewport heights that
+		// drift and leave a blank gap. Track the *visual* viewport and expose it as
+		// a CSS var used by our root/shell containers.
+		let lastPx = 0;
+		let rafPending = false;
+		const applyVh = () => {
+			const raw = window.visualViewport?.height ?? window.innerHeight;
+			const px = Number.isFinite(raw) ? Math.max(0, Math.round(raw)) : 0;
+			if (!px || px === lastPx) return;
+			lastPx = px;
+			document.documentElement.style.setProperty('--stratum-vh', `${px}px`);
+			// Mobile bottom-sheet target height (MoreInfoShell)
+			document.documentElement.style.setProperty('--stratum-sheet-h', `${Math.max(0, Math.round(px * 0.94))}px`);
+		};
+		const setVh = () => {
+			if (rafPending) return;
+			rafPending = true;
+			requestAnimationFrame(() => {
+				rafPending = false;
+				applyVh();
+			});
+		};
+		applyVh();
+		const vv = window.visualViewport;
+		vv?.addEventListener('resize', setVh);
+		vv?.addEventListener('scroll', setVh);
+		window.addEventListener('resize', setVh);
+		stopViewportHeightWatch = () => {
+			vv?.removeEventListener('resize', setVh);
+			vv?.removeEventListener('scroll', setVh);
+			window.removeEventListener('resize', setVh);
+		};
+
+		applyTheme($dashboardStore.theme);
 		stopWatchingScheme = watchSystemScheme(() => ({
-			theme:        $dashboardStore.theme,
-			reducedMotion: $dashboardStore.settings.reducedMotion
+			theme: $dashboardStore.theme
 		}));
 
-		if (!isDemoMode()) {
-			dashboardStore.load().then(() => {
-				loadedMode = 'live';
-				applyTheme($dashboardStore.theme, $dashboardStore.settings.reducedMotion);
-			});
-		}
+		dashboardStore.load().then(() => {
+			applyTheme($dashboardStore.theme);
+		});
 	});
 
 	onDestroy(() => {
 		stopWatchingScheme?.();
+		stopViewportHeightWatch?.();
 		clearInterval(retryInterval);
 	});
 
@@ -71,6 +101,7 @@
 	if (browser) {
 		doConnect();
 		retryInterval = setInterval(() => {
+			if (!reconnectAllowed()) return;
 			if ($connectionStatus !== 'connected' && $connectionStatus !== 'connecting') {
 				doConnect();
 			}
@@ -80,10 +111,12 @@
 	/** Called when credentials change — disconnect first, then reconnect. */
 	function onCredentialsChange() {
 		if (!browser) return;
+		if (!reconnectAllowed()) return;
 		disconnect();
 		clearInterval(retryInterval);
 		doConnect();
 		retryInterval = setInterval(() => {
+			if (!reconnectAllowed()) return;
 			if ($connectionStatus !== 'connected' && $connectionStatus !== 'connecting') {
 				doConnect();
 			}
@@ -100,11 +133,6 @@
 	});
 
 	async function doConnect() {
-		if (isDemoMode()) {
-			if (loadedMode !== 'demo') { loadDemoIfActive(); loadedMode = 'demo'; }
-			return;
-		}
-		if (loadedMode === 'demo') loadedMode = null;
 		if (isConnecting) return;
 		if ($connectionStatus === 'connected') return;
 
@@ -139,7 +167,7 @@
 </svelte:head>
 
 <div
-	style="font-family: var(--font-family); font-size: var(--font-size); height: 100dvh; width: 100vw; overflow: hidden;"
+	style="font-family: var(--font-family); font-size: var(--font-size); height: var(--stratum-vh, 100dvh); width: 100vw; overflow: hidden;"
 	class="contents"
 >
 	{@render children()}

@@ -5,6 +5,8 @@
   import Icon from '$lib/components/ui/Icon.svelte';
   import { callService } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
+  import { entities } from '$lib/ha/websocket';
+  import { getUpdateCount } from '$lib/ha/updateSummary';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -30,23 +32,7 @@
   const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const updateCount = $derived.by(() => {
     if (isUnavail) return 0;
-
-    // HA update entities: state === 'on' means update available (single item)
-    if (entityDomain === 'update') return entityState === 'on' ? 1 : 0;
-
-    // Some dashboards use a summary sensor (e.g. sensor.hassio_updates_available)
-    const n = Number(entityState);
-    if (Number.isFinite(n) && n > 0) return Math.floor(n);
-
-    const candidates = [
-      attrs.update_entities,
-      attrs.total,
-      attrs.home_assistant
-    ];
-    const nums = candidates
-      .map((v) => (typeof v === 'number' ? v : Number(v)))
-      .filter((v) => Number.isFinite(v) && v > 0) as number[];
-    return nums.length ? Math.floor(Math.max(...nums)) : 0;
+    return getUpdateCount(entity, $entities);
   });
   const hasUpdate = $derived(updateCount > 0);
   const installedVersion = $derived(attrs.installed_version as string ?? '');

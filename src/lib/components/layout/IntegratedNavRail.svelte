@@ -15,6 +15,7 @@
 
 	const cfg = $derived($dashboardStore);
 	const nav = $derived(cfg.nav);
+	const settings = $derived(cfg.settings);
 	const pages = $derived(cfg.pages);
 	const favorites = $derived(cfg.favorites);
 	const currentPageId = $derived($activePageId);
@@ -112,10 +113,12 @@
 
 	function updateClock() {
 		const now = new Date();
+		const locale = settings.locale || undefined;
+		const hour12 = settings.timeFormat === '12h';
 		clockTime = now
-			.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })
+			.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12 })
 			.replace(/\s?[AP]M/i, '');
-		clockDate = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+		clockDate = now.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
 	}
 
 	const weatherEntity = $derived(
@@ -182,6 +185,8 @@
 									onclick={() => navigate(page.id)}
 									data-page-drop-id={page.id}
 									aria-current={active ? 'page' : undefined}
+									aria-label={page.name}
+									title={!nav.showLabels ? page.name : undefined}
 								>
 									<span class="rail__icon">
 										<Icon name={page.icon} />
@@ -189,7 +194,9 @@
 											<span class="rail__badge" aria-hidden="true"></span>
 										{/if}
 									</span>
-									<span class="rail__label">{page.name}</span>
+									{#if nav.showLabels}
+										<span class="rail__label">{page.name}</span>
+									{/if}
 								</button>
 								{#if editing}
 									<button
@@ -221,9 +228,13 @@
 								class="rail__link rail__link--fav"
 								class:rail__link--fav-active={active}
 								onclick={() => toggleFavoriteEntity(fav.id)}
+								aria-label={name}
+								title={!nav.showLabels ? name : undefined}
 							>
 								<span class="rail__icon"><Icon name={icon} /></span>
-								<span class="rail__label">{name}</span>
+								{#if nav.showLabels}
+									<span class="rail__label">{name}</span>
+								{/if}
 								{#if entity}
 									<span class="rail__state">{entity.state}</span>
 								{/if}
@@ -247,7 +258,9 @@
 				<li class="rail__item">
 					<button class="rail__link rail__link--add" onclick={addPage}>
 						<span class="rail__icon"><Icon name="plus" /></span>
-						<span class="rail__label">Add room</span>
+						{#if nav.showLabels}
+							<span class="rail__label">Add room</span>
+						{/if}
 					</button>
 				</li>
 			{/if}

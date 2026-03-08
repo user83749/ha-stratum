@@ -2,13 +2,12 @@
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { valveService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	let localPosition = $state(0);
 	let dragging = $state(false);
@@ -22,7 +21,7 @@
 	function setPosition(next: number) {
 		const clamped = Math.max(0, Math.min(100, Math.round(next)));
 		localPosition = clamped;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			applyPatch(entityId, {
 				state: clamped > 0 ? 'open' : 'closed',
 				attributes: { current_position: clamped }
@@ -34,7 +33,7 @@
 
 	function run(action: 'open' | 'stop' | 'close') {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			if (action === 'open') setPosition(100);
 			if (action === 'close') setPosition(0);
 			return;
@@ -64,7 +63,7 @@
 			onpointerdown={() => (dragging = true)}
 			onpointerup={() => { dragging = false; setPosition(localPosition); }}
 			onpointercancel={() => { dragging = false; setPosition(localPosition); }}
-			oninput={() => { if (isDemo) setPosition(localPosition); }}
+			oninput={() => { if (optimisticPreviewEnabled) setPosition(localPosition); }}
 			disabled={isUnavail}
 		/>
 	</div>

@@ -2,14 +2,13 @@
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { remoteService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const state = $derived(entity?.state ?? 'idle');
 	const isUnavail = $derived(state === 'unavailable' || !entity);
 	
@@ -18,13 +17,13 @@
 
 	function send(cmd: string) {
 		if (isUnavail) return;
-		if (isDemo) return;
+		if (optimisticPreviewEnabled) return;
 		remoteService.sendCommand(entityId, [cmd]).catch(() => {});
 	}
 
 	function turnOn(act?: string) {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			applyPatch(entityId, { state: 'on', attributes: { current_activity: act } });
 			return;
 		}
@@ -33,7 +32,7 @@
 
 	function turnOff() {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			applyPatch(entityId, { state: 'off', attributes: { current_activity: '' } });
 			return;
 		}

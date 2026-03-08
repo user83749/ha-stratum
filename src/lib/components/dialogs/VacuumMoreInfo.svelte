@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { vacuumService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
@@ -9,7 +8,7 @@
 	const { entityId }: Props = $props();
 
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const stateLabel = $derived((entity?.state as string | undefined) ?? 'unknown');
 	const battery = $derived(entity?.attributes.battery_level as number | undefined);
@@ -29,7 +28,7 @@
 
 	function run(action: 'start' | 'pause' | 'stop' | 'dock' | 'locate') {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			if (action === 'start') applyPatch(entityId, { state: 'cleaning' });
 			if (action === 'pause') applyPatch(entityId, { state: 'paused' });
 			if (action === 'dock') applyPatch(entityId, { state: 'returning' });
@@ -44,7 +43,7 @@
 
 	function setFanSpeed(next: string) {
 		if (isUnavail) return;
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			applyPatch(entityId, { attributes: { fan_speed: next } });
 			return;
 		}

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { waterHeaterService } from '$lib/ha/services';
-	import { isDemoMode } from '$lib/demo/index';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { clamp } from '$lib/utils/format';
@@ -10,7 +9,7 @@
 	const { entityId }: Props = $props();
 
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const isDemo = $derived(browser ? isDemoMode() : false);
+	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	
 	const __state = $derived((entity?.state as string | undefined) ?? 'off');
@@ -47,7 +46,7 @@
 	function onChange(e: Event) {
 		dragging = false;
 		const next = Number((e.target as HTMLInputElement).value);
-		if (isDemo) {
+		if (optimisticPreviewEnabled) {
 			applyPatch(entityId, { attributes: { temperature: next } });
 		} else {
 			waterHeaterService.setTemperature(entityId, next).catch(() => {});
@@ -56,13 +55,13 @@
 
 	function toggle() {
 		if (isUnavail) return;
-		if (isDemo) applyPatch(entityId, { state: isOn ? 'off' : 'on' });
+		if (optimisticPreviewEnabled) applyPatch(entityId, { state: isOn ? 'off' : 'on' });
 		else (isOn ? waterHeaterService.turnOff(entityId) : waterHeaterService.turnOn(entityId)).catch(() => {});
 	}
 
 	function setMode(next: string) {
 		if (isUnavail) return;
-		if (isDemo) applyPatch(entityId, { attributes: { operation_mode: next } });
+		if (optimisticPreviewEnabled) applyPatch(entityId, { attributes: { operation_mode: next } });
 		else waterHeaterService.setOperationMode(entityId, next).catch(() => {});
 	}
 </script>

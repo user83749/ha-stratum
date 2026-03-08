@@ -4,9 +4,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { get } from 'svelte/store';
-import { connection, entities } from './websocket';
+import { connection } from './websocket';
 import type { Connection } from 'home-assistant-js-websocket';
-import { isDemoMode } from '$lib/demo/index';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -29,39 +28,6 @@ export async function callService(
 	serviceData: Record<string, unknown> = {},
 	target?: ServiceTarget
 ): Promise<void> {
-	// In demo mode: fake toggle/turn_on/turn_off by mutating the entities store directly.
-	if (isDemoMode()) {
-		const entityIds: string[] = [];
-		if (target?.entity_id) {
-			if (Array.isArray(target.entity_id)) entityIds.push(...target.entity_id);
-			else entityIds.push(target.entity_id);
-		}
-		for (const id of entityIds) {
-			if (service === 'toggle') {
-				entities.update((all) => {
-					const e = all[id];
-					if (!e) return all;
-					return { ...all, [id]: { ...e, state: e.state === 'on' ? 'off' : 'on' } };
-				});
-			} else if (service === 'turn_on') {
-				entities.update((all) => {
-					const e = all[id];
-					if (!e) return all;
-					const attrs = serviceData.brightness_pct !== undefined
-						? { ...e.attributes, brightness: Math.round((serviceData.brightness_pct as number) / 100 * 255) }
-						: e.attributes;
-					return { ...all, [id]: { ...e, state: 'on', attributes: attrs } };
-				});
-			} else if (service === 'turn_off') {
-				entities.update((all) => {
-					const e = all[id];
-					if (!e) return all;
-					return { ...all, [id]: { ...e, state: 'off' } };
-				});
-			}
-		}
-		return;
-	}
 	const conn = getConn();
 	await conn.sendMessagePromise({
 		type: 'call_service',
