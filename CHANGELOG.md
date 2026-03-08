@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.25] - 2026-03-07
+
+### Added
+- Optimistic UI state handling for faster interaction feedback.
+
+### Changed
+- Extensive updates to MoreInfo dialogs (Graph, Media, TV).
+- Improved Edit mode UI component performance (TileEditor, TilePicker).
+- Enhanced tile rendering logic and style wrapper consistency.
+- Refactored Home Assistant core service and entity mapping logic.
+- Focused websocket reliability and optimistic update handling.
+
 ## [1.0.24] - 2026-03-07
 
 ### Changed

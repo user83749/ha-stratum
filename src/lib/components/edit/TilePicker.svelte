@@ -101,7 +101,7 @@
       case 'input_number':
       case 'number': return ['slider', 'entity'];
       case 'input_select': return ['input_select', 'entity'];
-      case 'select': return ['input_select', 'media_hero', 'entity'];
+      case 'select': return ['input_select', 'entity'];
       case 'alarm_control_panel': return ['alarm_panel', 'entity'];
       case 'person':
       case 'device_tracker': return ['person', 'entity'];

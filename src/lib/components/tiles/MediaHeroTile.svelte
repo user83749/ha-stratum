@@ -94,11 +94,16 @@
 
   const dataList = $derived(activeAttrs.data as any[] | undefined);
   
-  // YAML variables.i: Math.floor(Math.random() * (data.length - 1)) + 1
-  const dataIdx = $derived.by(() => {
-    if (!dataList?.length) return 0;
-    if (dataList.length === 1) return 0;
-    return Math.floor(Math.random() * (dataList.length - 1)) + 1;
+  // Pick a random item once per data-list length change, not on every WS tick.
+  // Using a plain closure variable to track the previous length avoids
+  // treating a re-created array (same length) as a meaningful change.
+  let _prevDataLen = -1;
+  let dataIdx = $state(0);
+  $effect(() => {
+    const len = dataList?.length ?? 0;
+    if (len === _prevDataLen) return;
+    _prevDataLen = len;
+    dataIdx = len <= 1 ? 0 : Math.floor(Math.random() * (len - 1)) + 1;
   });
 
   const currentItem = $derived(dataList && dataList[dataIdx] ? dataList[dataIdx] : null);

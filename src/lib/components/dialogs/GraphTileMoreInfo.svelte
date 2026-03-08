@@ -3,6 +3,8 @@
 	import type { Tile } from '$lib/types/dashboard';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { getEntityName } from '$lib/ha/entities';
+	import { connection } from '$lib/ha/websocket';
+	import { get } from 'svelte/store';
 
 	interface Props {
 		tile: Tile;
@@ -40,9 +42,42 @@
 		return Math.max(0, Math.min(100, ((numericValue - minVal) / range) * 100));
 	});
 
-	// Mock data for deep view visualization
-	const historyData = [24, 25, 23, 26, 28, 27, 29, 31, 30, 32, 34, 33, 31, 29, 28, 27, 26, 25, 24, 25, 26, 27, 28, 30];
+	// ── Real history fetch ────────────────────────────────────────────────────
+	let historyData = $state<number[]>([]);
+	let historyLoading = $state(false);
+
+	$effect(() => {
+		const entityId = entity?.entity_id;
+		if (!entityId) { historyData = []; return; }
+
+		historyLoading = true;
+		const conn = get(connection);
+		if (!conn) { historyLoading = false; return; }
+
+		const end = new Date();
+		const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+
+		void conn.sendMessagePromise({
+			type: 'history/history_during_period',
+			entity_ids: [entityId],
+			start_time: start.toISOString(),
+			end_time: end.toISOString(),
+			significant_changes_only: false,
+			minimal_response: true,
+			no_attributes: true
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} as any).then((result: unknown) => {
+			const raw = (result as Record<string, Array<{ s: string; lu: number }>>)[entityId] ?? [];
+			historyData = raw.map(s => parseFloat(s.s)).filter(v => Number.isFinite(v));
+		}).catch(() => {
+			historyData = [];
+		}).finally(() => {
+			historyLoading = false;
+		});
+	});
+
 	const sparklinePath = $derived.by(() => {
+		if (historyData.length < 2) return '';
 		const max = Math.max(...historyData);
 		const min = Math.min(...historyData);
 		const range = max - min || 1;
@@ -55,6 +90,10 @@
 		});
 		return `M ${points.join(' L ')}`;
 	});
+
+	const historyMin = $derived(historyData.length ? Math.min(...historyData) : null);
+	const historyMax = $derived(historyData.length ? Math.max(...historyData) : null);
+	const historyAvg = $derived(historyData.length ? historyData.reduce((a, b) => a + b, 0) / historyData.length : null);
 </script>
 
 <div class="gtmi">
@@ -83,15 +122,15 @@
 			<div class="gtmi__stats-grid">
 				<div class="gtmi__stat">
 					<span class="gtmi__stat-label">Min (24h)</span>
-					<span class="gtmi__stat-value">{Math.min(...historyData)}{unit}</span>
+					<span class="gtmi__stat-value">{historyMin !== null ? historyMin.toFixed(1) : '–'}{unit}</span>
 				</div>
 				<div class="gtmi__stat">
 					<span class="gtmi__stat-label">Max (24h)</span>
-					<span class="gtmi__stat-value">{Math.max(...historyData)}{unit}</span>
+					<span class="gtmi__stat-value">{historyMax !== null ? historyMax.toFixed(1) : '–'}{unit}</span>
 				</div>
 				<div class="gtmi__stat">
 					<span class="gtmi__stat-label">Average</span>
-					<span class="gtmi__stat-value">{(historyData.reduce((a,b)=>a+b)/historyData.length).toFixed(1)}{unit}</span>
+					<span class="gtmi__stat-value">{historyAvg !== null ? historyAvg.toFixed(1) : '–'}{unit}</span>
 				</div>
 			</div>
 
@@ -102,9 +141,15 @@
 						<span class="gtmi__update-time">Last updated {lastChanged ? new Date(lastChanged).toLocaleTimeString() : 'now'}</span>
 					</div>
 					<div class="gtmi__spark-wrap">
-						<svg viewBox="0 0 400 120" class="gtmi__spark-svg" preserveAspectRatio="none">
-							<path d={sparklinePath} fill="none" class="gtmi__spark-path" />
-						</svg>
+						{#if historyLoading}
+							<div class="gtmi__no-data">Loading history…</div>
+						{:else if sparklinePath}
+							<svg viewBox="0 0 400 120" class="gtmi__spark-svg" preserveAspectRatio="none">
+								<path d={sparklinePath} fill="none" class="gtmi__spark-path" />
+							</svg>
+						{:else}
+							<div class="gtmi__no-data">No history data available</div>
+						{/if}
 					</div>
 				</div>
 			{:else if mode === 'gauge'}
@@ -312,6 +357,15 @@
 		height: 120px;
 		width: 100%;
 		overflow: hidden;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.gtmi__no-data {
+		font-size: 0.85rem;
+		color: var(--fg-subtle);
+		text-align: center;
 	}
 
 	.gtmi__spark-svg {

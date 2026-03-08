@@ -21,13 +21,9 @@
 	const { tile, pageId, sectionId, onEditDragStart, onEditResizeStart }: Props = $props();
 	const editing = $derived($isEditing);
 
-	// ─── Active tile (direct pass-through) ───────────────────────────────
-
-	const activeTile = $derived(tile);
-
 	// ─── Live entity ─────────────────────────────────────────────────────────
 
-	const entity = $derived(activeTile.entity_id ? ($optimisticEntities[activeTile.entity_id] ?? null) : null);
+	const entity = $derived(tile.entity_id ? ($optimisticEntities[tile.entity_id] ?? null) : null);
 
 	type TileComponent = Component<any>;
 	type TileLoader = () => Promise<TileComponent>;
@@ -103,8 +99,13 @@
 			(await import('$lib/components/tiles/ImageTile.svelte')).default as TileComponent,
 		media_hero: async () =>
 			(await import('$lib/components/tiles/MediaHeroTile.svelte')).default as TileComponent,
-		conditional: async () =>
-			(await import('$lib/components/tiles/EntityTile.svelte')).default as TileComponent
+		conditional: async () => {
+			// 'conditional' is an internal type that requires its own resolution logic.
+			// It must NOT silently render as EntityTile — return null so the placeholder
+			// renders instead, making misconfigured tiles visible in development.
+			console.warn('[stratum] Tile type "conditional" has no standalone renderer. Use visibility conditions on a regular tile instead.');
+			return null as unknown as TileComponent;
+		}
 	};
 
 	let LoadedComponent = $state<TileComponent | null>(null);
@@ -113,7 +114,7 @@
 	const componentCache: Partial<Record<Tile['type'], TileComponent>> = {};
 
 	$effect(() => {
-		const type = activeTile.type;
+		const type = tile.type;
 
 		// Avoid flicker during edit-mode dragging/resizing: the tile object changes
 		// frequently (layout updates) but the component type rarely does. Only load
@@ -166,24 +167,24 @@
 	});
 
 	const componentProps = $derived.by(() => {
-		switch (activeTile.type) {
+		switch (tile.type) {
 			case 'divider':
 			case 'markdown':
-				return { tile: activeTile };
+				return { tile };
 			case 'history':
-				return { tile: activeTile, entity, mode: 'history' };
+				return { tile, entity, mode: 'history' };
 			case 'gauge':
-				return { tile: activeTile, entity, mode: 'gauge' };
+				return { tile, entity, mode: 'gauge' };
 			case 'statistic':
-				return { tile: activeTile, entity, mode: 'statistic' };
+				return { tile, entity, mode: 'statistic' };
 			default:
-				return { tile: activeTile, entity };
+				return { tile, entity };
 		}
 	});
 </script>
 
 {#if shouldShow}
-	<TileWrapper tile={activeTile} {entity} {pageId} {sectionId} {onEditDragStart} {onEditResizeStart}>
+	<TileWrapper {tile} {entity} {pageId} {sectionId} {onEditDragStart} {onEditResizeStart}>
 		{#if LoadedComponent}
 			<LoadedComponent {...componentProps} />
 		{:else}

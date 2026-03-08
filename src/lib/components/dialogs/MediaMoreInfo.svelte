@@ -19,6 +19,7 @@
 	const artwork = $derived(entity?.attributes.entity_picture as string | undefined);
 	const volume = $derived((entity?.attributes.volume_level as number | undefined) ?? 0);
 	const groupMembers = $derived((entity?.attributes.group_members as string[] | undefined) ?? []);
+	const groupedOthers = $derived(groupMembers.filter((id) => id !== entityId));
 	
 	// Progressive position logic
 	const duration = $derived(entity?.attributes.media_duration as number | undefined);
@@ -77,7 +78,15 @@
 					<img src={artwork} alt="Artwork" class="ios-media__art" />
 				{:else}
 					<div class="ios-media__art-placeholder">
-						<Icon name="music" size={80} fill="currentColor" />
+						<div class="ios-media__ph-bg"></div>
+						<div class="ios-media__ph-content">
+							<div class="ios-media__ph-disc" aria-hidden="true"></div>
+							<div class="ios-media__ph-lines" aria-hidden="true">
+								<span class="ios-media__ph-line ios-media__ph-line--a"></span>
+								<span class="ios-media__ph-line ios-media__ph-line--b"></span>
+							</div>
+							<span class="ios-media__ph-label">No Media Playing</span>
+						</div>
 					</div>
 				{/if}
 			</div>
@@ -86,7 +95,9 @@
 		<!-- Metadata (iOS Style: Bold Title, Soft Artist) -->
 		<div class="ios-media__meta">
 			<div class="ios-media__title">{title || (isUnavail ? 'Unavailable' : 'Not Playing')}</div>
-			<div class="ios-media__artist">{artist || 'No Metadata'}</div>
+			{#if isPlaying}
+				<div class="ios-media__artist">{artist || 'No Metadata'}</div>
+			{/if}
 		</div>
 
 		<!-- Progress (Thick iOS Pill Bar) -->
@@ -147,7 +158,7 @@
 
 			<button 
 				class="ios-media__group-btn" 
-				class:ios-media__group-btn--active={groupMembers.length > 0}
+				class:ios-media__group-btn--active={groupedOthers.length > 0}
 				onclick={() => (showGrouping = !showGrouping)}
 			>
 				<Icon name="airplay" size={26} />
@@ -162,17 +173,17 @@
 		<div class="ios-media__overlay" onclick={() => (showGrouping = false)}>
 			<div class="ios-media__overlay-content" onclick={(e) => e.stopPropagation()}>
 				<div class="ios-media__overlay-header">
-					<h3>Speakers & TVs</h3>
 					<button class="ios-media__close" onclick={() => (showGrouping = false)}>
 						<Icon name="x" size={20} />
 					</button>
+					<h3>Speakers & TVs</h3>
 				</div>
 				<div class="ios-media__speaker-list">
 					<div class="ios-media__speaker ios-media__speaker--current">
 						<Icon name="circle-dot" size={18} fill="currentColor" />
 						<div class="ios-media__speaker-info">
 							<span class="ios-media__speaker-name">This Device</span>
-							<span class="ios-media__speaker-status">{groupMembers.length > 0 ? `Leading ${groupMembers.length} others` : 'Standalone'}</span>
+							<span class="ios-media__speaker-status">{groupedOthers.length > 0 ? `Leading ${groupedOthers.length} ${groupedOthers.length === 1 ? 'other' : 'others'}` : 'Standalone'}</span>
 						</div>
 						<Icon name="check-circle-2" size={18} fill="var(--accent)" />
 					</div>
@@ -257,10 +268,61 @@
 	.ios-media__art-placeholder {
 		width: 100%;
 		height: 100%;
+		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		color: #3a3a3c;
+		background: linear-gradient(160deg, #202127 0%, #17181d 48%, #111216 100%);
+		color: #a7abb8;
+		overflow: hidden;
+	}
+	.ios-media__ph-bg {
+		position: absolute;
+		inset: -24%;
+		background:
+			radial-gradient(circle at 24% 22%, rgba(255,255,255,0.09) 0%, transparent 34%),
+			radial-gradient(circle at 78% 68%, rgba(124, 145, 255, 0.18) 0%, transparent 42%);
+		filter: blur(8px);
+	}
+	.ios-media__ph-content {
+		position: relative;
+		z-index: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 12px;
+	}
+	.ios-media__ph-disc {
+		width: 66px;
+		height: 66px;
+		border-radius: 50%;
+		background:
+			radial-gradient(circle, rgba(255,255,255,0.5) 0 6px, transparent 7px),
+			conic-gradient(from 120deg, rgba(255,255,255,0.32), rgba(255,255,255,0.1), rgba(255,255,255,0.22), rgba(255,255,255,0.32));
+		box-shadow:
+			inset 0 0 0 2px rgba(255,255,255,0.18),
+			0 8px 20px rgba(0,0,0,0.35);
+	}
+	.ios-media__ph-lines {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+	}
+	.ios-media__ph-line {
+		display: block;
+		height: 6px;
+		border-radius: 999px;
+		background: rgba(255,255,255,0.22);
+	}
+	.ios-media__ph-line--a { width: 112px; }
+	.ios-media__ph-line--b { width: 72px; }
+	.ios-media__ph-label {
+		font-size: 0.78rem;
+		font-weight: 600;
+		letter-spacing: 0.03em;
+		text-transform: uppercase;
+		color: rgba(255,255,255,0.45);
 	}
 
 	/* Meta Section */

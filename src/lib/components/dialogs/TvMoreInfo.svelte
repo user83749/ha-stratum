@@ -19,6 +19,12 @@
 		return !['off', 'standby', 'unknown', 'unavailable'].includes(state);
 	});
 
+	function canSend(cmd: string): boolean {
+		if (isRemote) return true;
+		// media_player.* fallback: only show controls that can map safely.
+		return ['volume_up', 'volume_down', 'channel_up', 'channel_down', 'select'].includes(cmd);
+	}
+
 	function sendCmd(cmd: string) {
 		if (isUnavail) return;
 		if (optimisticPreviewEnabled) return;
@@ -35,6 +41,7 @@
 			case 'volume_down': mediaService.volumeDown(entityId).catch(() => {}); return;
 			case 'channel_up': mediaService.next(entityId).catch(() => {}); return;
 			case 'channel_down': mediaService.previous(entityId).catch(() => {}); return;
+			case 'select': mediaService.playPause(entityId).catch(() => {}); return;
 			default: return;
 		}
 	}
@@ -65,34 +72,32 @@
 	</div>
 
 	<div class="tvmi__body">
-		{#if isRemote}
-			<!-- System Row -->
-			<div class="tvmi__grid">
-				<button class="tvmi__btn" onclick={() => sendCmd('house')} disabled={isUnavail}>
-					<Icon name="house" size={18} />
-					<span>Home</span>
-				</button>
-				<button class="tvmi__btn" onclick={() => sendCmd('back')} disabled={isUnavail}>
-					<Icon name="undo-2" size={18} />
-					<span>Back</span>
-				</button>
-				<button class="tvmi__btn" onclick={() => sendCmd('menu')} disabled={isUnavail}>
-					<Icon name="menu" size={18} />
-					<span>Menu</span>
-				</button>
-			</div>
+		<!-- System Row -->
+		<div class="tvmi__grid">
+			<button class="tvmi__btn" onclick={() => sendCmd('house')} disabled={isUnavail || !canSend('house')}>
+				<Icon name="house" size={18} />
+				<span>Home</span>
+			</button>
+			<button class="tvmi__btn" onclick={() => sendCmd('back')} disabled={isUnavail || !canSend('back')}>
+				<Icon name="undo-2" size={18} />
+				<span>Back</span>
+			</button>
+			<button class="tvmi__btn" onclick={() => sendCmd('menu')} disabled={isUnavail || !canSend('menu')}>
+				<Icon name="menu" size={18} />
+				<span>Menu</span>
+			</button>
+		</div>
 
-			<!-- D-Pad -->
-			<div class="tvmi__navigation">
-				<div class="tvmi__dpad">
-					<button class="tvmi__dpad-btn tvmi__dpad-btn--up" onclick={() => sendCmd('up')} disabled={isUnavail}><Icon name="chevron-up" size={22} /></button>
-					<button class="tvmi__dpad-btn tvmi__dpad-btn--left" onclick={() => sendCmd('left')} disabled={isUnavail}><Icon name="chevron-left" size={22} /></button>
-					<button class="tvmi__dpad-center" onclick={() => sendCmd('select')} disabled={isUnavail}>OK</button>
-					<button class="tvmi__dpad-btn tvmi__dpad-btn--right" onclick={() => sendCmd('right')} disabled={isUnavail}><Icon name="chevron-right" size={22} /></button>
-					<button class="tvmi__dpad-btn tvmi__dpad-btn--down" onclick={() => sendCmd('down')} disabled={isUnavail}><Icon name="chevron-down" size={22} /></button>
-				</div>
+		<!-- D-Pad -->
+		<div class="tvmi__navigation">
+			<div class="tvmi__dpad">
+				<button class="tvmi__dpad-btn tvmi__dpad-btn--up" onclick={() => sendCmd('up')} disabled={isUnavail || !canSend('up')}><Icon name="chevron-up" size={22} /></button>
+				<button class="tvmi__dpad-btn tvmi__dpad-btn--left" onclick={() => sendCmd('left')} disabled={isUnavail || !canSend('left')}><Icon name="chevron-left" size={22} /></button>
+				<button class="tvmi__dpad-center" onclick={() => sendCmd('select')} disabled={isUnavail || !canSend('select')}>OK</button>
+				<button class="tvmi__dpad-btn tvmi__dpad-btn--right" onclick={() => sendCmd('right')} disabled={isUnavail || !canSend('right')}><Icon name="chevron-right" size={22} /></button>
+				<button class="tvmi__dpad-btn tvmi__dpad-btn--down" onclick={() => sendCmd('down')} disabled={isUnavail || !canSend('down')}><Icon name="chevron-down" size={22} /></button>
 			</div>
-		{/if}
+		</div>
 
 		<!-- Rockers -->
 		<div class="tvmi__rockers">

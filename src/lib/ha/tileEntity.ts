@@ -134,6 +134,9 @@ function autoSecondaryText(entity: HassEntity, domain: string, active: boolean):
 		}
 
 		case 'person': {
+			if (entity.state === 'home') return 'Home';
+			if (entity.state === 'not_home') return 'Away';
+			// Named zones (e.g. 'Work', 'Gym') are already human-readable
 			return entity.state || '';
 		}
 

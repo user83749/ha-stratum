@@ -7,7 +7,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { writable, derived } from 'svelte/store';
-import { entities } from './websocket';
 import type { HassEntities, HassEntity } from 'home-assistant-js-websocket';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -19,6 +18,7 @@ type StatePatch = Partial<Pick<HassEntity, 'state'>> & {
 // ─── Internal state ──────────────────────────────────────────────────────────
 
 const patches = writable<Record<string, StatePatch>>({});
+const baseEntities = writable<HassEntities>({});
 const timers  = new Map<string, ReturnType<typeof setTimeout>>();
 
 const PATCH_TIMEOUT_MS = 3000;
@@ -59,6 +59,11 @@ export function clearPatch(entityId: string): void {
 	});
 }
 
+/** Sync latest confirmed HA entities from the websocket layer. */
+export function syncBaseEntities(state: HassEntities): void {
+	baseEntities.set(state);
+}
+
 // ─── Merged store ─────────────────────────────────────────────────────────────
 
 /**
@@ -66,7 +71,7 @@ export function clearPatch(entityId: string): void {
  * Use this everywhere instead of the raw `entities` store for instant UI feedback.
  */
 export const optimisticEntities = derived(
-	[entities, patches],
+	[baseEntities, patches],
 	([$entities, $patches]): HassEntities => {
 		if (Object.keys($patches).length === 0) return $entities;
 

@@ -1,3 +1,10 @@
+<script module lang="ts">
+	// Module-level counter shared across ALL MoreInfoShell instances.
+	// Incremented when a blocking overlay opens, decremented when it closes.
+	// body overflow is only restored when this reaches zero.
+	let scrollLockCount = 0;
+</script>
+
 <script lang="ts">
 	// ─────────────────────────────────────────────────────────────────────────
 	// Stratum — MoreInfoShell.svelte
@@ -31,14 +38,23 @@
 			children
 		}: Props = $props();
 
-	// Lock body scroll when open (modal/drawer only — panel is non-blocking)
+	// ── Reference-counted body scroll lock ────────────────────────────────────
+	// Multiple MoreInfoShell instances may be active simultaneously (e.g. nested
+	// dialogs). A plain overflow toggle would unlock the body when the first
+	// one closes, even if another is still open. The counter ensures overflow
+	// is only restored when the last blocking overlay closes.
 	$effect(() => {
-		if (open && style !== 'panel') {
-			document.body.style.overflow = 'hidden';
-		} else {
-			document.body.style.overflow = '';
+		const blocking = open && style !== 'panel';
+		if (blocking) {
+			scrollLockCount++;
+			if (scrollLockCount === 1) document.body.style.overflow = 'hidden';
 		}
-		return () => { document.body.style.overflow = ''; };
+		return () => {
+			if (blocking) {
+				scrollLockCount = Math.max(0, scrollLockCount - 1);
+				if (scrollLockCount === 0) document.body.style.overflow = '';
+			}
+		};
 	});
 
 	// Focus the panel when it opens
@@ -145,8 +161,9 @@
 
 		const dx = clientX - dragStartX;
 		const dy = clientY - dragStartY;
-		// Require a mostly-vertical downward gesture before we grab the sheet.
-		if (dy < 10) return;
+		// Require a mostly-vertical downward gesture before committing to a drag.
+		// Reduced from 10→4px so natural swipes register without a long wind-up.
+		if (dy < 4) return;
 		if (Math.abs(dy) < Math.abs(dx) * 1.2) return;
 
 		if (isInteractiveTarget(target)) {
@@ -159,8 +176,8 @@
 		const scroller = findScrollable(target);
 		if (scroller && scroller.scrollTop > 0) return;
 
-		// Start sheet drag and capture pointer so the drag continues even if the
-		// finger leaves the original element.
+		// Commit: capture pointer so the drag continues even if the finger
+		// leaves the original element (important for fast swipes on iOS).
 		if (panelEl && dragPointerId !== null) {
 			panelEl.setPointerCapture?.(dragPointerId);
 		}
@@ -243,7 +260,8 @@
 	function handleTouchMove(e: TouchEvent) {
 		if (dragging) { e.preventDefault(); return; }
 		const y = e.touches[0]?.clientY ?? touchStartY;
-		const dy = touchStartY - y; // +dy means user is trying to scroll down
+		// Note: dy is positive when the user's finger moves upward (pulling content to scroll down).
+		const dy = touchStartY - y;
 		const scroller = findScrollable(e.target);
 		if (!scroller) {
 			e.preventDefault();
@@ -327,6 +345,9 @@
 		onpointerdown={(e) => {
 			if (!isSheet) return;
 			if (isInteractiveTarget(e.target)) return;
+			// Do NOT capture immediately — that would suppress body scrolling.
+			// touch-action: pan-y (CSS) ensures iOS delivers pointer events to us;
+			// actual capture happens in maybeStartFromArmed once drag is committed.
 			armSheetDrag(e.pointerId, e.clientX, e.clientY);
 		}}
 		onpointermove={(e) => {
@@ -542,6 +563,8 @@
 			box-shadow: var(--shadow-lg) !important;
 			transform: translateY(var(--sheet-drag, 0px)) !important;
 			transition-duration: 0.28s;
+			/* Prevent iOS from intercepting vertical swipes; we own the gesture. */
+			touch-action: pan-y;
 		}
 		.moreinfo-panel--sheet.moreinfo-panel--closing {
 			transform: translateY(calc(100% + var(--sheet-drag, 0px))) !important;

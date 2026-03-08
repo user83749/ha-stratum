@@ -313,6 +313,9 @@
 		pointerDownY = e.clientY;
 
 		holdTimer = setTimeout(() => {
+			// Guard against the race where clearHold() (triggered by onPointerLeave)
+			// ran and nulled holdTimer just before this callback executed.
+			if (holdTimer === null) return;
 			if (didScroll) return;
 			didHold = true;
 			holdTimer = null;

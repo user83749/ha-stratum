@@ -342,9 +342,4 @@
 		text-overflow: ellipsis;
 		max-width: 100%;
 	}
-
-	/* ── Container queries removed ── */
-	.label { display: none; }
-	.history-header { flex-direction: column; gap: 2px; }
-	.history-name { display: none; }
 </style>

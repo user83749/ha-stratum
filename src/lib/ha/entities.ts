@@ -41,8 +41,12 @@ export function isActive(entity: HassEntity): boolean {
 		case 'humidifier':
 		case 'siren':
 		case 'group':
-		case 'water_heater':
 			return state === 'on';
+
+		// Water heaters are never literally in state 'on' — their mode name
+		// (e.g. 'heat_pump', 'eco', 'performance', 'electric') is the active state.
+		case 'water_heater':
+			return state !== 'off';
 
 		// Cover: open = active
 		case 'cover':
@@ -258,7 +262,9 @@ export function getEntityIcon(entity: HassEntity): string {
 		case 'lock': {
 			if (state === 'locked') return 'lock';
 			if (state === 'unlocked') return 'lock-open';
-			if (state === 'jammed') return 'lock-open';
+			// 'jammed' must NOT use lock-open — that implies unlocked.
+			// Keep 'lock' so the icon looks secured; color (--color-danger) conveys the fault.
+			if (state === 'jammed') return 'lock';
 			return 'lock';
 		}
 
@@ -861,7 +867,7 @@ export function evaluateCondition(
 }
 
 export function evaluateConditions(
-	conditions: any[],
+	conditions: { entity_id: string; attribute?: string; state?: string; state_not?: string; above?: number; below?: number }[],
 	entities: Record<string, HassEntity>
 ): boolean {
 	if (!conditions || conditions.length === 0) return true;

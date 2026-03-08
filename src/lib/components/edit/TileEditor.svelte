@@ -40,16 +40,11 @@
 		icon = (tile.config.icon as string | undefined) ?? '';
 	});
 
-	let _saveTimer: ReturnType<typeof setTimeout> | null = null;
-
 	function save(patch: Record<string, unknown>) {
 		if (!tile) return;
-		if (_saveTimer) clearTimeout(_saveTimer);
-		_saveTimer = setTimeout(() => {
-			dashboardStore.updateTile(pageId, sectionId, tile!.id, {
-				config: { ...tile!.config, ...patch }
-			});
-		}, 300);
+		dashboardStore.updateTile(pageId, sectionId, tile.id, {
+			config: { ...tile.config, ...patch }
+		});
 	}
 
 	function setSizePreset(sizePreset: NonNullable<Tile['sizePreset']>) {
@@ -182,7 +177,7 @@
 				<Icon name="x" size={17} />
 			</button>
 			<div class="te__title">
-				<span class="te__badge">{tile.type}</span>
+				<span class="te__badge">{TILE_TYPE_LABELS[tile.type] ?? tile.type}</span>
 				<span class="te__name">{entityName}</span>
 			</div>
 			<div class="te__header-btns">
@@ -487,7 +482,22 @@
 					</div>
 				{/if}
 
-				{#if tile.type === 'markdown'}
+			{#if tile.type === 'alarm_panel'}
+				<label class="te__check">
+					<input type="checkbox" checked={tile.config.show_keypad !== false}
+						onchange={(e) => save({ show_keypad: (e.target as HTMLInputElement).checked })} />
+					Show keypad
+				</label>
+				<span class="te__label">Code format</span>
+				<select class="te__select"
+					value={(tile.config.code_format as string) ?? 'number'}
+					onchange={(e) => save({ code_format: (e.target as HTMLSelectElement).value })}>
+					<option value="number">Number pad</option>
+					<option value="text">Text input</option>
+				</select>
+			{/if}
+
+			{#if tile.type === 'markdown'}
 					<span class="te__label">Content</span>
 					<textarea class="te__textarea" rows={8} value={(tile.config.content as string) ?? ''} oninput={(e) => save({ content: (e.target as HTMLTextAreaElement).value })}></textarea>
 				{/if}
