@@ -9,7 +9,7 @@
 	import { editMode, isEditing, editSelection, editorOpen } from '$lib/stores/editMode';
 	import { undoStore } from '$lib/stores/undoStore';
 	import AppShell from '$lib/components/layout/AppShell.svelte';
-	import AppNav from '$lib/components/layout/AppNav.svelte';
+	import ShellNav from '$lib/components/layout/ShellNav.svelte';
 	import AppHeader from '$lib/components/layout/AppHeader.svelte';
 	import MobileNav from '$lib/components/layout/MobileNav.svelte';
 	import PageView from '$lib/components/layout/PageView.svelte';
@@ -417,7 +417,7 @@
 <AppShell integratedLeftNav={suppressShellSidebar}>
 	{#snippet nav()}
 		{#if !isMobile && !useIntegratedDesktopNav && navCfg.position !== 'bottom'}
-			<AppNav />
+			<ShellNav />
 		{/if}
 	{/snippet}
 

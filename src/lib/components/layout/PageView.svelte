@@ -676,6 +676,18 @@
 		letter-spacing: 0.01em;
 	}
 
+	@media (max-width: 800px) {
+		.mobile-page-clock__sub {
+			gap: 4px;
+		}
+		.mobile-page-clock__date {
+			font-size: 1.16rem;
+		}
+		.mobile-page-clock__weather {
+			font-size: 1.16rem;
+		}
+	}
+
 	/* Hero entity rows below the clock */
 	.mobile-page-clock__hero {
 		display: flex;

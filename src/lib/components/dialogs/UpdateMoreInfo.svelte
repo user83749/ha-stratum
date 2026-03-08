@@ -17,7 +17,8 @@
 	const releaseUrl = $derived(entity?.attributes.release_url as string | undefined);
 	const title = $derived(entity?.attributes.title as string | undefined);
 	let fetchedReleaseNotes = $state('');
-	let fetchAttempted = $state(false);
+	let releaseNotesKey = $state('');
+	let fetchedReleaseNotesKey = $state('');
 	function normalizeReleaseNotes(input: unknown): string {
 		if (input == null) return '';
 		if (typeof input === 'string') return input.trim();
@@ -104,20 +105,20 @@
 		return '';
 	});
 	$effect(() => {
-		entityId;
-		releaseUrl;
-		releaseNotesFromEntity;
-		fetchedReleaseNotes = '';
-		fetchAttempted = false;
-	});
-	$effect(() => {
 		const url = (releaseUrl ?? '').trim();
+		const key = `${entityId}|${url}`;
+		if (releaseNotesKey !== key) {
+			releaseNotesKey = key;
+			fetchedReleaseNotes = '';
+			fetchedReleaseNotesKey = '';
+		}
 		if (!url) return;
-		if (fetchAttempted) return;
 		if (releaseNotesFromEntity) return;
-		fetchAttempted = true;
+		if (fetchedReleaseNotesKey === key) return;
+		fetchedReleaseNotesKey = key;
 		void fetchReleaseNotesFromUrl(url)
 			.then((notes) => {
+				if (releaseNotesKey !== key) return;
 				if (notes) fetchedReleaseNotes = notes;
 			})
 			.catch(() => {});

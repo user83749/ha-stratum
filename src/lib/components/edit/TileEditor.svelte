@@ -2,6 +2,7 @@
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { entities } from '$lib/ha/websocket';
 	import { getDomain, getEntityName } from '$lib/ha/entities';
+	import { isTvLikeMediaEntity, TV_REMOTE_BUTTON_DEFS, type TvRemoteCommand, resolveTvCommandEntityId } from '$lib/ha/tvRemote';
 	import { getAllowedPresets } from '$lib/layout/tileSizing';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { CUSTOM_ICON_NAMES } from '$lib/icons/customIcons';
@@ -28,6 +29,18 @@
 	);
 	const entity = $derived(
 		tile?.entity_id ? ($entities[tile.entity_id] ?? null) : null
+	);
+	const tvRemoteCandidates = $derived(
+		Object.keys($entities)
+			.filter((id) => id.startsWith('media_player.') || id.startsWith('remote.'))
+			.sort()
+	);
+	const isTvMediaTile = $derived(
+		(domain === 'media_player' || tile?.type === 'media_player') && isTvLikeMediaEntity(entity)
+	);
+	const showTvRemoteMapping = $derived(
+		isTvMediaTile ||
+		Object.keys(((tile?.config.tv_remote_entities as Record<string, string> | undefined) ?? {})).length > 0
 	);
 	const entityName = $derived(
 		entity ? getEntityName(entity) : (tile?.entity_id ?? tile?.type ?? 'Tile')
@@ -166,6 +179,24 @@
 		if (!tile || newType === tile.type) return;
 		dashboardStore.updateTile(pageId, sectionId, tile.id, { type: newType as Tile['type'] });
 	}
+
+	function tvButtonEntityValue(command: TvRemoteCommand): string {
+		if (!tile) return '';
+		const overrides = (tile.config.tv_remote_entities as Record<string, string> | undefined) ?? {};
+		const mainEntityId = tile.entity_id ?? entity?.entity_id ?? '';
+		return resolveTvCommandEntityId(command, mainEntityId, overrides, $entities);
+	}
+
+	function setTvButtonEntity(command: TvRemoteCommand, value: string) {
+		if (!tile) return;
+		const current = { ...(((tile.config.tv_remote_entities as Record<string, string> | undefined) ?? {})) };
+		const trimmed = value.trim();
+		if (trimmed) current[command] = trimmed;
+		else delete current[command];
+		save({
+			tv_remote_entities: Object.keys(current).length > 0 ? current : undefined
+		});
+	}
 </script>
 
 {#if open && tile}
@@ -276,6 +307,29 @@
 					{#each MEDIA_TOGGLES as [key, label]}
 						<label class="te__check"><input type="checkbox" checked={tile.config[key] !== false} onchange={(e) => save({ [key]: (e.target as HTMLInputElement).checked })} />{label}</label>
 					{/each}
+					{#if showTvRemoteMapping}
+						<span class="te__label te__mt12">TV remote button entities</span>
+						<p class="te__hint">
+							Set which entity each TV remote button controls. Use <code>remote.*</code> for navigation buttons and
+							<code>media_player.*</code> for volume/channel/power if needed.
+						</p>
+						{#each TV_REMOTE_BUTTON_DEFS as btn (btn.key)}
+							<span class="te__label">{btn.label}</span>
+							<input
+								class="te__input"
+								type="text"
+								list="te-tv-entity-candidates"
+								placeholder="remote.living_room_tv"
+								value={tvButtonEntityValue(btn.key)}
+								oninput={(e) => setTvButtonEntity(btn.key, (e.target as HTMLInputElement).value)}
+							/>
+						{/each}
+						<datalist id="te-tv-entity-candidates">
+							{#each tvRemoteCandidates as candidate}
+								<option value={candidate}></option>
+							{/each}
+						</datalist>
+					{/if}
 				{/if}
 
 				{#if tile.type === 'media_hero'}

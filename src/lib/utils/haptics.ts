@@ -8,6 +8,9 @@ export type HapticType =
 	| 'error';
 
 type HapticTarget = EventTarget | null | undefined;
+
+declare function fireEvent(node: EventTarget, type: string, detail?: unknown): void;
+
 const VALID_HAPTICS = new Set<HapticType>([
 	'selection',
 	'light',
@@ -18,68 +21,39 @@ const VALID_HAPTICS = new Set<HapticType>([
 	'error'
 ]);
 
-function dispatchHapticToTarget(target: HapticTarget, type: HapticType): void {
-	if (!target || typeof (target as EventTarget).dispatchEvent !== 'function') return;
-	try {
-		const evt = new CustomEvent('haptic', {
-			bubbles: true,
-			composed: true,
-			detail: type
-		});
-		(target as EventTarget).dispatchEvent(evt);
-	} catch {
-		// no-op
-	}
-}
-
 export function triggerHaptic(style: HapticType = 'medium', target?: HapticTarget): void {
-	if (typeof window === 'undefined' || typeof document === 'undefined') return;
-	const hapticType: HapticType = VALID_HAPTICS.has(style) ? style : 'medium';
-	const dispatch = (t: HapticTarget) => dispatchHapticToTarget(t, hapticType);
-
 	try {
-		// 1) Current frame
-		dispatch(window);
-		dispatch(document);
+		const hapticType: HapticType = VALID_HAPTICS.has(style) ? style : 'medium';
+		const makeEvent = () =>
+			new CustomEvent('haptic', {
+				bubbles: true,
+				composed: true,
+				detail: hapticType
+			});
 
-		// 2) Traverse all parents (nested iframe-safe)
-		let win: Window = window;
-		while (win.parent && win.parent !== win) {
+		if (typeof window !== 'undefined') {
 			try {
-				win = win.parent;
-				dispatch(win);
-			} catch {
-				break;
-			}
-		}
-
-		// Also dispatch explicitly to top when accessible (avoid duplicate).
-		try {
-			if (window.top && window.top !== win) dispatch(window.top);
-		} catch {
-			// no-op
-		}
-
-		// 3) Direct iOS bridge fallback
-		try {
-			const webkit = (window as unknown as { webkit?: { messageHandlers?: { haptic?: { postMessage?: (v: HapticType) => void } } } }).webkit;
-			webkit?.messageHandlers?.haptic?.postMessage?.(hapticType);
-		} catch {
-			// no-op
-		}
-
-		// 4) HA fireEvent fallback
-		const fireEventFn = (globalThis as unknown as { fireEvent?: (el: unknown, type: string, detail?: unknown) => void }).fireEvent;
-		if (typeof fireEventFn === 'function') {
-			try {
-				fireEventFn(window, 'haptic', hapticType);
+				window.dispatchEvent(makeEvent());
 			} catch {
 				// no-op
 			}
 		}
 
-		// 5) Optional explicit target
-		dispatch(target);
+		if (target && typeof (target as EventTarget).dispatchEvent === 'function') {
+			try {
+				(target as EventTarget).dispatchEvent(makeEvent());
+			} catch {
+				// no-op
+			}
+		}
+
+		if (typeof fireEvent === 'function') {
+			try {
+				fireEvent(window, 'haptic', hapticType);
+			} catch {
+				// no-op
+			}
+		}
 	} catch {
 		// no-op
 	}

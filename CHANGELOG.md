@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.32] - 2026-03-08
+
+### Added
+- New `ShellNav` component (replacing AppNav).
+- New TV remote utility service.
+
+### Changed
+- Extensive updates to `MoreInfo` dialogs for TVs and Updates.
+- Refactored `TileEditor` for smoother interaction.
+- Improved `PageView` layout and navigation integration.
+- Enhanced `ClimateTile`, `LightTile`, and `CircleControl` UI logic.
+- Focused improvements on haptics and dashboard type definitions.
+
 ## [1.0.31] - 2026-03-08
 
 ### Changed
@@ -27,7 +40,7 @@
 ## [1.0.28] - 2026-03-08
 
 ### Changed
-- Extensive refactor of navigation components (AppNav, IntegratedNavRail, MobileNav).
+- Extensive refactor of navigation components (ShellNav, IntegratedNavRail, MobileNav).
 - Improved UI for MoreInfoShell and SettingsPanel.
 - Enhanced core tile rendering and wrapper logic.
 - Optimized TilePicker and haptic feedback utility.

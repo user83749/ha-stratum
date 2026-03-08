@@ -17,13 +17,48 @@
   // Local slider value — synced from prop only when not dragging
   let localValue = $state<number>(0);
   let dragging   = $state(false);
+  let pendingCommit = $state<number | null>(null);
+  let pendingTimer: ReturnType<typeof setTimeout> | null = null;
+  const PENDING_TTL_MS = 1200;
+
+  function clearPendingCommit() {
+    pendingCommit = null;
+    if (pendingTimer) {
+      clearTimeout(pendingTimer);
+      pendingTimer = null;
+    }
+  }
+
+  function setPendingCommit(v: number) {
+    pendingCommit = v;
+    if (pendingTimer) clearTimeout(pendingTimer);
+    pendingTimer = setTimeout(() => {
+      pendingCommit = null;
+      pendingTimer = null;
+    }, PENDING_TTL_MS);
+  }
 
   // Keep in sync with prop changes from HA (ignored while user is dragging)
   $effect.pre(() => {
-    if (!dragging) {
-      const next = value ?? (isOn ? max : effectiveMin);
-      localValue = Math.max(effectiveMin, Math.min(max, next));
+    if (dragging) return;
+    const serverValue = value ?? (isOn ? max : effectiveMin);
+    const clampedServerValue = Math.max(effectiveMin, Math.min(max, serverValue));
+    if (pendingCommit !== null) {
+      if (Math.abs(clampedServerValue - pendingCommit) < 0.0001) {
+        clearPendingCommit();
+        localValue = clampedServerValue;
+      }
+      return;
     }
+    localValue = clampedServerValue;
+  });
+  $effect(() => {
+    return () => {
+      if (pendingTimer) {
+        clearTimeout(pendingTimer);
+        pendingTimer = null;
+      }
+    };
   });
 
   const pct = $derived(localValue);
@@ -76,6 +111,7 @@
     // Round to step and commit
     const snapped = Math.max(effectiveMin, Math.min(max, Math.round(localValue / step) * step));
     localValue = snapped;
+    setPendingCommit(snapped);
     onchange?.(snapped);
   }
 </script>

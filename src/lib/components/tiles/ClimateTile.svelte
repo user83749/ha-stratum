@@ -28,41 +28,55 @@
   const minTemp     = $derived((entity?.attributes.min_temp as number | undefined) ?? 10);
   const maxTemp     = $derived((entity?.attributes.max_temp as number | undefined) ?? 32);
   const hvacMode    = $derived(entity?.state ?? 'off');
+  const hvacAction  = $derived((entity?.attributes.hvac_action as string | undefined) ?? '');
+  const effectiveState = $derived(
+    hvacMode === 'heat_cool' || hvacMode === 'auto'
+      ? (hvacAction === 'heating' || hvacAction === 'cooling' ? hvacAction : hvacMode)
+      : hvacMode
+  );
   const hvacModes   = $derived((entity?.attributes.hvac_modes as string[] | undefined) ?? []);
   const isOff       = $derived(hvacMode === 'off');
   const unavailable = $derived(entity?.state === 'unavailable' || entity?.state === 'unknown');
-
-  // Match BaseTile label semantics so climate "state" text reads like other tiles.
-  const stateTextColor = $derived(
-    isOff ? 'var(--tile-label-off, #97989c)' : 'var(--tile-label-on, var(--control-active-name))'
+  const isHeatingOrCooling = $derived(
+    effectiveState === 'heat' ||
+    effectiveState === 'cool' ||
+    effectiveState === 'heating' ||
+    effectiveState === 'cooling'
   );
 
   const modeColor = $derived(
     isOff                    ? 'var(--fg-subtle)' :
-    hvacMode === 'cool'      ? 'var(--color-info)' :
-    hvacMode === 'heat'      ? 'var(--color-warning)' :
-    hvacMode === 'heat_cool' ? 'var(--color-on)' :
-    hvacMode === 'auto'      ? 'var(--color-on)' :
+    effectiveState === 'cool' || effectiveState === 'cooling' ? 'var(--color-info)' :
+    effectiveState === 'heat' || effectiveState === 'heating' ? 'var(--color-warning)' :
+    effectiveState === 'heat_cool' ? 'var(--color-on)' :
+    effectiveState === 'auto' ? 'var(--color-on)' :
     'var(--fg-muted)'
+  );
+  // Match BaseTile label semantics so climate "state" text reads like other tiles.
+  const stateTextColor = $derived(
+    isOff
+      ? 'var(--tile-label-off, #97989c)'
+      : (isHeatingOrCooling ? modeColor : 'var(--tile-label-on, var(--control-active-name))')
   );
 
   const modeIcon = $derived(
-    hvacMode === 'cool'      ? 'snowflake' :
-    hvacMode === 'heat'      ? 'flame' :
-    hvacMode === 'heat_cool' ? 'thermometer' :
-    hvacMode === 'auto'      ? 'cpu' :
-    hvacMode === 'fan_only'  ? 'wind' :
-    hvacMode === 'dry'       ? 'droplets' :
+    effectiveState === 'cool' || effectiveState === 'cooling' ? 'snowflake' :
+    effectiveState === 'heat' || effectiveState === 'heating' ? 'flame' :
+    effectiveState === 'heat_cool' ? 'thermometer' :
+    effectiveState === 'auto' ? 'cpu' :
+    effectiveState === 'fan_only' ? 'wind' :
+    effectiveState === 'dry' ? 'droplets' :
     'power'
   );
   const mainIcon = $derived(iconOverride ?? modeIcon);
 
   const MODE_LABELS: Record<string, string> = {
     off: 'Off', heat: 'Heating', cool: 'Cooling',
+    heating: 'Heating', cooling: 'Cooling',
     heat_cool: 'Auto', auto: 'Auto', fan_only: 'Fan', dry: 'Dry'
   };
 
-  const modeLabel = $derived(MODE_LABELS[hvacMode] ?? hvacMode.replace(/_/g, ' '));
+  const modeLabel = $derived(MODE_LABELS[effectiveState] ?? effectiveState.replace(/_/g, ' '));
   const tempUnit = '°';
 
   function adjustTemp(delta: number): void {

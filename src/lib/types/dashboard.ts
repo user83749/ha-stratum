@@ -319,6 +319,7 @@ export interface TileConfig {
 	switcher_entity_id?: string;     // select.conditional_media for switching
 	sensor_entity?: string;          // aggregator sensor.active_media_players
 	player_map?: any[];              // dynamic player mappings
+	tv_remote_entities?: Record<string, string>; // per-button entity overrides for TV more-info remote controls
 
 	// ── Camera ───────────────────────────────────────────────────────────────
 	stream_type?: 'auto' | 'hls' | 'webrtc' | 'mjpeg';
@@ -880,7 +881,7 @@ export const DEFAULT_NAV: NavConfig = {
 	showMobileClock: true,
 	showHeader: false,
 	showConnectionStatus: true,
-	mobileBreakpoint: 768,
+	mobileBreakpoint: 800,
 	mobileStyle: 'bottom-bar',
 	heroEntities: [],
 	order: [],

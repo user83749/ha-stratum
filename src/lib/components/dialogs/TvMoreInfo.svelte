@@ -2,56 +2,82 @@
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { mediaService, remoteService } from '$lib/ha/services';
-	import { browser } from '$app/environment';
+	import type { Tile } from '$lib/types/dashboard';
+	import { resolveTvCommandEntityId, type TvRemoteCommand } from '$lib/ha/tvRemote';
 
-	interface Props { entityId: string; }
-	const { entityId }: Props = $props();
+	interface Props { entityId: string; tile?: Tile | null; }
+	const { entityId, tile = null }: Props = $props();
 
-	const entity = $derived($optimisticEntities[entityId] ?? null);
+	const tvRemoteEntities = $derived((tile?.config.tv_remote_entities as Record<string, string> | undefined) ?? {});
 	const optimisticPreviewEnabled = false;
-	const state = $derived(entity?.state ?? 'off');
-	const isUnavail = $derived(state === 'unavailable' || !entity);
-	const domain = $derived(entityId.split('.')[0] ?? '');
-	const isRemote = $derived(domain === 'remote');
+	function resolveTarget(cmd: TvRemoteCommand): string {
+		return resolveTvCommandEntityId(cmd, entityId, tvRemoteEntities, $optimisticEntities);
+	}
+	const powerTargetId = $derived(resolveTarget('power'));
+	const powerTarget = $derived($optimisticEntities[powerTargetId] ?? null);
+	const powerDomain = $derived(powerTargetId.split('.')[0] ?? '');
+	const powerState = $derived(powerTarget?.state ?? 'off');
+	const powerUnavailable = $derived(powerState === 'unavailable' || !powerTarget);
 	const isPowered = $derived.by(() => {
-		if (isRemote) return state === 'on';
-		// media_player.* power-ish heuristic
-		return !['off', 'standby', 'unknown', 'unavailable'].includes(state);
+		if (powerDomain === 'remote') return powerState === 'on';
+		if (powerDomain === 'media_player') {
+			return !['off', 'standby', 'unknown', 'unavailable'].includes(powerState);
+		}
+		return false;
 	});
-
-	function canSend(cmd: string): boolean {
-		if (isRemote) return true;
-		// media_player.* fallback: only show controls that can map safely.
-		return ['volume_up', 'volume_down', 'channel_up', 'channel_down', 'select'].includes(cmd);
+	function targetDomain(cmd: TvRemoteCommand): string {
+		return resolveTarget(cmd).split('.')[0] ?? '';
 	}
 
-	function sendCmd(cmd: string) {
-		if (isUnavail) return;
+	function canSend(cmd: TvRemoteCommand): boolean {
+		const targetId = resolveTarget(cmd);
+		const domain = targetDomain(cmd);
+		const targetEntity = $optimisticEntities[targetId] ?? null;
+		if (!targetEntity || targetEntity.state === 'unavailable') return false;
+		if (domain === 'remote') return true;
+		if (domain === 'media_player') {
+			return ['volume_up', 'volume_down', 'channel_up', 'channel_down', 'select'].includes(cmd);
+		}
+		return false;
+	}
+
+	function canTogglePower(): boolean {
+		const domain = targetDomain('power');
+		return domain === 'remote' || domain === 'media_player';
+	}
+
+	function sendCmd(cmd: TvRemoteCommand) {
+		if (!canSend(cmd)) return;
 		if (optimisticPreviewEnabled) return;
+		const targetId = resolveTarget(cmd);
+		const domain = targetId.split('.')[0] ?? '';
 
 		// If this is a remote.* entity, send navigation/rocker commands.
-		if (isRemote) {
-			remoteService.sendCommand(entityId, [cmd]).catch(() => {});
+		if (domain === 'remote') {
+			remoteService.sendCommand(targetId, [cmd]).catch(() => {});
 			return;
 		}
 
 		// For media_player.* TVs, only map commands that HA supports universally.
 		switch (cmd) {
-			case 'volume_up': mediaService.volumeUp(entityId).catch(() => {}); return;
-			case 'volume_down': mediaService.volumeDown(entityId).catch(() => {}); return;
-			case 'channel_up': mediaService.next(entityId).catch(() => {}); return;
-			case 'channel_down': mediaService.previous(entityId).catch(() => {}); return;
-			case 'select': mediaService.playPause(entityId).catch(() => {}); return;
+			case 'volume_up': if (domain === 'media_player') mediaService.volumeUp(targetId).catch(() => {}); return;
+			case 'volume_down': if (domain === 'media_player') mediaService.volumeDown(targetId).catch(() => {}); return;
+			case 'channel_up': if (domain === 'media_player') mediaService.next(targetId).catch(() => {}); return;
+			case 'channel_down': if (domain === 'media_player') mediaService.previous(targetId).catch(() => {}); return;
+			case 'select': if (domain === 'media_player') mediaService.playPause(targetId).catch(() => {}); return;
 			default: return;
 		}
 	}
 
 	function toggle() {
-		if (isUnavail) return;
-		if (optimisticPreviewEnabled) applyPatch(entityId, { state: isPowered ? 'off' : 'on' });
-		else (isRemote
-			? (isPowered ? remoteService.turnOff(entityId) : remoteService.turnOn(entityId))
-			: (isPowered ? mediaService.turnOff(entityId) : mediaService.turnOn(entityId))
+		if (powerUnavailable) return;
+		const targetId = resolveTarget('power');
+		const domain = targetId.split('.')[0] ?? '';
+		if (domain !== 'remote' && domain !== 'media_player') return;
+		if (optimisticPreviewEnabled) applyPatch(targetId, { state: isPowered ? 'off' : 'on' });
+		else (domain === 'remote'
+			? (isPowered ? remoteService.turnOff(targetId) : remoteService.turnOn(targetId))
+			: (isPowered ? mediaService.turnOff(targetId) : mediaService.turnOn(targetId))
 		).catch(() => {});
 	}
 </script>
@@ -66,7 +92,7 @@
 			<div class="tvmi__value">{isPowered ? 'Powered On' : 'Standby'}</div>
 			<div class="tvmi__sub">Television Status</div>
 		</div>
-		<button class="tvmi__power" class:tvmi__power--on={isPowered} onclick={toggle} disabled={isUnavail}>
+		<button class="tvmi__power" class:tvmi__power--on={isPowered} onclick={toggle} disabled={powerUnavailable || !canTogglePower()}>
 			<Icon name="power" size={18} />
 		</button>
 	</div>
@@ -74,15 +100,15 @@
 	<div class="tvmi__body">
 		<!-- System Row -->
 		<div class="tvmi__grid">
-			<button class="tvmi__btn" onclick={() => sendCmd('house')} disabled={isUnavail || !canSend('house')}>
+			<button class="tvmi__btn" onclick={() => sendCmd('home')} disabled={!canSend('home')}>
 				<Icon name="house" size={18} />
 				<span>Home</span>
 			</button>
-			<button class="tvmi__btn" onclick={() => sendCmd('back')} disabled={isUnavail || !canSend('back')}>
+			<button class="tvmi__btn" onclick={() => sendCmd('back')} disabled={!canSend('back')}>
 				<Icon name="undo-2" size={18} />
 				<span>Back</span>
 			</button>
-			<button class="tvmi__btn" onclick={() => sendCmd('menu')} disabled={isUnavail || !canSend('menu')}>
+			<button class="tvmi__btn" onclick={() => sendCmd('menu')} disabled={!canSend('menu')}>
 				<Icon name="menu" size={18} />
 				<span>Menu</span>
 			</button>
@@ -91,25 +117,25 @@
 		<!-- D-Pad -->
 		<div class="tvmi__navigation">
 			<div class="tvmi__dpad">
-				<button class="tvmi__dpad-btn tvmi__dpad-btn--up" onclick={() => sendCmd('up')} disabled={isUnavail || !canSend('up')}><Icon name="chevron-up" size={22} /></button>
-				<button class="tvmi__dpad-btn tvmi__dpad-btn--left" onclick={() => sendCmd('left')} disabled={isUnavail || !canSend('left')}><Icon name="chevron-left" size={22} /></button>
-				<button class="tvmi__dpad-center" onclick={() => sendCmd('select')} disabled={isUnavail || !canSend('select')}>OK</button>
-				<button class="tvmi__dpad-btn tvmi__dpad-btn--right" onclick={() => sendCmd('right')} disabled={isUnavail || !canSend('right')}><Icon name="chevron-right" size={22} /></button>
-				<button class="tvmi__dpad-btn tvmi__dpad-btn--down" onclick={() => sendCmd('down')} disabled={isUnavail || !canSend('down')}><Icon name="chevron-down" size={22} /></button>
+				<button class="tvmi__dpad-btn tvmi__dpad-btn--up" onclick={() => sendCmd('up')} disabled={!canSend('up')}><Icon name="chevron-up" size={22} /></button>
+				<button class="tvmi__dpad-btn tvmi__dpad-btn--left" onclick={() => sendCmd('left')} disabled={!canSend('left')}><Icon name="chevron-left" size={22} /></button>
+				<button class="tvmi__dpad-center" onclick={() => sendCmd('select')} disabled={!canSend('select')}>OK</button>
+				<button class="tvmi__dpad-btn tvmi__dpad-btn--right" onclick={() => sendCmd('right')} disabled={!canSend('right')}><Icon name="chevron-right" size={22} /></button>
+				<button class="tvmi__dpad-btn tvmi__dpad-btn--down" onclick={() => sendCmd('down')} disabled={!canSend('down')}><Icon name="chevron-down" size={22} /></button>
 			</div>
 		</div>
 
 		<!-- Rockers -->
 		<div class="tvmi__rockers">
 			<div class="tvmi__rocker">
-				<button class="tvmi__rocker-btn" onclick={() => sendCmd('volume_up')} disabled={isUnavail}>+</button>
+				<button class="tvmi__rocker-btn" onclick={() => sendCmd('volume_up')} disabled={!canSend('volume_up')}>+</button>
 				<span class="tvmi__rocker-label">VOL</span>
-				<button class="tvmi__rocker-btn" onclick={() => sendCmd('volume_down')} disabled={isUnavail}>-</button>
+				<button class="tvmi__rocker-btn" onclick={() => sendCmd('volume_down')} disabled={!canSend('volume_down')}>-</button>
 			</div>
 			<div class="tvmi__rocker">
-				<button class="tvmi__rocker-btn" onclick={() => sendCmd('channel_up')} disabled={isUnavail}>+</button>
+				<button class="tvmi__rocker-btn" onclick={() => sendCmd('channel_up')} disabled={!canSend('channel_up')}>+</button>
 				<span class="tvmi__rocker-label">CH</span>
-				<button class="tvmi__rocker-btn" onclick={() => sendCmd('channel_down')} disabled={isUnavail}>-</button>
+				<button class="tvmi__rocker-btn" onclick={() => sendCmd('channel_down')} disabled={!canSend('channel_down')}>-</button>
 			</div>
 		</div>
 	</div>
@@ -133,9 +159,10 @@
 		all: unset; width: 44px; height: 44px; border-radius: 50%;
 		display: flex; align-items: center; justify-content: center;
 		background: var(--hover); color: var(--fg-muted); border: 1px solid var(--border);
-		cursor: pointer; transition: all 0.2s;
+		cursor: pointer; transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease, filter 0.12s ease;
 	}
 	.tvmi__power--on { color: var(--color-on); border-color: color-mix(in srgb, var(--color-on) 30%, transparent); background: color-mix(in srgb, var(--color-on) 10%, transparent); }
+	.tvmi__power:active:not(:disabled) { background: var(--active); color: var(--fg); border-color: var(--border-strong); filter: brightness(1.08); }
 
 	.tvmi__body { padding: 24px 20px; display: flex; flex-direction: column; gap: 32px; }
 
@@ -144,17 +171,19 @@
 		all: unset; display: flex; flex-direction: column; align-items: center; gap: 8px;
 		padding: 14px; border-radius: 16px; border: 1px solid var(--border);
 		background: var(--hover); color: var(--fg-muted); font-size: 0.8rem; font-weight: 700;
-		cursor: pointer; transition: all 0.2s;
+		cursor: pointer; transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease, filter 0.12s ease;
 	}
 	.tvmi__btn:hover:not(:disabled) { background: var(--active); color: var(--fg); border-color: var(--border-strong); }
+	.tvmi__btn:active:not(:disabled) { background: var(--active); color: var(--fg); border-color: var(--border-strong); filter: brightness(1.08); }
 
 	.tvmi__navigation { display: flex; justify-content: center; }
 	.tvmi__dpad { display: grid; grid-template-columns: repeat(3, 64px); grid-template-rows: repeat(3, 64px); gap: 12px; }
 	.tvmi__dpad-btn {
 		all: unset; display: flex; align-items: center; justify-content: center;
 		background: var(--hover); border: 1px solid var(--border); border-radius: 16px;
-		color: var(--fg-muted); cursor: pointer; transition: all 0.2s;
+		color: var(--fg-muted); cursor: pointer; transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease, filter 0.12s ease;
 	}
+	.tvmi__dpad-btn:active:not(:disabled) { background: var(--active); color: var(--fg); border-color: var(--border-strong); filter: brightness(1.08); }
 	.tvmi__dpad-btn--up { grid-column: 2; grid-row: 1; }
 	.tvmi__dpad-btn--left { grid-column: 1; grid-row: 2; }
 	.tvmi__dpad-btn--right { grid-column: 3; grid-row: 2; }
@@ -162,11 +191,17 @@
 	.tvmi__dpad-center {
 		grid-column: 2; grid-row: 2; border-radius: 50%; border: none;
 		background: var(--accent); color: var(--accent-fg); font-weight: 800; font-size: 1rem; cursor: pointer;
+		transition: filter 0.12s ease;
 	}
+	.tvmi__dpad-center:active:not(:disabled) { filter: brightness(1.12); }
 
 	.tvmi__rockers { display: flex; justify-content: center; gap: 40px; }
 	.tvmi__rocker { display: flex; flex-direction: column; align-items: center; width: 64px; background: var(--hover); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-	.tvmi__rocker-btn { all: unset; width: 100%; height: 52px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; cursor: pointer; }
+	.tvmi__rocker-btn {
+		all: unset; width: 100%; height: 52px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; cursor: pointer;
+		transition: background-color 0.12s ease, filter 0.12s ease;
+	}
+	.tvmi__rocker-btn:active:not(:disabled) { background: color-mix(in srgb, var(--fg) 8%, transparent); filter: brightness(1.08); }
 	.tvmi__rocker-label { font-size: 0.65rem; font-weight: 800; color: var(--fg-subtle); padding: 4px 0; }
 
 	button:disabled { opacity: 0.3 !important; cursor: not-allowed; }

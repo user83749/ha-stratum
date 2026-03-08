@@ -77,7 +77,8 @@
   const displayColorTemp = $derived(draggingTemp ? localColorTemp : (colorTempMired ?? colorTempKelvin ?? null));
 
   function handleBrightnessChange(value: number) {
-    if (entityId) lightService.turnOn(entityId, { brightness_pct: value });
+    const next = Math.max(0, Math.min(100, Math.round(value)));
+    if (entityId) lightService.turnOn(entityId, { brightness_pct: next }).catch(() => {});
   }
   function handleTempInput(ev: Event) { draggingTemp = true; localColorTemp = Number((ev.target as HTMLInputElement).value); }
   function handleTempChange(ev: Event) {

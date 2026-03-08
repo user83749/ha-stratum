@@ -157,7 +157,7 @@
 	{:else if domain === 'lawn_mower'}
 		<LawnMowerMoreInfo {entityId} />
 	{:else if domain === 'media_player' && isTV}
-		<TvMoreInfo {entityId} />
+		<TvMoreInfo {entityId} tile={selectedTile} />
 	{:else if domain === 'media_player'}
 		<MediaMoreInfo {entityId} />
 	{:else if domain === 'input_number' || domain === 'number'}
