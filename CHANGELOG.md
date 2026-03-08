@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.30] - 2026-03-08
+
+### Added
+- New library entry point `src/lib/index.ts`.
+
+### Changed
+- Major refactor of tile components for improved state handling and consistency (Calendar, Camera, Climate, Cover, Energy, Fan, Humidifier, LawnMower, Lock, Siren, Slider, Todo, Vacuum, WaterHeater).
+- Enhanced tile entity mapping logic in `tileEntity.ts`.
+- Updated navigation settings UI.
+- Improved TileRenderer logic for better component lifecycle management.
+
 ## [1.0.29] - 2026-03-08
 
 ### Changed

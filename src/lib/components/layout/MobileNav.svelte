@@ -62,7 +62,7 @@
 
 		<button
 			class="mob-bar__tab"
-			onclick={() => { haptic('selection'); uiStore.openSettings(); }}
+			onclick={() => { uiStore.openSettings(); }}
 			aria-label="Settings"
 		>
 			<Icon name="settings" size={iconSize} />
@@ -86,7 +86,7 @@
 		</button>
 		<button
 			class="mob-dock__btn"
-			onclick={() => { haptic('selection'); uiStore.openSettings(); }}
+			onclick={() => { uiStore.openSettings(); }}
 			aria-label="Settings"
 		>
 			<Icon name="settings" size={20} />

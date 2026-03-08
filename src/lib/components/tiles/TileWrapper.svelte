@@ -344,6 +344,7 @@
 	function onPointerUp(e: PointerEvent) {
 		if (editing) return;
 		if (isInteractiveTarget(e)) return;
+		const capturedTarget = pointerTarget ?? (e.currentTarget as EventTarget);
 
 		const elapsed = Date.now() - pointerDownAt;
 		if (didScroll || didHold || elapsed >= HOLD_THRESHOLD_MS) {
@@ -361,7 +362,7 @@
 		spawnRipple(e);
 
 		if (!hasDblTap) {
-			haptic('selection', pointerTarget ?? (e.currentTarget as EventTarget));
+			haptic('selection', capturedTarget);
 			// No double-tap configured — fire tap immediately
 			fireAction('tap');
 			pointerTarget = null;
@@ -375,7 +376,7 @@
 			tapTimer = setTimeout(() => {
 				tapTimer = null;
 				clickCount = 0;
-				haptic('selection', pointerTarget);
+				haptic('selection', capturedTarget);
 				fireAction('tap');
 				pointerTarget = null;
 			}, DBL_TAP_WINDOW_MS);

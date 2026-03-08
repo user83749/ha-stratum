@@ -16,7 +16,39 @@
 
 	const brightnessPct = $derived(Math.round(((entity?.attributes.brightness as number | undefined) ?? 0) / 255 * 100));
 	let localBrightness = $state(50);
-	$effect(() => { localBrightness = brightnessPct; });
+	let pendingBrightness = $state<number | null>(null);
+	let pendingBrightnessTimer: ReturnType<typeof setTimeout> | null = null;
+	const BRIGHTNESS_PENDING_TTL_MS = 1200;
+
+	function clearPendingBrightness() {
+		pendingBrightness = null;
+		if (pendingBrightnessTimer) {
+			clearTimeout(pendingBrightnessTimer);
+			pendingBrightnessTimer = null;
+		}
+	}
+
+	function setPendingBrightness(v: number) {
+		pendingBrightness = v;
+		if (pendingBrightnessTimer) clearTimeout(pendingBrightnessTimer);
+		pendingBrightnessTimer = setTimeout(() => {
+			pendingBrightness = null;
+			pendingBrightnessTimer = null;
+			if (!dragging) localBrightness = brightnessPct;
+		}, BRIGHTNESS_PENDING_TTL_MS);
+	}
+
+	$effect(() => {
+		if (dragging) return;
+		if (pendingBrightness !== null) {
+			if (brightnessPct === pendingBrightness) {
+				clearPendingBrightness();
+				localBrightness = brightnessPct;
+			}
+			return;
+		}
+		localBrightness = brightnessPct;
+	});
 
 	let bDebounce: ReturnType<typeof setTimeout> | null = null;
 	function onBrightnessInput(e: Event) {
@@ -24,6 +56,7 @@
 		localBrightness = v;
 		if (bDebounce) clearTimeout(bDebounce);
 		bDebounce = setTimeout(() => {
+			setPendingBrightness(v);
 			if (optimisticPreviewEnabled) applyPatch(entityId, { state: 'on', attributes: { brightness: Math.round(v / 100 * 255) } });
 			else lightService.setBrightness(entityId, v).catch(() => {});
 		}, 120);
@@ -216,6 +249,7 @@
 		const v = getValueFromPointer(e);
 		localBrightness = v;
 		if (bDebounce) clearTimeout(bDebounce);
+		setPendingBrightness(v);
 		if (optimisticPreviewEnabled) applyPatch(entityId, { state: 'on', attributes: { brightness: Math.round(v / 100 * 255) } });
 		else lightService.setBrightness(entityId, v).catch(() => {});
 	}
@@ -254,6 +288,13 @@
 		const [r, g, b] = hueToRgb(hue);
 		commitColor(r, g, b);
 	}
+
+	$effect(() => {
+		return () => {
+			if (bDebounce) clearTimeout(bDebounce);
+			if (pendingBrightnessTimer) clearTimeout(pendingBrightnessTimer);
+		};
+	});
 </script>
 
 <div class="lmi">

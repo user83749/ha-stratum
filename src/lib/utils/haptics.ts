@@ -8,18 +8,15 @@ export type HapticType =
 	| 'error';
 
 type HapticTarget = EventTarget | null | undefined;
-
-let lastUserInteraction = 0;
-
-const haHapticMap: Record<string, HapticType> = {
-	selection: 'selection',
-	light: 'light',
-	medium: 'medium',
-	heavy: 'heavy',
-	success: 'success',
-	warning: 'warning',
-	error: 'error'
-};
+const VALID_HAPTICS = new Set<HapticType>([
+	'selection',
+	'light',
+	'medium',
+	'heavy',
+	'success',
+	'warning',
+	'error'
+]);
 
 function dispatchHapticToTarget(target: HapticTarget, type: HapticType): void {
 	if (!target || typeof (target as EventTarget).dispatchEvent !== 'function') return;
@@ -36,40 +33,53 @@ function dispatchHapticToTarget(target: HapticTarget, type: HapticType): void {
 }
 
 export function triggerHaptic(style: HapticType = 'medium', target?: HapticTarget): void {
-	try {
-		lastUserInteraction = Date.now();
-	} catch {
-		// no-op
-	}
+	if (typeof window === 'undefined' || typeof document === 'undefined') return;
+	const hapticType: HapticType = VALID_HAPTICS.has(style) ? style : 'medium';
+	const dispatch = (t: HapticTarget) => dispatchHapticToTarget(t, hapticType);
 
 	try {
-		const hapticType = haHapticMap[style] ?? 'medium';
-		if (typeof window !== 'undefined') dispatchHapticToTarget(window, hapticType);
-		if (typeof document !== 'undefined') dispatchHapticToTarget(document, hapticType);
-		if (typeof document !== 'undefined') {
-			dispatchHapticToTarget(document.body, hapticType);
-			dispatchHapticToTarget(document.activeElement, hapticType);
-			const haRoot = document.querySelector('home-assistant') as (HTMLElement & { shadowRoot?: ShadowRoot | null }) | null;
-			dispatchHapticToTarget(haRoot, hapticType);
-			dispatchHapticToTarget(haRoot?.shadowRoot?.querySelector('home-assistant-main'), hapticType);
-		}
-		if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+		// 1) Current frame
+		dispatch(window);
+		dispatch(document);
+
+		// 2) Traverse all parents (nested iframe-safe)
+		let win: Window = window;
+		while (win.parent && win.parent !== win) {
 			try {
-				dispatchHapticToTarget(window.parent, hapticType);
+				win = win.parent;
+				dispatch(win);
 			} catch {
-				// no-op (cross-origin parent or restricted frame)
+				break;
 			}
 		}
-		dispatchHapticToTarget(target, hapticType);
 
+		// Also dispatch explicitly to top when accessible (avoid duplicate).
+		try {
+			if (window.top && window.top !== win) dispatch(window.top);
+		} catch {
+			// no-op
+		}
+
+		// 3) Direct iOS bridge fallback
+		try {
+			const webkit = (window as unknown as { webkit?: { messageHandlers?: { haptic?: { postMessage?: (v: HapticType) => void } } } }).webkit;
+			webkit?.messageHandlers?.haptic?.postMessage?.(hapticType);
+		} catch {
+			// no-op
+		}
+
+		// 4) HA fireEvent fallback
 		const fireEventFn = (globalThis as unknown as { fireEvent?: (el: unknown, type: string, detail?: unknown) => void }).fireEvent;
-		if (typeof fireEventFn === 'function' && typeof window !== 'undefined') {
+		if (typeof fireEventFn === 'function') {
 			try {
 				fireEventFn(window, 'haptic', hapticType);
 			} catch {
 				// no-op
 			}
 		}
+
+		// 5) Optional explicit target
+		dispatch(target);
 	} catch {
 		// no-op
 	}
