@@ -145,11 +145,11 @@
 			? section.grid.columns
 			: null;
 
-		// ── Strict Fixed Layout ──────────────────────────────────────────────
-		// The user explicitly requested NO adapting, NO reflowing, and NO scrambling
-		// of the tile order based on mobile screen width. Sections strictly hold
-		// their column count (defaulting to 2) so their inner layouts are completely rigid.
-		return explicitCols !== null ? explicitCols : 2;
+		// Default section columns follow the legacy YAML behavior:
+		// >1200px => 3 columns, <=1200px => 2 columns.
+		if (explicitCols !== null) return explicitCols;
+		if (typeof window !== 'undefined' && window.innerWidth > 1200) return 3;
+		return 2;
 	}
 
 	const activeColumns = $derived(resolveColumns());

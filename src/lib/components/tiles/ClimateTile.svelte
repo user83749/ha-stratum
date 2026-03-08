@@ -98,6 +98,9 @@
   {#if sizePreset === 'sm'}
     <!-- 1x1 Bold Complication — tap handled by TileWrapper (more-info) -->
     <div class="layout-sm">
+      {#if targetTemp !== undefined && !isOff}
+        <div class="sm-setpoint">{Math.round(targetTemp)}°</div>
+      {/if}
       <div class="sm-icon" style="color: {modeColor}">
         {#if iconOverride && overrideIsCustom}
           <Icon name={mainIcon} entity={entity} />
@@ -108,11 +111,8 @@
       {#if currentTemp !== undefined}
         <div class="primary-temp">{Math.round(currentTemp)}{tempUnit}</div>
       {/if}
-      <div class="sm-meta">
-        <span class="meta-label" style="color: {stateTextColor}">{modeLabel}</span>
-        {#if targetTemp !== undefined && !isOff}
-          <span class="target-val" style="color: {stateTextColor}; opacity: 0.7;"> · {Math.round(targetTemp)}°</span>
-        {/if}
+      <div class="sm-meta" style="color: {stateTextColor}">
+        <span class="meta-label">{modeLabel}</span>
       </div>
     </div>
 
@@ -248,6 +248,7 @@
 
   /* ── SM (1x1) ────────────────────────────────────────────────────────── */
   .layout-sm {
+    position: relative;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -277,6 +278,19 @@
     flex-shrink: 0;
   }
 
+  .sm-setpoint {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: var(--secondary-label-size);
+    font-weight: 500;
+    line-height: 1;
+    color: var(--fg-muted);
+    text-align: right;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
   .sm-meta {
     display: flex;
     flex-direction: row;
@@ -291,12 +305,15 @@
   }
 
   .meta-label {
-    color: var(--fg);
+    color: inherit;
     text-transform: capitalize;
     line-height: 1.15;
   }
 
-  .sm-meta .target-val { color: var(--fg); opacity: 0.7; }
+  .target-val {
+    color: inherit;
+    line-height: 1.15;
+  }
 
   /* ── MD (2x1, 2x2) ────────────────────────────────────────────────────────── */
   .layout-md {

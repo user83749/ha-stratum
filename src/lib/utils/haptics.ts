@@ -1,69 +1,46 @@
 export type HapticType =
-	| 'selection'
+	| 'success'
+	| 'warning'
+	| 'failure'
 	| 'light'
 	| 'medium'
 	| 'heavy'
-	| 'success'
-	| 'warning'
-	| 'error';
-
-type HapticTarget = EventTarget | null | undefined;
-
-declare function fireEvent(node: EventTarget, type: string, detail?: unknown): void;
+	| 'selection'
+	| 'none';
 
 const VALID_HAPTICS = new Set<HapticType>([
-	'selection',
+	'success',
+	'warning',
+	'failure',
 	'light',
 	'medium',
 	'heavy',
-	'success',
-	'warning',
-	'error'
+	'selection',
+	'none'
 ]);
 
-export function triggerHaptic(style: HapticType = 'medium', target?: HapticTarget): void {
+export function triggerHaptic(style: HapticType = 'medium'): void {
 	try {
 		const hapticType: HapticType = VALID_HAPTICS.has(style) ? style : 'medium';
-		const makeEvent = () =>
+		if (hapticType === 'none') return;
+		window.parent.dispatchEvent(
 			new CustomEvent('haptic', {
 				bubbles: true,
 				composed: true,
 				detail: hapticType
-			});
-
-		if (typeof window !== 'undefined') {
-			try {
-				window.dispatchEvent(makeEvent());
-			} catch {
-				// no-op
-			}
-		}
-
-		if (target && typeof (target as EventTarget).dispatchEvent === 'function') {
-			try {
-				(target as EventTarget).dispatchEvent(makeEvent());
-			} catch {
-				// no-op
-			}
-		}
-
-		if (typeof fireEvent === 'function') {
-			try {
-				fireEvent(window, 'haptic', hapticType);
-			} catch {
-				// no-op
-			}
-		}
+			})
+		);
 	} catch {
 		// no-op
 	}
 }
 
-export function haptic(type: HapticType = 'light', target?: HapticTarget): void {
-	triggerHaptic(type, target);
+export function haptic(type: HapticType = 'light'): void {
+	triggerHaptic(type);
 }
 
-export function hapticDouble(target?: HapticTarget): void {
-	triggerHaptic('light', target);
-	setTimeout(() => triggerHaptic('light', target), 80);
+export function hapticDouble(): void {
+	// In HA iOS app, "success" already maps to the double-tap success pattern.
+	// Keep this synchronous to the user gesture.
+	triggerHaptic('success');
 }

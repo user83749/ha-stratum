@@ -218,7 +218,6 @@
 	let pointerDownX   = $state(0);
 	let pointerDownY   = $state(0);
 	let didScroll      = $state(false);
-	let pointerTarget: EventTarget | null = $state(null);
 
 	const HOLD_THRESHOLD_MS = 500;
 	const DBL_TAP_WINDOW_MS = 300;
@@ -314,8 +313,6 @@
 		pointerDownAt = Date.now();
 		pointerDownX = e.clientX;
 		pointerDownY = e.clientY;
-		pointerTarget = e.currentTarget as EventTarget;
-		const hapticTarget = e.currentTarget as EventTarget;
 
 		holdTimer = setTimeout(() => {
 			// Guard against the race where clearHold() (triggered by onPointerLeave)
@@ -325,7 +322,7 @@
 			didHold = true;
 			holdTimer = null;
 			clickCount = 0;
-			haptic('medium', hapticTarget);
+			haptic('medium');
 			fireAction('hold');
 		}, HOLD_THRESHOLD_MS);
 	}
@@ -344,14 +341,11 @@
 	function onPointerUp(e: PointerEvent) {
 		if (editing) return;
 		if (isInteractiveTarget(e)) return;
-		const capturedTarget = pointerTarget ?? (e.currentTarget as EventTarget);
-
 		const elapsed = Date.now() - pointerDownAt;
 		if (didScroll || didHold || elapsed >= HOLD_THRESHOLD_MS) {
 			clearHold();
 			didHold = false;
 			didScroll = false;
-			pointerTarget = null;
 			return;
 		}
 
@@ -362,10 +356,9 @@
 		spawnRipple(e);
 
 		if (!hasDblTap) {
-			haptic('selection', capturedTarget);
+			haptic('selection');
 			// No double-tap configured — fire tap immediately
 			fireAction('tap');
-			pointerTarget = null;
 			return;
 		}
 
@@ -376,9 +369,8 @@
 			tapTimer = setTimeout(() => {
 				tapTimer = null;
 				clickCount = 0;
-				haptic('selection', capturedTarget);
+				haptic('selection');
 				fireAction('tap');
-				pointerTarget = null;
 			}, DBL_TAP_WINDOW_MS);
 		} else {
 			// onDoubleClick will handle this — reset clickCount
@@ -391,7 +383,6 @@
 		clearHold();
 		didHold = false;
 		didScroll = false;
-		pointerTarget = null;
 	}
 
 	// Native dblclick bubbles up even from child buttons/inputs — guard against that.
@@ -399,10 +390,9 @@
 		if (editing) return;
 		if (!hasDblTap) return;
 		if (isInteractiveTarget(e)) return;
-		hapticDouble(e.currentTarget as EventTarget);
+		hapticDouble();
 		clearTapTimer();
 		clickCount = 0;
-		pointerTarget = null;
 		fireAction('double_tap');
 	}
 

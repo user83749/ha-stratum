@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.33] - 2026-03-08
+
+### Changed
+- Improved `SectionGrid` layout and responsiveness.
+- Enhanced `ClimateTile` UI and interaction logic.
+- Refined `TileWrapper` component for better tile stability.
+- Optimized `haptics` utility for consistent feedback.
+
 ## [1.0.32] - 2026-03-08
 
 ### Added
