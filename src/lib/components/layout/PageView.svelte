@@ -2,11 +2,11 @@
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { activePageId, currentBreakpoint, uiStore } from '$lib/stores/ui';
 	import { isEditing, editMode } from '$lib/stores/editMode';
+	import { clockNow } from '$lib/stores/clock';
 	import SectionGrid from './SectionGrid.svelte';
 	import IntegratedNavRail from './IntegratedNavRail.svelte';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import type { Page, PageTransitionType } from '$lib/types/dashboard';
-	import { onMount, onDestroy } from 'svelte';
 	import { entities } from '$lib/ha/websocket';
 	import { SYSTEM_THEMES } from '$lib/themes/presets';
 	import { fade, fly, scale as scaleTransition } from 'svelte/transition';
@@ -191,19 +191,16 @@
 
 
 	// ── Clock ─────────────────────────────────────────────────────────────────
-	let clockTime = $state('');
-	let clockDate = $state('');
-	let clockTimer: ReturnType<typeof setInterval> | null = null;
-
-	function updateClock() {
-		const now = new Date();
+	const clockDisplay = $derived.by(() => {
+		const now = new Date($clockNow);
 		const locale = cfg.settings.locale || undefined;
 		const hour12 = cfg.settings.timeFormat === '12h';
-		clockTime = now
+		const time = now
 			.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12 })
 			.replace(/\s?[AP]M/i, '');
-		clockDate = now.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
-	}
+		const date = now.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
+		return { time, date };
+	});
 
 	const weatherEntity = $derived(
 		$entities['weather.forecast_home'] ??
@@ -222,8 +219,6 @@
 		($dashboardStore.nav.heroEntities ?? []).filter(h => h.showOnMobile)
 	);
 
-	onMount(() => { updateClock(); clockTimer = setInterval(updateClock, 1000); });
-	onDestroy(() => { if (clockTimer) clearInterval(clockTimer); });
 </script>
 
 {#if activePage}
@@ -332,10 +327,10 @@
 								aria-live="off"
 							>
 								{#if showMobileClock}
-									<span class="mobile-page-clock__time">{clockTime}</span>
+									<span class="mobile-page-clock__time">{clockDisplay.time}</span>
 								{/if}
 								<div class="mobile-page-clock__sub">
-									<span class="mobile-page-clock__date">{clockDate}</span>
+									<span class="mobile-page-clock__date">{clockDisplay.date}</span>
 									{#if weatherStr}
 										<span class="mobile-page-clock__weather">{weatherStr}</span>
 									{/if}

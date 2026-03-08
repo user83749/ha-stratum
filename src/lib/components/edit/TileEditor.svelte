@@ -465,17 +465,6 @@
 					<label class="te__check"><input type="checkbox" checked={!!tile.config.ptz} onchange={(e) => save({ ptz: (e.target as HTMLInputElement).checked || undefined })} />PTZ controls</label>
 				{/if}
 
-				{#if tile.type === 'clock'}
-					<span class="te__label">Style</span>
-					<select class="te__select" value={(tile.config.clock_style as string) ?? 'digital'} onchange={(e) => save({ clock_style: (e.target as HTMLSelectElement).value })}>
-						<option value="digital">Digital</option>
-						<option value="analog">Analog</option>
-					</select>
-					{#each [['show_date','Show date'],['show_seconds','Show seconds']] as [key, label]}
-						<label class="te__check"><input type="checkbox" checked={tile.config[key] !== false} onchange={(e) => save({ [key]: (e.target as HTMLInputElement).checked })} />{label}</label>
-					{/each}
-				{/if}
-
 				{#if tile.type === 'gauge'}
 					<div class="te__grid3">
 						{#each [['min','Min'],['max','Max']] as [key, label]}

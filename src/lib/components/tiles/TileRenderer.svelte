@@ -37,8 +37,6 @@
 			(await import('$lib/components/tiles/DividerTile.svelte')).default as TileComponent,
 		markdown: async () =>
 			(await import('$lib/components/tiles/MarkdownTile.svelte')).default as TileComponent,
-		clock: async () =>
-			(await import('$lib/components/tiles/ClockTile.svelte')).default as TileComponent,
 		entity: async () =>
 			(await import('$lib/components/tiles/EntityTile.svelte')).default as TileComponent,
 		button: async () =>
@@ -171,7 +169,6 @@
 		switch (activeTile.type) {
 			case 'divider':
 			case 'markdown':
-			case 'clock':
 				return { tile: activeTile };
 			case 'history':
 				return { tile: activeTile, entity, mode: 'history' };

@@ -9,6 +9,7 @@
   } from '$lib/ha/entities';
   import { relativeTime } from '$lib/utils/format';
   import { entities } from '$lib/ha/websocket';
+  import { relativeNow } from '$lib/stores/clock';
 
   let { tile, entity }: { tile: Tile; entity: HassEntity | null } = $props();
 
@@ -49,14 +50,11 @@
       }));
   });
 
-  let lastChangedText = $state('');
-  $effect(() => {
-    function refresh() {
-      lastChangedText = entity?.last_changed ? relativeTime(entity.last_changed) : '';
-    }
-    refresh();
-    const id = setInterval(refresh, 30_000);
-    return () => clearInterval(id);
+  const lastChangedText = $derived.by(() => {
+    if (!showLastChanged || !entity?.last_changed) return '';
+    // Keep reactive dependency so this recomputes on the shared 30s cycle only.
+    $relativeNow;
+    return relativeTime(entity.last_changed);
   });
 </script>
 

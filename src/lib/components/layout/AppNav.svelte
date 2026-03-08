@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { generateId } from '$lib/utils/uuid';
-	import { onMount, onDestroy } from 'svelte';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore, activePageId } from '$lib/stores/ui';
+	import { clockNow } from '$lib/stores/clock';
 	import { connectionStatus, entities } from '$lib/ha/websocket';
 	import { isEditing, editMode } from '$lib/stores/editMode';
 	import { undoStore } from '$lib/stores/undoStore';
@@ -80,7 +80,7 @@
 		const newPage: Page = {
 			id:            newId,
 			name:          'New Page',
-			icon:          'file',
+			icon:          '',
 			layout:        'default',
 			background:    { type: 'none' },
 			navVisibility: { ...VISIBLE_ALL },
@@ -94,19 +94,16 @@
 	}
 
 	// ── Clock ────────────────────────────────────────────────────────────
-	let clockTime = $state('');
-	let clockDate = $state('');
-	let clockTimer: ReturnType<typeof setInterval> | null = null;
-
-	function updateClock() {
-		const now = new Date();
+	const clockDisplay = $derived.by(() => {
+		const now = new Date($clockNow);
 		const locale = settings.locale || undefined;
 		const hour12 = settings.timeFormat === '12h';
-		clockTime = now
+		const time = now
 			.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12 })
 			.replace(/\s?[AP]M/i, '');
-		clockDate = now.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
-	}
+		const date = now.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
+		return { time, date };
+	});
 
 	const weatherEntity = $derived(
 		$entities['weather.forecast_home'] ??
@@ -124,8 +121,6 @@
 		return `Feels like ${temp}° — ${capitalizedCondition}`;
 	});
 
-	onMount(() => { updateClock(); clockTimer = setInterval(updateClock, 1000); });
-	onDestroy(() => { if (clockTimer) clearInterval(clockTimer); });
 </script>
 
 <nav
@@ -134,9 +129,9 @@
 >
 	<!-- ── Clock + collapse button ──────────────────────────────────────── -->
 	<div class="ha-nav__clock" aria-live="off">
-		<span class="ha-nav__clock-time">{clockTime}</span>
+		<span class="ha-nav__clock-time">{clockDisplay.time}</span>
 		<div class="ha-nav__clock-sub">
-			<span class="ha-nav__clock-date">{clockDate}</span>
+			<span class="ha-nav__clock-date">{clockDisplay.date}</span>
 			{#if weatherStr}
 				<span class="ha-nav__clock-weather"> • {weatherStr}</span>
 			{/if}

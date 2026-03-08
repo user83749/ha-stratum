@@ -739,16 +739,21 @@
 		pointer-events: none;
 	}
 
-	/* Drag/resize should feel stable, but not completely static. A very fast
-	   transition (80ms) makes snapping feel much more premium and responsive. */
-	:global(html.is-tile-dragging) .section__title,
-	:global(html.is-tile-dragging) .section__icon,
-	:global(html.is-tile-dragging) .section__header,
+	/* Drag/resize: keep a premium feel with minimal-cost properties only. */
 	:global(html.is-tile-dragging) .tile-slot,
 	:global(html.is-tile-dragging) .section__ghost-cell,
 	:global(html.is-tile-dragging) .section__preview-cell,
 	:global(html.is-tile-dragging) .section__guide-cell {
-		transition: all 80ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+		transition-property: transform, opacity !important;
+		transition-duration: 80ms !important;
+		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+		animation: none !important;
+	}
+
+	:global(html.is-tile-dragging) .section__title,
+	:global(html.is-tile-dragging) .section__icon,
+	:global(html.is-tile-dragging) .section__header {
+		transition: none !important;
 		animation: none !important;
 	}
 

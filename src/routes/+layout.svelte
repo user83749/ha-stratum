@@ -3,13 +3,12 @@
 	import { browser } from '$app/environment';
 	import favicon from '$lib/assets/favicon.svg';
 	import '../app.css';
-	import { connect, connectAddon, connectionStatus, disconnect } from '$lib/ha/websocket';
+	import { connect, connectAddon, connectionStatus, disconnect, reconnectAllowed } from '$lib/ha/websocket';
 	import { get } from 'svelte/store';
 	import { configStore } from '$lib/stores/config';
 	import { isAddon as isAddonStore } from '$lib/stores/app';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { applyTheme, watchSystemScheme } from '$lib/themes/apply';
-	import { reconnectAllowed } from '$lib/ha/websocket';
 
 	let { data, children } = $props();
 
@@ -77,7 +76,7 @@
 	onDestroy(() => {
 		stopWatchingScheme?.();
 		stopViewportHeightWatch?.();
-		clearInterval(retryInterval);
+		if (retryInterval) clearInterval(retryInterval);
 	});
 
 	// ── Connection waterfall ──────────────────────────────────────────────────
@@ -96,39 +95,48 @@
 	// (c) immediately when credentials change (via $effect below).
 
 	let isConnecting = false;
-	let retryInterval: ReturnType<typeof setInterval>;
+	let retryInterval: ReturnType<typeof setInterval> | null = null;
+	let lastCredentialKey = '';
 
-	if (browser) {
-		doConnect();
+	function ensureReconnectLoop() {
+		if (!browser) return;
+		if (retryInterval) return;
 		retryInterval = setInterval(() => {
 			if (!reconnectAllowed()) return;
 			if ($connectionStatus !== 'connected' && $connectionStatus !== 'connecting') {
-				doConnect();
+				void doConnect();
 			}
 		}, 5000);
 	}
+
+	onMount(() => {
+		if (!browser) return;
+		void doConnect();
+		ensureReconnectLoop();
+	});
 
 	/** Called when credentials change — disconnect first, then reconnect. */
 	function onCredentialsChange() {
 		if (!browser) return;
 		if (!reconnectAllowed()) return;
 		disconnect();
-		clearInterval(retryInterval);
-		doConnect();
-		retryInterval = setInterval(() => {
-			if (!reconnectAllowed()) return;
-			if ($connectionStatus !== 'connected' && $connectionStatus !== 'connecting') {
-				doConnect();
-			}
-		}, 5000);
+		void doConnect();
+		ensureReconnectLoop();
 	}
 
 	// Track credential changes. untrack() prevents stale reactive loops.
 	$effect(() => {
 		if (!browser) return;
 		// Read these so Svelte tracks them as dependencies
-		const _token   = $configStore.token;
-		const _hassUrl = $configStore.hassUrl;
+		const token = $configStore.token;
+		const hassUrl = $configStore.hassUrl;
+		const credentialKey = `${hassUrl.trim()}::${token.trim()}`;
+		if (!lastCredentialKey) {
+			lastCredentialKey = credentialKey;
+			return;
+		}
+		if (credentialKey === lastCredentialKey) return;
+		lastCredentialKey = credentialKey;
 		untrack(() => onCredentialsChange());
 	});
 
@@ -143,13 +151,13 @@
 			// ── Priority 1: Manual LLAT — if hassUrl + token set, always use them. ──
 			if (hassUrl.trim() && token.trim()) {
 				await connect(hassUrl.trim(), token.trim());
-				if (get(connectionStatus) === 'connected') { clearInterval(retryInterval); return; }
+				if (get(connectionStatus) === 'connected') return;
 			}
 
 			// ── Priority 2: Addon relay — SUPERVISOR_TOKEN based, no browser token. ─
 			if (isAddon) {
 				await connectAddon();
-				if (get(connectionStatus) === 'connected') { clearInterval(retryInterval); return; }
+				if (get(connectionStatus) === 'connected') return;
 			}
 
 			// ── Priority 3: Nothing configured / still failing — wait for user. ────

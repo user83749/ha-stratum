@@ -69,7 +69,6 @@
 
   const STATIC_TILES: { type: TileType; label: string; icon: string }[] = [
     { type: 'media_hero', label: 'Custom Media', icon: 'tv' },
-    { type: 'clock', label: 'Clock', icon: 'clock' },
     { type: 'markdown', label: 'Text', icon: 'type' },
     { type: 'divider', label: 'Divider', icon: 'minus' },
     { type: 'iframe', label: 'Webpage', icon: 'globe' },
@@ -148,7 +147,6 @@
     water_heater: { label: 'Heater', icon: 'flame' },
     siren: { label: 'Siren', icon: 'siren' },
     remote: { label: 'Remote', icon: 'tv' },
-    clock: { label: 'Clock', icon: 'clock' },
     markdown: { label: 'Text', icon: 'type' },
     divider: { label: 'Divider', icon: 'minus' },
     iframe: { label: 'Webpage', icon: 'globe' },

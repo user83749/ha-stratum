@@ -147,7 +147,6 @@ export type TileType =
 	| 'remote'        // custom command button grid for remote entities
 	// ── Time ───────────────────────────────────────────────────────────────────
 	| 'timer'         // countdown display + start/pause/cancel controls
-	| 'clock'         // live clock with optional date and timezone
 	| 'calendar'      // HA calendar entity: month / week / day / list view
 	// ── Data & Sensors ─────────────────────────────────────────────────────────
 	| 'weather'       // conditions + multi-day or hourly forecast
@@ -420,13 +419,6 @@ export interface TileConfig {
 	calendar_entity_ids?: string[];    // additional calendar entities to merge
 	calendar_initial_view?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
 	calendar_show_all_day?: boolean;
-
-	// ── Clock tile ───────────────────────────────────────────────────────────
-	time_format?: '12h' | '24h';       // undefined = use AppSettings
-	show_date?: boolean;
-	show_seconds?: boolean;
-	clock_style?: 'digital' | 'analog';
-	timezone?: string;                 // IANA timezone e.g. 'America/New_York'
 
 	// ── Markdown tile ────────────────────────────────────────────────────────
 	content?: string;                  // Markdown / Jinja2 template string
@@ -1242,9 +1234,12 @@ function migrateTileV5(raw: unknown): Tile {
 		}
 		: undefined;
 
+	const rawType = typeof t.type === 'string' ? t.type : 'entity';
+	const normalizedType = rawType === 'clock' ? 'divider' : rawType;
+
 	return {
 		id: t.id ?? generateId(),
-		type: t.type ?? 'entity',
+		type: normalizedType as TileType,
 		entity_id: t.entity_id,
 		size: { w, h },
 		sizePreset: t.sizePreset ?? inferLegacyPreset({ w, h }),

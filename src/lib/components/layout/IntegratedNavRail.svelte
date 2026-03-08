@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { generateId } from '$lib/utils/uuid';
-	import { onMount, onDestroy } from 'svelte';
 	import { get } from 'svelte/store';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore, activePageId } from '$lib/stores/ui';
+	import { clockNow } from '$lib/stores/clock';
 	import { connectionStatus, entities } from '$lib/ha/websocket';
 	import { isEditing, editMode } from '$lib/stores/editMode';
 	import { undoStore } from '$lib/stores/undoStore';
@@ -94,7 +94,7 @@
 		const newPage: Page = {
 			id: newId,
 			name: 'New Room',
-			icon: 'file',
+			icon: '',
 			layout: 'default',
 			background: { type: 'none' },
 			navVisibility: { ...VISIBLE_ALL },
@@ -107,19 +107,16 @@
 		editMode.openPageEditor(newId);
 	}
 
-	let clockTime = $state('');
-	let clockDate = $state('');
-	let clockTimer: ReturnType<typeof setInterval> | null = null;
-
-	function updateClock() {
-		const now = new Date();
+	const clockDisplay = $derived.by(() => {
+		const now = new Date($clockNow);
 		const locale = settings.locale || undefined;
 		const hour12 = settings.timeFormat === '12h';
-		clockTime = now
+		const time = now
 			.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12 })
 			.replace(/\s?[AP]M/i, '');
-		clockDate = now.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
-	}
+		const date = now.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
+		return { time, date };
+	});
 
 	const weatherEntity = $derived(
 		$entities['weather.forecast_home'] ??
@@ -140,20 +137,12 @@
 		(nav.heroEntities ?? []).filter(h => h.showOnDesktop)
 	);
 
-	onMount(() => {
-		updateClock();
-		clockTimer = setInterval(updateClock, 1000);
-	});
-
-	onDestroy(() => {
-		if (clockTimer) clearInterval(clockTimer);
-	});
 </script>
 
 <nav class="rail" aria-label="Dashboard information">
 	<div class="rail__hero" aria-live="off">
-		<div class="rail__time">{clockTime}</div>
-		<div class="rail__date">{clockDate}</div>
+		<div class="rail__time">{clockDisplay.time}</div>
+		<div class="rail__date">{clockDisplay.date}</div>
 		{#if weatherStr}
 			<div class="rail__weather">{weatherStr}</div>
 		{/if}
