@@ -5,8 +5,8 @@
 	import { isEditing, editSelection, multiSelection, editMode } from '$lib/stores/editMode';
 	import { isUnavailable, isActive } from '$lib/ha/entities';
 	import { entities } from '$lib/ha/websocket';
-	import { handleAction } from '$lib/ha/services';
-	import { lockService } from '$lib/ha/services';
+	import { handleAction, lockService } from '$lib/ha/services';
+	import { haptic, hapticDouble } from '$lib/utils/haptics';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore } from '$lib/stores/ui';
 	import Icon from '$lib/components/ui/Icon.svelte';
@@ -248,6 +248,11 @@
 			                        resolvedDblTap;
 
 		if (!action || action.type === 'none') return;
+
+		// iOS haptic feedback via HA Companion App native bridge
+		if (type === 'double_tap') hapticDouble();
+		else if (type === 'hold')  haptic('medium');
+		else                       haptic('selection');
 
 		// Prevent "toggle" on non-togglable domains regardless of config
 		if (action.type === 'toggle' && entity) {

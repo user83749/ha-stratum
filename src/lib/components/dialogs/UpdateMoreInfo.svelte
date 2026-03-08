@@ -13,10 +13,59 @@
 	
 	const installed = $derived(entity?.attributes.installed_version as string | undefined);
 	const latest = $derived(entity?.attributes.latest_version as string | undefined);
-	const releaseNotes = $derived(entity?.attributes.release_notes as string | undefined);
-	const sanitizedReleaseNotes = $derived(sanitizeHtml(releaseNotes));
+	const rawReleaseNotes = $derived.by(() => {
+		const attrs = entity?.attributes ?? {};
+		return (
+			(attrs.release_notes as unknown) ??
+			(attrs.release_summary as unknown) ??
+			(attrs.notes as unknown) ??
+			(attrs.changelog as unknown) ??
+			(attrs.body as unknown) ??
+			null
+		);
+	});
 	const releaseUrl = $derived(entity?.attributes.release_url as string | undefined);
 	const title = $derived(entity?.attributes.title as string | undefined);
+	function normalizeReleaseNotes(input: unknown): string {
+		if (input == null) return '';
+		if (typeof input === 'string') return input.trim();
+		if (Array.isArray(input)) {
+			return input.map((part) => normalizeReleaseNotes(part)).filter(Boolean).join('\n\n').trim();
+		}
+		if (typeof input === 'object') {
+			const obj = input as Record<string, unknown>;
+			for (const key of ['en', 'body', 'content', 'text', 'message', 'release_notes', 'release_summary', 'notes', 'changelog']) {
+				const v = normalizeReleaseNotes(obj[key]);
+				if (v) return v;
+			}
+			const all = Object.values(obj).map((v) => normalizeReleaseNotes(v)).filter(Boolean);
+			if (all.length) return all.join('\n\n').trim();
+		}
+		return String(input).trim();
+	}
+	function escapeHtml(input: string): string {
+		return input
+			.replaceAll('&', '&amp;')
+			.replaceAll('<', '&lt;')
+			.replaceAll('>', '&gt;')
+			.replaceAll('"', '&quot;')
+			.replaceAll("'", '&#39;');
+	}
+	function renderTextNotes(input: string): string {
+		return escapeHtml(input)
+			.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer noopener">$1</a>')
+			.replace(/\n/g, '<br>');
+	}
+	function looksLikeHtml(input: string): boolean {
+		return /<\/?[a-z][\s\S]*>/i.test(input);
+	}
+	const releaseNotesText = $derived(normalizeReleaseNotes(rawReleaseNotes));
+	const sanitizedReleaseNotes = $derived.by(() => {
+		if (!releaseNotesText) return '';
+		return looksLikeHtml(releaseNotesText)
+			? sanitizeHtml(releaseNotesText)
+			: renderTextNotes(releaseNotesText);
+	});
 
 	const isUpdateAvailable = $derived(entity?.state === 'on');
 	const iconName = $derived(entity ? getEntityIcon(entity) : 'download');
@@ -83,7 +132,7 @@
 			</div>
 		{/if}
 
-		{#if releaseNotes || releaseUrl}
+		{#if releaseNotesText || releaseUrl}
 			<div class="umi__section">
 				<h3 class="umi__section-title">Release Information</h3>
 				<div class="umi__release-box">

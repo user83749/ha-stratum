@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.26] - 2026-03-07
+
+### Changed
+- Improved AppShell and Layout structure for better performance.
+- Global styling enhancements in app.css.
+- Refined TileWrapper logic and rendering.
+
 ## [1.0.25] - 2026-03-07
 
 ### Added

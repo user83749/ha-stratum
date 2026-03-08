@@ -188,7 +188,7 @@
 </svelte:head>
 
 <div
-	style="font-family: var(--font-family); font-size: var(--font-size); height: var(--stratum-vh, 100dvh); width: 100vw; overflow: hidden;"
+	style="font-family: var(--font-family); font-size: var(--font-size); height: 100%; width: 100%; overflow: hidden;"
 	class="contents"
 >
 	{@render children()}

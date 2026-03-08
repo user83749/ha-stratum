@@ -89,7 +89,7 @@
 	.ha-shell {
 		display: flex;
 		width: 100%;
-		height: var(--stratum-vh, 100dvh);
+		height: 100%;
 		overflow: hidden;
 		/* Theme background: gradient or solid, set by applyTheme() via --theme-bg-css.
 		   Falls back to --bg (plain dark/light base color) for custom pages. */
@@ -107,7 +107,7 @@
 
 	.ha-shell__sidebar {
 		flex-shrink: 0;
-		height: var(--stratum-vh, 100dvh);
+		height: 100%;
 		overflow: hidden;
 		transition: width var(--transition-slow);
 		border-right: 1px solid var(--border-strong);
@@ -121,7 +121,7 @@
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		height: var(--stratum-vh, 100dvh);
+		height: 100%;
 		overflow: hidden;
 	}
 

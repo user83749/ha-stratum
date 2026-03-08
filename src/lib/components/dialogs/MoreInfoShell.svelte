@@ -252,25 +252,57 @@
 		}
 	}
 
+	// ── Non-passive touch event handlers ─────────────────────────────────────
+	// Svelte's `ontouchmove` attribute registers a PASSIVE listener, which means
+	// e.preventDefault() inside it is silently ignored. The browser's native
+	// scroll then wins every time, preventing the sheet drag from committing.
+	// We register NON-PASSIVE listeners via $effect so preventDefault actually works.
 	let touchStartY = 0;
-	function handleTouchStart(e: TouchEvent) {
-		touchStartY = e.touches[0]?.clientY ?? 0;
-	}
 
-	function handleTouchMove(e: TouchEvent) {
-		if (dragging) { e.preventDefault(); return; }
-		const y = e.touches[0]?.clientY ?? touchStartY;
-		// Note: dy is positive when the user's finger moves upward (pulling content to scroll down).
-		const dy = touchStartY - y;
-		const scroller = findScrollable(e.target);
-		if (!scroller) {
-			e.preventDefault();
-			return;
-		}
-		if (!canScroll(scroller, dy)) {
-			e.preventDefault();
-		}
-	}
+	$effect(() => {
+		const el = panelEl;
+		if (!el || !isSheet) return;
+
+		const onTouchStart = (e: TouchEvent) => {
+			touchStartY = e.touches[0]?.clientY ?? 0;
+		};
+
+		const onTouchMove = (e: TouchEvent) => {
+			const touch = e.touches[0];
+			if (!touch) return;
+
+			// Drive the drag-commit from touch events too, because on iOS WKWebView,
+			// pointermove does NOT fire once the browser enters scroll mode.
+			// Since pointerdown DID fire (arming the drag), we can commit here.
+			if (dragArmed && !dragging) {
+				maybeStartFromArmed(touch.clientX, touch.clientY, e.target as EventTarget);
+			}
+
+			if (dragging) {
+				e.preventDefault(); // works because this listener is non-passive
+				moveSheetDrag(touch.clientY);
+				return;
+			}
+
+			// Prevent background-app scroll from bleeding through the dialog.
+			const dy = touchStartY - touch.clientY;
+			const scroller = findScrollable(e.target as EventTarget);
+			if (!scroller) { e.preventDefault(); return; }
+			if (!canScroll(scroller, dy)) { e.preventDefault(); }
+		};
+
+		const onTouchEnd = () => endSheetDrag();
+
+		el.addEventListener('touchstart', onTouchStart, { passive: true });
+		el.addEventListener('touchmove', onTouchMove, { passive: false });
+		el.addEventListener('touchend', onTouchEnd, { passive: true });
+
+		return () => {
+			el.removeEventListener('touchstart', onTouchStart);
+			el.removeEventListener('touchmove', onTouchMove);
+			el.removeEventListener('touchend', onTouchEnd);
+		};
+	});
 
 	function requestClose() {
 		if (closeRequested || !visible) return;
@@ -340,8 +372,6 @@
 		tabindex="-1"
 		onkeydown={handlePanelKeydown}
 		onwheel={handleWheel}
-		ontouchstart={handleTouchStart}
-		ontouchmove={handleTouchMove}
 		onpointerdown={(e) => {
 			if (!isSheet) return;
 			if (isInteractiveTarget(e.target)) return;
@@ -403,13 +433,15 @@
 						<Icon name="chevron-left" size={18} />
 					</button>
 				{/if}
-				<button
-					class="moreinfo-close"
-					onclick={requestClose}
-					aria-label="Close"
-				>
-					<Icon name="x" size={18} />
-				</button>
+				{#if !(canBack && onback)}
+					<button
+						class="moreinfo-close"
+						onclick={requestClose}
+						aria-label="Close"
+					>
+						<Icon name="x" size={18} />
+					</button>
+				{/if}
 				<h2 class="moreinfo-title">{title}</h2>
 			</div>
 
