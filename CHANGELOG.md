@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.37] - 2026-03-08
+
+### Changed
+- Improved custom iconography handling and updated built-in icon definitions.
+- Enhanced Home Assistant websocket stability and connection logic.
+- Updated theme presets for better visual consistency.
+- Optimized layout server-side logic for initial state hydration.
+
 ## [1.0.36] - 2026-03-08
 
 ### Changed

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Icon from '$lib/components/ui/Icon.svelte';
+	import type { HassEntity } from 'home-assistant-js-websocket';
 	import { optimisticEntities } from '$lib/ha/optimistic';
 	import { getDomain, getEntityIcon, getEntityName, formatState } from '$lib/ha/entities';
 	import { updateService } from '$lib/ha/services';
@@ -33,7 +34,7 @@
 	});
 
 	const updateEntitiesOn = $derived.by(() => {
-		if (!isUpdateSummary) return [] as Array<{ id: string; name: string; installed: string; latest: string; icon: string; picture?: string }>;
+		if (!isUpdateSummary) return [] as Array<{ id: string; name: string; installed: string; latest: string; icon: string; picture?: string; entity: HassEntity }>;
 		return Object.entries($optimisticEntities)
 			.filter(([id, e]) => id.startsWith('update.') && e && e.state === 'on')
 			.map(([id, e]) => ({
@@ -42,7 +43,11 @@
 				installed: (e.attributes.installed_version as string | undefined) ?? '',
 				latest: (e.attributes.latest_version as string | undefined) ?? '',
 				icon: getEntityIcon(e),
-				picture: (e.attributes.entity_picture as string | undefined) ?? undefined
+				picture:
+					(e.attributes.entity_picture as string | undefined) ??
+					(e.attributes.entity_picture_local as string | undefined) ??
+					undefined,
+				entity: e
 			}))
 			.sort((a, b) => a.name.localeCompare(b.name));
 	});
@@ -122,8 +127,8 @@
 	);
 
 	function openUpdate(id: string) {
-		// Navigate into the update.* entity details, while preserving this summary
-		// dialog as a back target (HA-like flow).
+		// Opens the update "DETAILS" subpage (UpdateMoreInfo) for a specific update entity,
+		// while preserving this summary dialog as the back target.
 		uiStore.pushDialog(id, undefined, 'update');
 	}
 
@@ -186,7 +191,7 @@
 								/>
 							{:else}
 								<div class="usmi__img" aria-hidden="true">
-									<Icon name={u.icon} size={18} />
+									<Icon name={u.icon} entity={u.entity} size={18} />
 								</div>
 							{/if}
 							<span class="usmi__name-text">{u.name.replace(/\\bupdate\\b/ig, '').trim() || u.name}</span>
