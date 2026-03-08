@@ -13,8 +13,11 @@
 	
 	const installed = $derived(entity?.attributes.installed_version as string | undefined);
 	const latest = $derived(entity?.attributes.latest_version as string | undefined);
+	const entityPicture = $derived((entity?.attributes.entity_picture as string | undefined) ?? undefined);
 	const releaseUrl = $derived(entity?.attributes.release_url as string | undefined);
 	const title = $derived(entity?.attributes.title as string | undefined);
+	let fetchedReleaseNotes = $state('');
+	let fetchAttempted = $state(false);
 	function normalizeReleaseNotes(input: unknown): string {
 		if (input == null) return '';
 		if (typeof input === 'string') return input.trim();
@@ -48,7 +51,43 @@
 	function looksLikeHtml(input: string): boolean {
 		return /<\/?[a-z][\s\S]*>/i.test(input);
 	}
-	const releaseNotesText = $derived.by(() => {
+	function toGithubApiReleaseEndpoint(url: string): string | null {
+		const trimmed = url.trim();
+		const latestMatch = trimmed.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/releases\/latest\/?$/i);
+		if (latestMatch) {
+			const [, owner, repo] = latestMatch;
+			return `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
+		}
+		const tagMatch = trimmed.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/releases\/tag\/([^/?#]+)\/?$/i);
+		if (tagMatch) {
+			const [, owner, repo, rawTag] = tagMatch;
+			return `https://api.github.com/repos/${owner}/${repo}/releases/tags/${decodeURIComponent(rawTag)}`;
+		}
+		return null;
+	}
+	async function fetchReleaseNotesFromUrl(url: string): Promise<string> {
+		const githubApi = toGithubApiReleaseEndpoint(url);
+		if (githubApi) {
+			const response = await fetch(githubApi, {
+				headers: { Accept: 'application/vnd.github+json' }
+			});
+			if (!response.ok) return '';
+			const json = (await response.json()) as Record<string, unknown>;
+			return normalizeReleaseNotes(json.body ?? json.release_notes ?? '');
+		}
+		const response = await fetch(url);
+		if (!response.ok) return '';
+		const type = (response.headers.get('content-type') ?? '').toLowerCase();
+		if (type.includes('application/json')) {
+			const json = (await response.json()) as Record<string, unknown>;
+			return normalizeReleaseNotes(
+				json.body ?? json.release_notes ?? json.release_summary ?? json.notes ?? json.changelog ?? ''
+			);
+		}
+		const text = await response.text();
+		return normalizeReleaseNotes(text);
+	}
+	const releaseNotesFromEntity = $derived.by(() => {
 		const attrs = entity?.attributes ?? {};
 		const candidates: unknown[] = [
 			(attrs.release_notes as unknown),
@@ -61,8 +100,29 @@
 			const normalized = normalizeReleaseNotes(candidate);
 			if (normalized) return normalized;
 		}
+
 		return '';
 	});
+	$effect(() => {
+		entityId;
+		releaseUrl;
+		releaseNotesFromEntity;
+		fetchedReleaseNotes = '';
+		fetchAttempted = false;
+	});
+	$effect(() => {
+		const url = (releaseUrl ?? '').trim();
+		if (!url) return;
+		if (fetchAttempted) return;
+		if (releaseNotesFromEntity) return;
+		fetchAttempted = true;
+		void fetchReleaseNotesFromUrl(url)
+			.then((notes) => {
+				if (notes) fetchedReleaseNotes = notes;
+			})
+			.catch(() => {});
+	});
+	const releaseNotesText = $derived((releaseNotesFromEntity || fetchedReleaseNotes).trim());
 	const sanitizedReleaseNotes = $derived.by(() => {
 		if (!releaseNotesText) return '';
 		return looksLikeHtml(releaseNotesText)
@@ -72,6 +132,11 @@
 
 	const isUpdateAvailable = $derived(entity?.state === 'on');
 	const iconName = $derived(entity ? getEntityIcon(entity) : 'download');
+	let pictureFailed = $state(false);
+	$effect(() => {
+		entityPicture;
+		pictureFailed = false;
+	});
 	let installState = $state<'idle' | 'installing' | 'queued' | 'error'>('idle');
 	let installTimer: ReturnType<typeof setTimeout> | null = null;
 	$effect(() => {
@@ -127,7 +192,17 @@
 <div class="umi">
 	<div class="umi__header">
 		<div class="umi__icon-wrap" class:umi__icon-wrap--active={isUpdateAvailable}>
-			<Icon name={iconName} entity={entity} size={28} />
+			{#if entityPicture && !pictureFailed}
+				<img
+					class="umi__entity-image"
+					src={entityPicture}
+					alt=""
+					aria-hidden="true"
+					onerror={() => { pictureFailed = true; }}
+				/>
+			{:else}
+				<Icon name={iconName} entity={entity} size={28} />
+			{/if}
 		</div>
 		<div class="umi__titles">
 			<h2 class="umi__title">{displayName}</h2>
@@ -231,13 +306,18 @@
 	.umi__icon-wrap {
 		width: 56px;
 		height: 56px;
-		border-radius: 16px;
+		border-radius: 10px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		background: var(--hover);
 		color: var(--fg-subtle);
 		border: 1px solid var(--border);
+	}
+	.umi__entity-image {
+		width: 30px;
+		height: 30px;
+		object-fit: contain;
 	}
 
 	.umi__icon-wrap--active {
@@ -334,7 +414,7 @@
 		align-items: center;
 		justify-content: center;
 		gap: 10px;
-		padding: 16px;
+		padding: 12px;
 		background: var(--accent);
 		color: var(--accent-fg);
 		border-radius: 16px;
@@ -373,7 +453,7 @@
 		font-size: 0.8rem;
 		font-weight: 600;
 		cursor: pointer;
-		border-radius: 12px;
+		border-radius: 10px;
 		transition: all 0.2s ease;
 	}
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.31] - 2026-03-08
+
+### Changed
+- Improved Sensor and Update more-info dialog views.
+
 ## [1.0.30] - 2026-03-08
 
 ### Added

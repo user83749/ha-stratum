@@ -33,7 +33,7 @@
 	});
 
 	const updateEntitiesOn = $derived.by(() => {
-		if (!isUpdateSummary) return [] as Array<{ id: string; name: string; installed: string; latest: string; icon: string }>;
+		if (!isUpdateSummary) return [] as Array<{ id: string; name: string; installed: string; latest: string; icon: string; picture?: string }>;
 		return Object.entries($optimisticEntities)
 			.filter(([id, e]) => id.startsWith('update.') && e && e.state === 'on')
 			.map(([id, e]) => ({
@@ -41,7 +41,8 @@
 				name: (e.attributes.friendly_name as string | undefined) ?? id,
 				installed: (e.attributes.installed_version as string | undefined) ?? '',
 				latest: (e.attributes.latest_version as string | undefined) ?? '',
-				icon: getEntityIcon(e)
+				icon: getEntityIcon(e),
+				picture: (e.attributes.entity_picture as string | undefined) ?? undefined
 			}))
 			.sort((a, b) => a.name.localeCompare(b.name));
 	});
@@ -54,11 +55,19 @@
 
 	let installStateById = $state<Record<string, 'idle' | 'installing' | 'queued' | 'error'>>({});
 	let installResetTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+	let imageErrorById = $state<Record<string, boolean>>({});
 	$effect(() => {
 		return () => {
 			for (const timer of Object.values(installResetTimers)) clearTimeout(timer);
 			installResetTimers = {};
 		};
+	});
+	$effect(() => {
+		const next: Record<string, boolean> = {};
+		for (const u of updateEntitiesOn) {
+			if (imageErrorById[u.id]) next[u.id] = true;
+		}
+		imageErrorById = next;
 	});
 
 	function getInstallState(id: string): 'idle' | 'installing' | 'queued' | 'error' {
@@ -156,9 +165,19 @@
 				{#each updateEntitiesOn as u (u.id)}
 					<div class="usmi__row">
 						<button class="usmi__name" onclick={() => openUpdate(u.id)} title={u.id}>
-							<div class="usmi__img" aria-hidden="true">
-								<Icon name={u.icon} size={18} />
-							</div>
+							{#if u.picture && !imageErrorById[u.id]}
+								<img
+									class="usmi__img usmi__img--photo"
+									src={u.picture}
+									alt=""
+									aria-hidden="true"
+									onerror={() => { imageErrorById = { ...imageErrorById, [u.id]: true }; }}
+								/>
+							{:else}
+								<div class="usmi__img" aria-hidden="true">
+									<Icon name={u.icon} size={18} />
+								</div>
+							{/if}
 							<span class="usmi__name-text">{u.name.replace(/\\bupdate\\b/ig, '').trim() || u.name}</span>
 						</button>
 						<div class="usmi__ver">
@@ -365,6 +384,7 @@
 		color: var(--fg-muted);
 		flex-shrink: 0;
 	}
+	.usmi__img--photo { object-fit: contain; }
 	.usmi__name-text { font-size: 0.9rem; font-weight: 650; color: var(--fg); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 	.usmi__ver { display: flex; }
