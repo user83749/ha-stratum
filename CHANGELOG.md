@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.36] - 2026-03-08
+
+### Changed
+- Improved `ShellNav` component logic and layout.
+- Refined `MapTile` and `WeatherTile` rendering.
+- Enhanced `TileRenderer` component stability.
+- Optimized main layout structure in `+layout.svelte`.
+
 ## [1.0.35] - 2026-03-08
 
 ### Changed

@@ -25,9 +25,9 @@ export function triggerHaptic(style: HapticType = 'medium'): void {
 	if (typeof window === 'undefined') return;
 
 	const emit = (target: EventTarget | null | undefined) => {
-		if (!target || typeof (target as EventTarget).dispatchEvent !== 'function') return;
+		if (!target) return;
 		try {
-			target.dispatchEvent(
+			(target as EventTarget).dispatchEvent(
 				new CustomEvent('haptic', {
 					bubbles: true,
 					composed: true,
