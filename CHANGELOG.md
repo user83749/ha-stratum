@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.28] - 2026-03-08
+
+### Changed
+- Extensive refactor of navigation components (AppNav, IntegratedNavRail, MobileNav).
+- Improved UI for MoreInfoShell and SettingsPanel.
+- Enhanced core tile rendering and wrapper logic.
+- Optimized TilePicker and haptic feedback utility.
+- Refined global layout structure.
+
 ## [1.0.27] - 2026-03-08
 
 ### Changed

@@ -364,9 +364,9 @@
               {@const rows = previewTile.layout?.h ?? 1}
               <div
                 class="tp-preview-slot"
-                style="grid-column: span {cols}; grid-row: span {rows}; height: {rows * previewRowHeight + (rows - 1) * 10}px;"
+                style="grid-column: span {cols}; grid-row: span {rows};"
               >
-                <TileRenderer tile={previewTile} />
+                <TileRenderer tile={previewTile} preview={true} />
               </div>
             {/if}
           </div>
@@ -632,7 +632,9 @@
   .tp-preview-slot {
     display: flex;
     min-width: 0;
-    overflow: visible;
+    min-height: 0;
+    border-radius: var(--radius);
+    overflow: hidden;
   }
 
   /* Force the tile-wrapper to fill its preview cell completely */
@@ -640,7 +642,8 @@
     width: 100%;
     height: 100%;
     min-height: 0;
-    overflow: visible;
+    transform: none !important;
+    filter: none !important;
   }
 
   .tp-confirm {

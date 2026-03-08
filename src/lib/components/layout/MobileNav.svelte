@@ -2,6 +2,7 @@
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore, activePageId, isMobileNavOpen } from '$lib/stores/ui';
 	import Icon from '$lib/components/ui/Icon.svelte';
+	import { haptic } from '$lib/utils/haptics';
 
 	const nav   = $derived($dashboardStore.nav);
 	const pages = $derived($dashboardStore.pages);
@@ -18,6 +19,7 @@
 	const hasOverflow = $derived(visiblePages.length > MAX_TABS);
 
 	function navigate(pageId: string) {
+		haptic('selection');
 		uiStore.navigateTo(pageId);
 		uiStore.closeMobileNav();
 	}
@@ -48,7 +50,7 @@
 			<button
 				class="mob-bar__tab"
 				class:mob-bar__tab--active={drawerOpen}
-				onclick={() => uiStore.toggleMobileNav()}
+				onclick={() => { haptic('selection'); uiStore.toggleMobileNav(); }}
 				aria-label="More pages"
 			>
 				<Icon name="menu" size={iconSize} />
@@ -60,7 +62,7 @@
 
 		<button
 			class="mob-bar__tab"
-			onclick={() => uiStore.openSettings()}
+			onclick={() => { haptic('selection'); uiStore.openSettings(); }}
 			aria-label="Settings"
 		>
 			<Icon name="settings" size={iconSize} />
@@ -77,14 +79,14 @@
 		<button
 			class="mob-dock__btn"
 			class:mob-dock__btn--active={drawerOpen}
-			onclick={() => uiStore.toggleMobileNav()}
+			onclick={() => { haptic('selection'); uiStore.toggleMobileNav(); }}
 			aria-label="Open navigation"
 		>
 			<Icon name="menu" size={22} />
 		</button>
 		<button
 			class="mob-dock__btn"
-			onclick={() => uiStore.openSettings()}
+			onclick={() => { haptic('selection'); uiStore.openSettings(); }}
 			aria-label="Settings"
 		>
 			<Icon name="settings" size={20} />
@@ -97,7 +99,7 @@
 	<!-- Backdrop -->
 	<div
 		class="mob-drawer__backdrop"
-		onclick={() => uiStore.closeMobileNav()}
+		onclick={() => { haptic('selection'); uiStore.closeMobileNav(); }}
 		aria-hidden="true"
 	></div>
 
@@ -106,7 +108,7 @@
 		<div class="mob-drawer__header">
 			<button
 				class="mob-drawer__close"
-				onclick={() => uiStore.closeMobileNav()}
+				onclick={() => { haptic('selection'); uiStore.closeMobileNav(); }}
 				aria-label="Close navigation"
 			>
 				<Icon name="x" size={20} />
@@ -147,7 +149,7 @@
 							href={extra.url}
 							target={extra.newTab ? '_blank' : undefined}
 							rel={extra.newTab ? 'noopener noreferrer' : undefined}
-							onclick={() => uiStore.closeMobileNav()}
+							onclick={() => { haptic('selection'); uiStore.closeMobileNav(); }}
 							aria-label={extra.label}
 						>
 							<Icon name={extra.icon} size={20} />

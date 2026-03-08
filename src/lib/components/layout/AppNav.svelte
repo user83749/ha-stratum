@@ -10,6 +10,7 @@
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { getDomain, getEntityName, isActive } from '$lib/ha/entities';
 	import { callService } from '$lib/ha/services';
+	import { haptic } from '$lib/utils/haptics';
 	import type { Page } from '$lib/types/dashboard';
 	import { VISIBLE_ALL } from '$lib/types/dashboard';
 
@@ -58,6 +59,7 @@
 	const currentPageId = $derived($activePageId);
 
 	function navigate(pageId: string) {
+		haptic('selection');
 		uiStore.navigateTo(pageId);
 	}
 
@@ -70,10 +72,12 @@
 	const showPageNav = $derived(editing || pages.length > 1);
 
 	function unpinEntity(entityId: string) {
+		haptic('selection');
 		dashboardStore.toggleFavorite(entityId);
 	}
 
 	function addPage() {
+		haptic('selection');
 		const current = get(dashboardStore);
 		undoStore.push(current);
 		const newId = generateId();
@@ -167,7 +171,7 @@
 						{#if editing}
 							<button
 								class="ha-nav__page-edit"
-								onclick={(e) => { e.stopPropagation(); editMode.openPageEditor(page.id); }}
+								onclick={(e) => { e.stopPropagation(); haptic('selection'); editMode.openPageEditor(page.id); }}
 								title="Edit page"
 								aria-label="Edit page {page.name}"
 							>
@@ -220,7 +224,7 @@
 					<button
 						class="ha-nav__link ha-nav__link--fav"
 						class:ha-nav__link--fav-active={active}
-						onclick={() => callService(domain, 'toggle', {}, { entity_id: fav.id })}
+						onclick={() => { haptic('selection'); callService(domain, 'toggle', {}, { entity_id: fav.id }); }}
 					>
 						<span class="ha-nav__icon-wrap">
 							<Icon name={icon} size={iconSize} />

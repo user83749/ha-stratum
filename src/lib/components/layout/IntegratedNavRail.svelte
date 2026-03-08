@@ -10,6 +10,7 @@
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { callService } from '$lib/ha/services';
 	import { getDomain, getEntityName, isActive } from '$lib/ha/entities';
+	import { haptic } from '$lib/utils/haptics';
 	import type { Page } from '$lib/types/dashboard';
 	import { VISIBLE_ALL } from '$lib/types/dashboard';
 
@@ -75,19 +76,23 @@
 	const showPageNav = $derived(editing || pages.length > 1);
 
 	function navigate(pageId: string) {
+		haptic('selection');
 		uiStore.navigateTo(pageId);
 	}
 
 	function unpinEntity(entityId: string) {
+		haptic('selection');
 		dashboardStore.toggleFavorite(entityId);
 	}
 
 	function toggleFavoriteEntity(entityId: string) {
+		haptic('selection');
 		const domain = getDomain(entityId);
 		callService(domain, 'toggle', {}, { entity_id: entityId }).catch(() => {});
 	}
 
 	function addPage() {
+		haptic('selection');
 		const current = get(dashboardStore);
 		undoStore.push(current);
 		const newId = generateId();
@@ -190,7 +195,7 @@
 								{#if editing}
 									<button
 										class="rail__edit-btn"
-										onclick={(event) => { event.stopPropagation(); editMode.openPageEditor(page.id); }}
+										onclick={(event) => { event.stopPropagation(); haptic('selection'); editMode.openPageEditor(page.id); }}
 										title="Edit room"
 										aria-label={`Edit room ${page.name}`}
 									>

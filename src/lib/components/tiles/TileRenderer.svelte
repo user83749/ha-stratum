@@ -14,11 +14,12 @@
 		tile: Tile;
 		pageId?: string;
 		sectionId?: string;
+		preview?: boolean;
 		onEditDragStart?: (event: PointerEvent) => void;
 		onEditResizeStart?: (event: PointerEvent) => void;
 	}
 
-	const { tile, pageId, sectionId, onEditDragStart, onEditResizeStart }: Props = $props();
+	const { tile, pageId, sectionId, preview = false, onEditDragStart, onEditResizeStart }: Props = $props();
 	const editing = $derived($isEditing);
 
 	// ─── Live entity ─────────────────────────────────────────────────────────
@@ -184,7 +185,7 @@
 </script>
 
 {#if shouldShow}
-	<TileWrapper {tile} {entity} {pageId} {sectionId} {onEditDragStart} {onEditResizeStart}>
+	<TileWrapper {tile} {entity} {pageId} {sectionId} {preview} {onEditDragStart} {onEditResizeStart}>
 		{#if LoadedComponent}
 			<LoadedComponent {...componentProps} />
 		{:else}

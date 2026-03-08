@@ -15,6 +15,7 @@
 	import type { MoreInfoStyle, DrawerSide } from '$lib/types/dashboard';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { onMount } from 'svelte';
+	import { haptic } from '$lib/utils/haptics';
 
 	interface Props {
 		open:      boolean;
@@ -326,6 +327,22 @@
 		requestClose();
 	}
 
+	function handleBodyInteraction(e: Event) {
+		const t = e.target as Element | null;
+		if (!t) return;
+		const interactive = t.closest('button, a, [role="button"]');
+		if (!interactive) return;
+		if (interactive instanceof HTMLButtonElement && interactive.disabled) return;
+		haptic('selection');
+	}
+
+	$effect(() => {
+		const el = bodyEl;
+		if (!el) return;
+		el.addEventListener('click', handleBodyInteraction);
+		return () => el.removeEventListener('click', handleBodyInteraction);
+	});
+
 	function handlePanelKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') requestClose();
 	}
@@ -587,7 +604,7 @@
 			bottom: 0 !important;
 			top: auto !important;
 			width: 100dvw !important;
-			height: var(--stratum-sheet-h, 94dvh) !important;
+			height: 94dvh !important;
 			padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
 			border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
 			border: none !important;

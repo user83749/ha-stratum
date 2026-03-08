@@ -76,6 +76,15 @@
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') onclose();
 	}
+
+	function handleClose() {
+		onclose();
+	}
+
+	function selectTab(tabId: TabId) {
+		activeTab = tabId;
+		bodyEl?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -84,7 +93,7 @@
 	<!-- Backdrop -->
 	<div
 		class="sp__backdrop"
-		onclick={onclose}
+		onclick={handleClose}
 		aria-hidden="true"
 	></div>
 
@@ -96,7 +105,7 @@
 			<div class="sp__tabs-header">
 				<button
 					class="sp__tab sp__tab--close"
-					onclick={onclose}
+					onclick={handleClose}
 					title="Close settings"
 					aria-label="Close settings"
 				>
@@ -108,10 +117,7 @@
 				<button
 					class="sp__tab"
 					class:sp__tab--active={activeTab === tab.id}
-					onclick={() => {
-						activeTab = tab.id;
-						bodyEl?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-					}}
+					onclick={() => selectTab(tab.id)}
 					aria-label={tab.label}
 					aria-current={activeTab === tab.id ? 'page' : undefined}
 				>

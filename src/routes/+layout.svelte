@@ -27,55 +27,8 @@
 	});
 
 	let stopWatchingScheme: (() => void) | null = null;
-	let stopViewportHeightWatch: (() => void) | null = null;
 
 	onMount(() => {
-		// Mobile Safari + iframes (HA dashboard/kiosk) can report viewport heights that
-		// drift and leave a blank gap. Track the *visual* viewport and expose it as
-		// a CSS var used by our root/shell containers.
-		// NOTE: visualViewport resize is unreliable inside HA Ingress on iOS when
-		// kiosk mode toggles the top bar. We use three complementary triggers:
-		//   1. visualViewport resize + scroll
-		//   2. window resize
-		//   3. ResizeObserver on <html> (catches ingress iframe relays)
-		let rafPending = false;
-		const applyVh = () => {
-			const raw = window.visualViewport?.height ?? window.innerHeight;
-			const px = Number.isFinite(raw) ? Math.max(0, Math.round(raw)) : 0;
-			if (!px) return;
-			document.documentElement.style.setProperty('--stratum-vh', `${px}px`);
-			// Mobile bottom-sheet target height (MoreInfoShell)
-			document.documentElement.style.setProperty('--stratum-sheet-h', `${Math.max(0, Math.round(px * 0.94))}px`);
-		};
-		const setVh = () => {
-			if (rafPending) return;
-			rafPending = true;
-			requestAnimationFrame(() => {
-				rafPending = false;
-				applyVh();
-			});
-		};
-		applyVh();
-		const vv = window.visualViewport;
-		vv?.addEventListener('resize', setVh);
-		vv?.addEventListener('scroll', setVh);
-		window.addEventListener('resize', setVh);
-
-		// ResizeObserver backup: catches HA ingress iframe viewport changes that
-		// don't propagate to visualViewport on iOS Safari.
-		let ro: ResizeObserver | null = null;
-		if (typeof ResizeObserver !== 'undefined') {
-			ro = new ResizeObserver(setVh);
-			ro.observe(document.documentElement);
-		}
-
-		stopViewportHeightWatch = () => {
-			vv?.removeEventListener('resize', setVh);
-			vv?.removeEventListener('scroll', setVh);
-			window.removeEventListener('resize', setVh);
-			ro?.disconnect();
-		};
-
 		applyTheme($dashboardStore.theme);
 		stopWatchingScheme = watchSystemScheme(() => ({
 			theme: $dashboardStore.theme
@@ -88,7 +41,6 @@
 
 	onDestroy(() => {
 		stopWatchingScheme?.();
-		stopViewportHeightWatch?.();
 		if (retryInterval) clearInterval(retryInterval);
 	});
 

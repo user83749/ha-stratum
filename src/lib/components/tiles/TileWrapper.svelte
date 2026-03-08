@@ -19,6 +19,7 @@
 		entity?:    HassEntity | null;
 		pageId?:    string;
 		sectionId?: string;
+		preview?: boolean;
 		onTap?:     () => void;
 		onHold?:    () => void;
 		onEditDragStart?: (event: PointerEvent) => void;
@@ -31,6 +32,7 @@
 		entity = null,
 		pageId = '',
 		sectionId = '',
+		preview = false,
 		onTap,
 		onHold,
 		onEditDragStart,
@@ -400,6 +402,7 @@
 	);
 
 	const isInteractive = $derived(
+		!preview &&
 		!editing &&
 		!!(onTap || (resolvedTapAction && resolvedTapAction.type !== 'none'))
 	);
@@ -451,6 +454,7 @@
 	class:selected={isSelected}
 	class:multi-selected={isMultiSelected}
 	class:interactive={isInteractive}
+	class:preview={preview}
 	class:entity-active={useSharedActiveSurface}
 	class:tile-wrapper--buttoncard={isButtonCardTile}
 	style={buttonCardStyleVars}
@@ -568,6 +572,27 @@
 		text-rendering: auto;
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
+	}
+
+	/* Tile previews in Add Tile: keep all token sizes bounded so every preset
+	   (sm/md/lg/xl) fits cleanly in the preview slot without vw-based overflow. */
+	.tile-wrapper.preview {
+		--button-card-font-size:          12px;
+		--tile-padding-effective:         10px;
+		--tile-padding:                   10px;
+		--hero-text-size:                 22px;
+		--hero-icon-size:                 28px;
+		--hero-icon-size-compact:         24px;
+		--action-icon-size:               13px;
+		--action-icon-size-sm:            11px;
+		--action-icon-size-lg:            15px;
+		--control-chip-size:              34px;
+		--control-chip-radius:            10px;
+		--control-chip-size-compact:      30px;
+		--control-chip-radius-compact:    9px;
+		--control-chip-icon-size:         14px;
+		--control-chip-icon-size-compact: 13px;
+		transition: none;
 	}
 
 	/* ── Static card surface vars ────────────────────────────────────────── */
