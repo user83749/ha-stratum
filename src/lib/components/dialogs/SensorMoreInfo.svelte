@@ -33,7 +33,7 @@
 	});
 
 	const updateEntitiesOn = $derived.by(() => {
-		if (!isUpdateSummary) return [] as Array<{ id: string; name: string; installed: string; latest: string; picture?: string }>;
+		if (!isUpdateSummary) return [] as Array<{ id: string; name: string; installed: string; latest: string; icon: string }>;
 		return Object.entries($optimisticEntities)
 			.filter(([id, e]) => id.startsWith('update.') && e && e.state === 'on')
 			.map(([id, e]) => ({
@@ -41,7 +41,7 @@
 				name: (e.attributes.friendly_name as string | undefined) ?? id,
 				installed: (e.attributes.installed_version as string | undefined) ?? '',
 				latest: (e.attributes.latest_version as string | undefined) ?? '',
-				picture: (e.attributes.entity_picture as string | undefined) ?? undefined
+				icon: getEntityIcon(e)
 			}))
 			.sort((a, b) => a.name.localeCompare(b.name));
 	});
@@ -52,7 +52,44 @@
 		return count > 0 ? count : updateEntitiesOn.length;
 	});
 
-	function installUpdate(id: string) { updateService.install(id).catch(() => {}); }
+	let installStateById = $state<Record<string, 'idle' | 'installing' | 'queued' | 'error'>>({});
+	let installResetTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+	$effect(() => {
+		return () => {
+			for (const timer of Object.values(installResetTimers)) clearTimeout(timer);
+			installResetTimers = {};
+		};
+	});
+
+	function getInstallState(id: string): 'idle' | 'installing' | 'queued' | 'error' {
+		return installStateById[id] ?? 'idle';
+	}
+
+	function setInstallState(id: string, state: 'idle' | 'installing' | 'queued' | 'error') {
+		installStateById = { ...installStateById, [id]: state };
+	}
+
+	function queueInstallStateReset(id: string, ms: number) {
+		if (installResetTimers[id]) clearTimeout(installResetTimers[id]);
+		installResetTimers[id] = setTimeout(() => {
+			setInstallState(id, 'idle');
+			delete installResetTimers[id];
+		}, ms);
+	}
+
+	function installUpdate(id: string) {
+		if (getInstallState(id) === 'installing') return;
+		setInstallState(id, 'installing');
+		updateService.install(id)
+			.then(() => {
+				setInstallState(id, 'queued');
+				queueInstallStateReset(id, 1800);
+			})
+			.catch(() => {
+				setInstallState(id, 'error');
+				queueInstallStateReset(id, 2200);
+			});
+	}
 	function skipUpdate(id: string) { updateService.skip(id).catch(() => {}); }
 
 	const tileIconOverride = $derived(((tile?.config?.icon as string | undefined) ?? '').trim() || undefined);
@@ -63,15 +100,6 @@
 			? `${updateSummaryCount} update${updateSummaryCount === 1 ? '' : 's'} available`
 			: 'Up to Date'
 	);
-
-	function badgeText(name: string) {
-		const cleaned = name.replace(/\\bupdate\\b/ig, '').trim();
-		if (/home\\s*assistant/i.test(cleaned)) return 'HA';
-		const parts = cleaned.split(/\\s+/).filter(Boolean);
-		if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-		if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-		return 'UP';
-	}
 
 	function openUpdate(id: string) {
 		// Navigate into the update.* entity details, while preserving this summary
@@ -128,18 +156,31 @@
 				{#each updateEntitiesOn as u (u.id)}
 					<div class="usmi__row">
 						<button class="usmi__name" onclick={() => openUpdate(u.id)} title={u.id}>
-							{#if u.picture}
-								<img class="usmi__img" src={u.picture} alt={u.name} />
-							{:else}
-								<div class="usmi__img usmi__img--placeholder" aria-hidden="true">{badgeText(u.name)}</div>
-							{/if}
+							<div class="usmi__img" aria-hidden="true">
+								<Icon name={u.icon} size={18} />
+							</div>
 							<span class="usmi__name-text">{u.name.replace(/\\bupdate\\b/ig, '').trim() || u.name}</span>
 						</button>
 						<div class="usmi__ver">
 							<span class="usmi__pill">{u.installed}{u.installed && u.latest ? ' → ' : ''}{u.latest}</span>
 						</div>
 						<div class="usmi__actions">
-							<button class="usmi__btn" onclick={() => installUpdate(u.id)}>Install</button>
+							<button
+								class="usmi__btn"
+								class:usmi__btn--installing={getInstallState(u.id) === 'installing'}
+								class:usmi__btn--queued={getInstallState(u.id) === 'queued'}
+								class:usmi__btn--error={getInstallState(u.id) === 'error'}
+								onclick={() => installUpdate(u.id)}
+								disabled={getInstallState(u.id) === 'installing'}
+							>
+								{getInstallState(u.id) === 'installing'
+									? 'Installing…'
+									: getInstallState(u.id) === 'queued'
+										? 'Queued'
+										: getInstallState(u.id) === 'error'
+											? 'Failed — Retry'
+											: 'Install'}
+							</button>
 							<button class="usmi__btn usmi__btn--ghost" onclick={() => skipUpdate(u.id)}>Skip</button>
 						</div>
 					</div>
@@ -313,17 +354,16 @@
 		cursor: pointer;
 		min-width: 0;
 	}
-	.usmi__img { width: 34px; height: 34px; border-radius: 8px; object-fit: contain; background: rgba(0,0,0,0.15); flex-shrink: 0; }
-	.usmi__img--placeholder {
+	.usmi__img {
+		width: 34px;
+		height: 34px;
+		border-radius: 8px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 0.78rem;
-		font-weight: 800;
-		letter-spacing: 0.02em;
+		background: rgba(0, 0, 0, 0.15);
 		color: var(--fg-muted);
-		background: color-mix(in srgb, var(--fg) 8%, transparent);
-		border: 1px solid color-mix(in srgb, var(--fg) 12%, transparent);
+		flex-shrink: 0;
 	}
 	.usmi__name-text { font-size: 0.9rem; font-weight: 650; color: var(--fg); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -352,6 +392,19 @@
 		font-size: 0.82rem;
 		font-weight: 650;
 		cursor: pointer;
+	}
+	.usmi__btn--installing {
+		opacity: 0.86;
+	}
+	.usmi__btn--queued {
+		background: color-mix(in srgb, #22c55e 22%, transparent);
+		border-color: color-mix(in srgb, #22c55e 45%, var(--border));
+		color: color-mix(in srgb, #22c55e 80%, white);
+	}
+	.usmi__btn--error {
+		background: color-mix(in srgb, #ef4444 14%, transparent);
+		border-color: color-mix(in srgb, #ef4444 38%, var(--border));
+		color: color-mix(in srgb, #ef4444 85%, white);
 	}
 	.usmi__btn--ghost {
 		background: transparent;

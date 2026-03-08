@@ -1,50 +1,85 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Stratum — haptics.ts
-// Lightweight Home Assistant haptic feedback.
-//
-// HA-compatible pattern: dispatch a `haptic` CustomEvent with `detail = type`
-// from the active user gesture handler. This is the expected trigger route for
-// HA frontend/app integrations that listen for haptic events.
-//
-//   'selection'  → UISelectionFeedbackGenerator  (lightest tap feel)
-//   'light'      → UIImpactFeedbackGenerator(.light)
-//   'medium'     → UIImpactFeedbackGenerator(.medium)
-//   'heavy'      → UIImpactFeedbackGenerator(.heavy)
-//   'success'    → UINotificationFeedbackGenerator(.success)
-//   'warning'    → UINotificationFeedbackGenerator(.warning)
-//   'error'      → UINotificationFeedbackGenerator(.error)
-//
-// On platforms that do not listen for this event, calls are harmless no-ops.
-// ─────────────────────────────────────────────────────────────────────────────
-
 export type HapticType =
-    | 'selection'
-    | 'light'
-    | 'medium'
-    | 'heavy'
-    | 'success'
-    | 'warning'
-    | 'error';
+	| 'selection'
+	| 'light'
+	| 'medium'
+	| 'heavy'
+	| 'success'
+	| 'warning'
+	| 'error';
 
-/** Send a single HA haptic event. */
-export function haptic(type: HapticType = 'light'): void {
+type HapticTarget = EventTarget | null | undefined;
+
+let lastUserInteraction = 0;
+
+const haHapticMap: Record<string, HapticType> = {
+	selection: 'selection',
+	light: 'light',
+	medium: 'medium',
+	heavy: 'heavy',
+	success: 'success',
+	warning: 'warning',
+	error: 'error'
+};
+
+function dispatchHapticToTarget(target: HapticTarget, type: HapticType): void {
+	if (!target || typeof (target as EventTarget).dispatchEvent !== 'function') return;
 	try {
 		const evt = new CustomEvent('haptic', {
 			bubbles: true,
 			composed: true,
 			detail: type
 		});
-		if (typeof window !== 'undefined') window.dispatchEvent(evt);
+		(target as EventTarget).dispatchEvent(evt);
 	} catch {
-		// Silently ignore — haptics are non-critical UX feedback.
+		// no-op
 	}
 }
 
-/**
- * Fire two quick light taps in succession — used for double-tap feedback.
- * The 80 ms gap matches UIKit's natural double-tap cadence.
- */
-export function hapticDouble(): void {
-    haptic('light');
-    setTimeout(() => haptic('light'), 80);
+export function triggerHaptic(style: HapticType = 'medium', target?: HapticTarget): void {
+	try {
+		lastUserInteraction = Date.now();
+	} catch {
+		// no-op
+	}
+
+	try {
+		const hapticType = haHapticMap[style] ?? 'medium';
+		if (typeof window !== 'undefined') dispatchHapticToTarget(window, hapticType);
+		if (typeof document !== 'undefined') dispatchHapticToTarget(document, hapticType);
+		if (typeof document !== 'undefined') {
+			dispatchHapticToTarget(document.body, hapticType);
+			dispatchHapticToTarget(document.activeElement, hapticType);
+			const haRoot = document.querySelector('home-assistant') as (HTMLElement & { shadowRoot?: ShadowRoot | null }) | null;
+			dispatchHapticToTarget(haRoot, hapticType);
+			dispatchHapticToTarget(haRoot?.shadowRoot?.querySelector('home-assistant-main'), hapticType);
+		}
+		if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+			try {
+				dispatchHapticToTarget(window.parent, hapticType);
+			} catch {
+				// no-op (cross-origin parent or restricted frame)
+			}
+		}
+		dispatchHapticToTarget(target, hapticType);
+
+		const fireEventFn = (globalThis as unknown as { fireEvent?: (el: unknown, type: string, detail?: unknown) => void }).fireEvent;
+		if (typeof fireEventFn === 'function' && typeof window !== 'undefined') {
+			try {
+				fireEventFn(window, 'haptic', hapticType);
+			} catch {
+				// no-op
+			}
+		}
+	} catch {
+		// no-op
+	}
+}
+
+export function haptic(type: HapticType = 'light', target?: HapticTarget): void {
+	triggerHaptic(type, target);
+}
+
+export function hapticDouble(target?: HapticTarget): void {
+	triggerHaptic('light', target);
+	setTimeout(() => triggerHaptic('light', target), 80);
 }

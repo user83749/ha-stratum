@@ -218,6 +218,7 @@
 	let pointerDownX   = $state(0);
 	let pointerDownY   = $state(0);
 	let didScroll      = $state(false);
+	let pointerTarget: EventTarget | null = $state(null);
 
 	const HOLD_THRESHOLD_MS = 500;
 	const DBL_TAP_WINDOW_MS = 300;
@@ -250,11 +251,6 @@
 			                        resolvedDblTap;
 
 		if (!action || action.type === 'none') return;
-
-		// iOS haptic feedback via HA Companion App native bridge
-		if (type === 'double_tap') hapticDouble();
-		else if (type === 'hold')  haptic('medium');
-		else                       haptic('selection');
 
 		// Prevent "toggle" on non-togglable domains regardless of config
 		if (action.type === 'toggle' && entity) {
@@ -318,6 +314,8 @@
 		pointerDownAt = Date.now();
 		pointerDownX = e.clientX;
 		pointerDownY = e.clientY;
+		pointerTarget = e.currentTarget as EventTarget;
+		const hapticTarget = e.currentTarget as EventTarget;
 
 		holdTimer = setTimeout(() => {
 			// Guard against the race where clearHold() (triggered by onPointerLeave)
@@ -327,6 +325,7 @@
 			didHold = true;
 			holdTimer = null;
 			clickCount = 0;
+			haptic('medium', hapticTarget);
 			fireAction('hold');
 		}, HOLD_THRESHOLD_MS);
 	}
@@ -347,7 +346,13 @@
 		if (isInteractiveTarget(e)) return;
 
 		const elapsed = Date.now() - pointerDownAt;
-		if (didScroll || didHold || elapsed >= HOLD_THRESHOLD_MS) { clearHold(); didHold = false; didScroll = false; return; }
+		if (didScroll || didHold || elapsed >= HOLD_THRESHOLD_MS) {
+			clearHold();
+			didHold = false;
+			didScroll = false;
+			pointerTarget = null;
+			return;
+		}
 
 		clearHold();
 		didHold = false;
@@ -356,8 +361,10 @@
 		spawnRipple(e);
 
 		if (!hasDblTap) {
+			haptic('selection', pointerTarget ?? (e.currentTarget as EventTarget));
 			// No double-tap configured — fire tap immediately
 			fireAction('tap');
+			pointerTarget = null;
 			return;
 		}
 
@@ -368,7 +375,9 @@
 			tapTimer = setTimeout(() => {
 				tapTimer = null;
 				clickCount = 0;
+				haptic('selection', pointerTarget);
 				fireAction('tap');
+				pointerTarget = null;
 			}, DBL_TAP_WINDOW_MS);
 		} else {
 			// onDoubleClick will handle this — reset clickCount
@@ -381,6 +390,7 @@
 		clearHold();
 		didHold = false;
 		didScroll = false;
+		pointerTarget = null;
 	}
 
 	// Native dblclick bubbles up even from child buttons/inputs — guard against that.
@@ -388,8 +398,10 @@
 		if (editing) return;
 		if (!hasDblTap) return;
 		if (isInteractiveTarget(e)) return;
+		hapticDouble(e.currentTarget as EventTarget);
 		clearTapTimer();
 		clickCount = 0;
+		pointerTarget = null;
 		fireAction('double_tap');
 	}
 

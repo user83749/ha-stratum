@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.29] - 2026-03-08
+
+### Changed
+- Refactored SirenTile and WaterHeaterTile components for better consistency.
+- Improved Home Assistant service handling logic.
+- Updated MobileNav layout for better mobile experience.
+- Refined haptics utility for more precise feedback.
+
 ## [1.0.28] - 2026-03-08
 
 ### Changed

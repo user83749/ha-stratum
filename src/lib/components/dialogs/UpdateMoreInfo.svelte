@@ -13,17 +13,6 @@
 	
 	const installed = $derived(entity?.attributes.installed_version as string | undefined);
 	const latest = $derived(entity?.attributes.latest_version as string | undefined);
-	const rawReleaseNotes = $derived.by(() => {
-		const attrs = entity?.attributes ?? {};
-		return (
-			(attrs.release_notes as unknown) ??
-			(attrs.release_summary as unknown) ??
-			(attrs.notes as unknown) ??
-			(attrs.changelog as unknown) ??
-			(attrs.body as unknown) ??
-			null
-		);
-	});
 	const releaseUrl = $derived(entity?.attributes.release_url as string | undefined);
 	const title = $derived(entity?.attributes.title as string | undefined);
 	function normalizeReleaseNotes(input: unknown): string {
@@ -59,7 +48,21 @@
 	function looksLikeHtml(input: string): boolean {
 		return /<\/?[a-z][\s\S]*>/i.test(input);
 	}
-	const releaseNotesText = $derived(normalizeReleaseNotes(rawReleaseNotes));
+	const releaseNotesText = $derived.by(() => {
+		const attrs = entity?.attributes ?? {};
+		const candidates: unknown[] = [
+			(attrs.release_notes as unknown),
+			(attrs.release_summary as unknown),
+			(attrs.notes as unknown),
+			(attrs.changelog as unknown),
+			(attrs.body as unknown)
+		];
+		for (const candidate of candidates) {
+			const normalized = normalizeReleaseNotes(candidate);
+			if (normalized) return normalized;
+		}
+		return '';
+	});
 	const sanitizedReleaseNotes = $derived.by(() => {
 		if (!releaseNotesText) return '';
 		return looksLikeHtml(releaseNotesText)
@@ -69,6 +72,16 @@
 
 	const isUpdateAvailable = $derived(entity?.state === 'on');
 	const iconName = $derived(entity ? getEntityIcon(entity) : 'download');
+	let installState = $state<'idle' | 'installing' | 'queued' | 'error'>('idle');
+	let installTimer: ReturnType<typeof setTimeout> | null = null;
+	$effect(() => {
+		return () => {
+			if (installTimer) {
+				clearTimeout(installTimer);
+				installTimer = null;
+			}
+		};
+	});
 	const displayName = $derived.by(() => {
 		if (!entity) return 'Update';
 		const raw = (title ?? getEntityName(entity) ?? entityId).trim();
@@ -80,7 +93,27 @@
 
 	function install() {
 		if (isUnavail) return;
-		updateService.install(entityId).catch(() => {});
+		if (installState === 'installing') return;
+		if (installTimer) {
+			clearTimeout(installTimer);
+			installTimer = null;
+		}
+		installState = 'installing';
+		updateService.install(entityId)
+			.then(() => {
+				installState = 'queued';
+				installTimer = setTimeout(() => {
+					installState = 'idle';
+					installTimer = null;
+				}, 1800);
+			})
+			.catch(() => {
+				installState = 'error';
+				installTimer = setTimeout(() => {
+					installState = 'idle';
+					installTimer = null;
+				}, 2200);
+			});
 	}
 
 	function skip() {
@@ -122,11 +155,29 @@
 
 		{#if isUpdateAvailable}
 			<div class="umi__main-action">
-				<button class="umi__install-btn" onclick={install} disabled={isUnavail}>
-					<Icon name="download" size={20} />
-					<span>Install Update</span>
+				<button
+					class="umi__install-btn"
+					class:umi__install-btn--installing={installState === 'installing'}
+					class:umi__install-btn--queued={installState === 'queued'}
+					class:umi__install-btn--error={installState === 'error'}
+					onclick={install}
+					disabled={isUnavail || installState === 'installing'}
+				>
+					<Icon
+						name={installState === 'queued' ? 'check' : installState === 'error' ? 'alert-circle' : 'download'}
+						size={20}
+					/>
+					<span>
+						{installState === 'installing'
+							? 'Installing…'
+							: installState === 'queued'
+								? 'Queued'
+								: installState === 'error'
+									? 'Failed — Retry'
+									: 'Install Update'}
+					</span>
 				</button>
-				<button class="umi__skip-btn" onclick={skip} disabled={isUnavail}>
+				<button class="umi__skip-btn" onclick={skip} disabled={isUnavail || installState === 'installing'}>
 					<span>Skip this version</span>
 				</button>
 			</div>
@@ -292,6 +343,19 @@
 		cursor: pointer;
 		transition: all 0.2s ease;
 		box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
+	}
+	.umi__install-btn--installing {
+		opacity: 0.86;
+	}
+	.umi__install-btn--queued {
+		background: color-mix(in srgb, #22c55e 22%, transparent);
+		border-color: color-mix(in srgb, #22c55e 45%, var(--border));
+		color: color-mix(in srgb, #22c55e 80%, white);
+	}
+	.umi__install-btn--error {
+		background: color-mix(in srgb, #ef4444 14%, transparent);
+		border-color: color-mix(in srgb, #ef4444 38%, var(--border));
+		color: color-mix(in srgb, #ef4444 85%, white);
 	}
 
 	.umi__install-btn:hover {
