@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.24] - 2026-03-07
+
+### Changed
+- Improved MoreInfo shell dialog logic.
+- Focused main dashboard page view for better responsiveness.
+
 ## [1.0.23] - 2026-03-07
 
 ### Added

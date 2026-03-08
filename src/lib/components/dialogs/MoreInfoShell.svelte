@@ -44,10 +44,41 @@
 	// Focus the panel when it opens
 	let panelEl = $state<HTMLElement | undefined>(undefined);
 	let bodyEl = $state<HTMLDivElement | undefined>(undefined);
+	let visible = $state(false);
+	let closing = $state(false);
+	let closeRequested = false;
+	const CLOSE_MS = 280;
 	$effect(() => {
 		if (open && panelEl) {
 			requestAnimationFrame(() => panelEl?.focus());
 		}
+	});
+
+	$effect(() => {
+		if (open) {
+			visible = true;
+			closing = false;
+			return;
+		}
+		if (!visible) return;
+
+		// If this close was initiated by this shell, the exit animation already ran.
+		if (closeRequested) {
+			closeRequested = false;
+			visible = false;
+			closing = false;
+			dragY = 0;
+			return;
+		}
+
+		// External close (store-driven): still animate out.
+		closing = true;
+		const id = window.setTimeout(() => {
+			visible = false;
+			closing = false;
+			dragY = 0;
+		}, CLOSE_MS);
+		return () => window.clearTimeout(id);
 	});
 
 	// Mobile bottom-sheet behaviour
@@ -157,8 +188,7 @@
 		const h = panelEl?.clientHeight ?? 1;
 		const shouldClose = dragY > 90 || (dragY / h) > 0.22 || velocity > 0.65;
 		if (shouldClose) {
-			onclose();
-			dragY = 0;
+			requestClose();
 			return;
 		}
 
@@ -224,16 +254,34 @@
 		}
 	}
 
+	function requestClose() {
+		if (closeRequested || !visible) return;
+		closeRequested = true;
+		closing = true;
+		dragArmed = false;
+		dragging = false;
+
+		// Slide fully out when closing as mobile sheet.
+		if (isSheet) {
+			const h = panelEl?.clientHeight ?? Math.round(window.innerHeight * 0.9);
+			dragY = Math.max(dragY, h);
+		}
+
+		window.setTimeout(() => {
+			onclose();
+		}, CLOSE_MS);
+	}
+
 	function handleBackdropClick() {
-		onclose();
+		requestClose();
 	}
 
 	function handlePanelKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') onclose();
+		if (e.key === 'Escape') requestClose();
 	}
 
 	function handleBackdropKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter' || e.key === ' ') onclose();
+		if (e.key === 'Enter' || e.key === ' ') requestClose();
 	}
 
 	const isDrawer = $derived(style === 'drawer');
@@ -241,12 +289,13 @@
 	const isPanel  = $derived(style === 'panel');
 </script>
 
-{#if open}
+{#if visible}
 	<!-- Backdrop (modal + drawer only) -->
 	{#if !isPanel}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="moreinfo-backdrop"
+			class:moreinfo-backdrop--closing={closing}
 			onclick={handleBackdropClick}
 			onkeydown={handleBackdropKeydown}
 			onwheel={(e) => e.preventDefault()}
@@ -265,6 +314,7 @@
 		class:moreinfo-panel--bottom={isDrawer && side === 'bottom'}
 		class:moreinfo-panel--panel={isPanel}
 		class:moreinfo-panel--sheet={isSheet}
+		class:moreinfo-panel--closing={closing}
 		class:moreinfo-panel--dragging={dragging}
 		role="dialog"
 		aria-modal={!isPanel}
@@ -334,7 +384,7 @@
 				{/if}
 				<button
 					class="moreinfo-close"
-					onclick={onclose}
+					onclick={requestClose}
 					aria-label="Close"
 				>
 					<Icon name="x" size={18} />
@@ -361,7 +411,9 @@
 		overscroll-behavior: none;
 
 		animation: backdrop-in var(--transition) ease forwards;
+		transition: opacity 0.2s ease;
 	}
+	.moreinfo-backdrop--closing { opacity: 0; }
 
 	@starting-style {
 		.moreinfo-backdrop {
@@ -389,6 +441,7 @@
 			transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
 			opacity   0.2s ease;
 	}
+	.moreinfo-panel--closing { opacity: 0; }
 
 	.moreinfo-panel--dragging {
 		transition: none !important;
@@ -429,6 +482,9 @@
 			transform: translateX(100%);
 		}
 	}
+	.moreinfo-panel--drawer.moreinfo-panel--right.moreinfo-panel--closing {
+		transform: translateX(100%);
+	}
 
 	/* ── Drawer — left ──────────────────────────────────────────────────────── */
 	.moreinfo-panel--drawer.moreinfo-panel--left {
@@ -445,6 +501,9 @@
 		.moreinfo-panel--drawer.moreinfo-panel--left {
 			transform: translateX(-100%);
 		}
+	}
+	.moreinfo-panel--drawer.moreinfo-panel--left.moreinfo-panel--closing {
+		transform: translateX(-100%);
 	}
 
 	/* ── Drawer — bottom ────────────────────────────────────────────────────── */
@@ -463,6 +522,9 @@
 			transform: translateY(100%);
 		}
 	}
+	.moreinfo-panel--drawer.moreinfo-panel--bottom.moreinfo-panel--closing {
+		transform: translateY(100%);
+	}
 
 	/* ── Mobile bottom-sheet override ───────────────────────────────────────── */
 	@media (max-width: 800px) {
@@ -479,7 +541,10 @@
 			border-top: 1px solid var(--border) !important;
 			box-shadow: var(--shadow-lg) !important;
 			transform: translateY(var(--sheet-drag, 0px)) !important;
-			transition-duration: 0.22s;
+			transition-duration: 0.28s;
+		}
+		.moreinfo-panel--sheet.moreinfo-panel--closing {
+			transform: translateY(calc(100% + var(--sheet-drag, 0px))) !important;
 		}
 
 		/* Keep content from stretching over the reserved bottom breathing room. */
@@ -512,6 +577,9 @@
 		.moreinfo-panel--panel {
 			transform: translateX(100%);
 		}
+	}
+	.moreinfo-panel--panel.moreinfo-panel--closing {
+		transform: translateX(100%);
 	}
 
 	/* ── Header ─────────────────────────────────────────────────────────────── */

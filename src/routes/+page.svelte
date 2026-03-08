@@ -66,6 +66,11 @@
 	const mobileBottomInsetPx = $derived(
 		showMobileNav && navCfg.mobileStyle === 'bottom-bar' ? 48 : 0
 	);
+	const pageBottomPadding = $derived(
+		showMobileNav && navCfg.mobileStyle === 'bottom-bar'
+			? `calc(${mobileBottomInsetPx}px + env(safe-area-inset-bottom))`
+			: '0px'
+	);
 
 	// ── Init ───────────────────────────────────────────────────────────────────
 
@@ -444,7 +449,7 @@
 		>
 				<div
 					style={
-						`padding-bottom: calc(${mobileBottomInsetPx}px + env(safe-area-inset-bottom)); flex: 1; min-height: 0; display: flex; flex-direction: column;`
+						`padding-bottom: ${pageBottomPadding}; flex: 1; min-height: 0; display: flex; flex-direction: column;`
 					}
 				>
 						<PageView
