@@ -463,7 +463,7 @@
 		width: 90px;
 		flex: 0 0 90px;
 		align-self: stretch;
-		border-radius: 24px;
+		border-radius: var(--dialog-radius);
 		background: var(--active);
 		border: 1.5px solid var(--border);
 		overflow: hidden;
@@ -512,7 +512,7 @@
 		width: 90px;
 		flex: 0 0 90px;
 		align-self: stretch;
-		border-radius: 24px;
+		border-radius: var(--dialog-radius);
 		background:
 			linear-gradient(
 				to top,

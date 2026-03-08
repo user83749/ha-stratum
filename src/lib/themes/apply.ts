@@ -18,6 +18,24 @@ const RADIUS_MAP: Record<string, string> = {
 	full: '9999px'
 };
 
+const TILE_RADIUS_MAP: Record<string, string> = {
+	none: '0px',
+	sm: '6%',
+	md: '8%',
+	lg: '10%',
+	xl: '12%',
+	full: '9999px'
+};
+
+const DIALOG_RADIUS_MAP: Record<string, string> = {
+	none: '0px',
+	sm: '4px',
+	md: '8px',
+	lg: '12px',
+	xl: '16px',
+	full: '9999px'
+};
+
 const FONT_SIZE_MAP: Record<string, string> = {
 	sm: '13px',
 	md: '14px',
@@ -51,10 +69,16 @@ export function applyTheme(cfg: ThemeConfig): void {
 
 	// ── Shape — theme default, user can override ─────────────────────────────
 	const radiusKey = cfg.radius ?? theme.radius;
+	const tileRadiusKey = cfg.tileRadius ?? radiusKey;
+	const popupRadiusKey = cfg.popupRadius ?? radiusKey;
 	const radius = RADIUS_MAP[radiusKey] ?? '12px';
+	const tileRadius = TILE_RADIUS_MAP[tileRadiusKey] ?? '10%';
+	const dialogRadius = DIALOG_RADIUS_MAP[popupRadiusKey] ?? '12px';
 	root.style.setProperty('--radius', radius);
 	root.style.setProperty('--radius-sm', `calc(${radius} * 0.6)`);
 	root.style.setProperty('--radius-lg', `calc(${radius} * 1.4)`);
+	root.style.setProperty('--tile-radius', tileRadius);
+	root.style.setProperty('--dialog-radius', dialogRadius);
 
 	// ── Typography — theme default, user can override ─────────────────────────
 	const fontFamily = cfg.font?.family ?? theme.font.family;

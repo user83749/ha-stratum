@@ -125,7 +125,7 @@
 	.wmi__icon-wrap {
 		width: 56px;
 		height: 56px;
-		border-radius: 16px;
+		border-radius: var(--dialog-radius);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -189,7 +189,7 @@
 		gap: 12px;
 		padding: 16px;
 		background: var(--hover);
-		border-radius: 16px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid var(--border);
 	}
 
@@ -237,7 +237,7 @@
 		align-items: center;
 		padding: 12px 16px;
 		background: var(--hover);
-		border-radius: 12px;
+		border-radius: var(--dialog-radius);
 		gap: 20px;
 	}
 

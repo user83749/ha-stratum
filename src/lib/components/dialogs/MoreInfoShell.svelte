@@ -524,7 +524,7 @@
 		transform: translate(-50%, -50%);
 		width: min(400px, 95dvw);
 		height: min(80dvh, 780px);
-		border-radius: var(--radius-lg);
+		border-radius: var(--dialog-radius, var(--radius-lg));
 		border: 1px solid var(--border);
 		box-shadow: var(--shadow-lg);
 	}
@@ -544,7 +544,7 @@
 		width: min(440px, 100dvw);
 		border-left: 1px solid var(--border);
 		box-shadow: var(--shadow-lg);
-		border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+		border-radius: var(--dialog-radius, var(--radius-lg)) 0 0 var(--dialog-radius, var(--radius-lg));
 	}
 
 	@starting-style {
@@ -564,7 +564,7 @@
 		width: min(440px, 100dvw);
 		border-right: 1px solid var(--border);
 		box-shadow: var(--shadow-lg);
-		border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+		border-radius: 0 var(--dialog-radius, var(--radius-lg)) var(--dialog-radius, var(--radius-lg)) 0;
 	}
 
 	@starting-style {
@@ -584,7 +584,7 @@
 		height: min(70dvh, 640px);
 		border-top: 1px solid var(--border);
 		box-shadow: var(--shadow-lg);
-		border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+		border-radius: var(--dialog-radius, var(--radius-lg)) var(--dialog-radius, var(--radius-lg)) 0 0;
 	}
 
 	@starting-style {
@@ -606,7 +606,7 @@
 			width: 100dvw !important;
 			height: 94dvh !important;
 			padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
-			border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+			border-radius: var(--dialog-radius, var(--radius-lg)) var(--dialog-radius, var(--radius-lg)) 0 0 !important;
 			border: none !important;
 			border-top: 1px solid var(--border) !important;
 			box-shadow: var(--shadow-lg) !important;

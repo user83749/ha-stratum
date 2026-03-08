@@ -146,7 +146,7 @@
 	.ami__icon-wrap {
 		width: 56px;
 		height: 56px;
-		border-radius: 16px;
+		border-radius: var(--radius-lg);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -182,7 +182,7 @@
 		font-weight: 800;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		color: white;
+		color: color-mix(in srgb, var(--fg) 96%, transparent);
 	}
 
 	.ami__body {
@@ -206,7 +206,7 @@
 		height: 56px;
 		background: var(--hover);
 		border: 2px solid var(--border);
-		border-radius: 16px;
+		border-radius: var(--radius-lg);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -287,7 +287,7 @@
 		padding: 16px 8px;
 		background: var(--hover);
 		border: 1px solid var(--border);
-		border-radius: 16px;
+		border-radius: var(--radius-lg);
 		font-size: 0.75rem;
 		font-weight: 700;
 		cursor: pointer;
@@ -315,8 +315,8 @@
 		gap: 12px;
 		padding: 20px;
 		background: var(--color-on);
-		color: white;
-		border-radius: 20px;
+		color: color-mix(in srgb, var(--fg) 96%, transparent);
+		border-radius: var(--radius-lg);
 		font-size: 1rem;
 		font-weight: 800;
 		cursor: pointer;

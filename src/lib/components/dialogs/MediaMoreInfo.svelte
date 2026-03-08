@@ -213,9 +213,19 @@
 		display: flex;
 		flex-direction: column;
 		min-height: 100%;
-		background: black;
+		background: var(--bg-elevated);
 		overflow: hidden;
-		color: white;
+		color: var(--fg);
+		--mmi-fg: var(--fg);
+		--mmi-fg-muted: color-mix(in srgb, var(--fg) 64%, transparent);
+		--mmi-fg-subtle: color-mix(in srgb, var(--fg) 46%, transparent);
+		--mmi-track-bg: color-mix(in srgb, var(--fg) 16%, transparent);
+		--mmi-track-fill: color-mix(in srgb, var(--fg) 92%, transparent);
+		--mmi-track-fill-soft: color-mix(in srgb, var(--fg) 72%, transparent);
+		--mmi-overlay-bg: color-mix(in srgb, var(--bg-elevated) 86%, black 14%);
+		--mmi-surface-soft: color-mix(in srgb, var(--fg) 8%, transparent);
+		--mmi-surface-strong: color-mix(in srgb, var(--fg) 14%, transparent);
+		--mmi-border-soft: color-mix(in srgb, var(--fg) 14%, transparent);
 	}
 
 	/* Ambient Background Blur */
@@ -250,9 +260,9 @@
 	.ios-media__art-frame {
 		width: min(100%, 340px);
 		aspect-ratio: 1;
-		border-radius: 28px;
+		border-radius: var(--dialog-radius);
 		overflow: hidden;
-		background: #1c1c1e;
+		background: color-mix(in srgb, var(--bg-elevated) 92%, black 8%);
 		box-shadow: 0 20px 60px rgba(0,0,0,0.6);
 		transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 		transform: scale(0.92);
@@ -342,7 +352,7 @@
 	.ios-media__artist {
 		font-size: 0.9rem;
 		font-weight: 500;
-		color: rgba(255,255,255,0.6);
+		color: var(--mmi-fg-muted);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -352,8 +362,8 @@
 	.ios-media__track {
 		position: relative;
 		height: 6px;
-		background: rgba(255,255,255,0.15);
-		border-radius: 10px;
+		background: var(--mmi-track-bg);
+		border-radius: var(--dialog-radius);
 		overflow: hidden;
 	}
 	.ios-media__track--volume {
@@ -365,11 +375,11 @@
 		left: 0;
 		top: 0;
 		height: 100%;
-		background: rgba(255,255,255,0.9);
-		border-radius: 10px;
+		background: var(--mmi-track-fill);
+		border-radius: var(--dialog-radius);
 	}
 	.ios-media__fill--volume {
-		background: rgba(255,255,255,0.5);
+		background: var(--mmi-track-fill-soft);
 	}
 	.ios-media__slider {
 		position: absolute;
@@ -387,7 +397,7 @@
 		margin-top: 8px;
 		font-size: 0.75rem;
 		font-weight: 600;
-		color: rgba(255,255,255,0.4);
+		color: var(--mmi-fg-subtle);
 		font-variant-numeric: tabular-nums;
 	}
 
@@ -401,7 +411,7 @@
 	.ios-media__btn {
 		background: none;
 		border: none;
-		color: white;
+		color: var(--mmi-fg);
 		cursor: pointer;
 		opacity: 0.9;
 		transition: transform 0.2s, opacity 0.2s;
@@ -413,7 +423,7 @@
 	.ios-media__play-btn {
 		background: none;
 		border: none;
-		color: white;
+		color: var(--mmi-fg);
 		cursor: pointer;
 		transition: transform 0.2s;
 	}
@@ -438,7 +448,7 @@
 		background: none;
 		border: none;
 		padding: 4px;
-		color: rgba(255,255,255,0.4);
+		color: var(--mmi-fg-subtle);
 		cursor: pointer;
 		display: flex;
 		align-items: center;
@@ -447,20 +457,20 @@
 	}
 	.ios-media__vol-btn:active {
 		transform: scale(0.9);
-		color: white;
+		color: var(--mmi-fg);
 	}
 	.ios-media__track--volume {
 		height: 8px;
 		flex: 1;
-		background: rgba(255,255,255,0.1);
+		background: var(--mmi-track-bg);
 	}
 	.ios-media__fill--volume {
-		background: rgba(255,255,255,0.8);
+		background: var(--mmi-track-fill-soft);
 	}
 	.ios-media__group-btn {
 		background: none;
 		border: none;
-		color: rgba(255,255,255,0.4);
+		color: var(--mmi-fg-subtle);
 		cursor: pointer;
 		display: flex;
 		align-items: center;
@@ -478,7 +488,7 @@
 	.ios-media__overlay {
 		position: absolute;
 		inset: 0;
-		background: rgba(0,0,0,0.4);
+		background: color-mix(in srgb, var(--bg-elevated) 45%, transparent);
 		backdrop-filter: blur(20px);
 		z-index: 10;
 		display: flex;
@@ -492,7 +502,7 @@
 
 	.ios-media__overlay-content {
 		width: 100%;
-		background: rgba(28, 28, 30, 0.85);
+		background: var(--mmi-overlay-bg);
 		border-radius: 32px 32px 0 0;
 		padding: 24px 24px 40px;
 		/* Allow scrolling when there are many speakers */
@@ -502,7 +512,7 @@
 		overscroll-behavior: contain;
 		touch-action: pan-y;
 		box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
-		border-top: 1px solid rgba(255,255,255,0.1);
+		border-top: 1px solid var(--mmi-border-soft);
 	}
 
 	.ios-media__overlay-header {
@@ -517,9 +527,9 @@
 		font-weight: 700;
 	}
 	.ios-media__close {
-		background: rgba(255,255,255,0.1);
+		background: var(--mmi-surface-soft);
 		border: none;
-		color: white;
+		color: var(--mmi-fg);
 		width: 32px;
 		height: 32px;
 		border-radius: 50%;
@@ -536,23 +546,23 @@
 	}
 	.ios-media__speaker {
 		width: 100%;
-		background: rgba(255,255,255,0.05);
+		background: var(--mmi-surface-soft);
 		border: none;
-		border-radius: 16px;
+		border-radius: var(--dialog-radius);
 		padding: 16px;
 		display: flex;
 		align-items: center;
 		gap: 16px;
-		color: white;
+		color: var(--mmi-fg);
 		cursor: pointer;
 		text-align: left;
 		transition: background 0.2s;
 	}
 	.ios-media__speaker:hover {
-		background: rgba(255,255,255,0.1);
+		background: var(--mmi-surface-strong);
 	}
 	.ios-media__speaker--current {
-		background: rgba(255,255,255,0.1);
+		background: var(--mmi-surface-strong);
 	}
 	.ios-media__speaker-info {
 		flex: 1;
@@ -565,7 +575,7 @@
 	}
 	.ios-media__speaker-status {
 		font-size: 0.75rem;
-		color: rgba(255,255,255,0.5);
+		color: var(--mmi-fg-subtle);
 	}
 
 	button:disabled {

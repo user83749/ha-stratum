@@ -31,7 +31,7 @@ const DEFAULT_CONFIG = {
         showLabelsOnMobile: false,
         showHeader: false,
         showConnectionStatus: true,
-        mobileBreakpoint: 768,
+        mobileBreakpoint: 800,
         mobileStyle: 'bottom-bar',
         order: [],
         extras: [],

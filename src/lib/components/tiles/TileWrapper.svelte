@@ -364,12 +364,12 @@
 
 		// Double-tap is handled by onDoubleClick (native dblclick event).
 		// Here we just fire the tap after the double-tap window if no second click comes.
+		haptic('selection');
 		clickCount++;
 		if (clickCount === 1) {
 			tapTimer = setTimeout(() => {
 				tapTimer = null;
 				clickCount = 0;
-				haptic('selection');
 				fireAction('tap');
 			}, DBL_TAP_WINDOW_MS);
 		} else {
@@ -556,7 +556,7 @@
 		display: flex;
 		flex-direction: column;
 		padding: var(--tile-padding-effective);
-		border-radius: var(--radius);
+		border-radius: var(--tile-radius, var(--radius));
 		border-width: 0;
 		border-style: none;
 			transition:

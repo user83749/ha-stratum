@@ -123,7 +123,7 @@
 	.lbmi__icon {
 		width: 48px;
 		height: 48px;
-		border-radius: 14px;
+		border-radius: var(--dialog-radius);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -263,7 +263,7 @@
 	.lbmi__info {
 		padding: 20px;
 		background: var(--hover);
-		border-radius: 16px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid var(--border);
 	}
 

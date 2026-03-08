@@ -222,7 +222,7 @@
 	.gtmi__icon {
 		width: 48px;
 		height: 48px;
-		border-radius: 14px;
+		border-radius: var(--dialog-radius);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -316,7 +316,7 @@
 		gap: 6px;
 		padding: 16px;
 		background: var(--hover);
-		border-radius: 16px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid var(--border);
 	}
 
@@ -334,7 +334,7 @@
 
 	.gtmi__graph-shell {
 		background: var(--hover);
-		border-radius: 20px;
+		border-radius: var(--dialog-radius);
 		padding: 20px;
 		border: 1px solid var(--border);
 	}
@@ -385,7 +385,7 @@
 	.gtmi__gauge-box {
 		padding: 24px;
 		background: var(--hover);
-		border-radius: 20px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid var(--border);
 	}
 

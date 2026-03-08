@@ -208,7 +208,7 @@
 	.tdmi__check {
 		width: 32px;
 		height: 32px;
-		border-radius: 10px;
+		border-radius: var(--dialog-radius);
 		flex-shrink: 0;
 	}
 	.tdmi__item--done .tdmi__check {
@@ -223,7 +223,7 @@
 	.tdmi__remove {
 		width: 28px;
 		height: 28px;
-		border-radius: 9px;
+		border-radius: var(--dialog-radius);
 		background: transparent;
 	}
 	.tdmi__add-row {

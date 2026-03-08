@@ -531,6 +531,8 @@ export interface ThemeConfig {
 	themeId: string;
 	/** User overrides — applied on top of the theme's own defaults */
 	radius?: RadiusScale;
+	tileRadius?: RadiusScale;
+	popupRadius?: RadiusScale;
 	font?: Partial<FontConfig>;
 	dense?: boolean;
 	animations?: boolean;
@@ -865,6 +867,8 @@ export interface DashboardConfig {
 export const DEFAULT_THEME: ThemeConfig = {
 	themeId: 'nebula',
 	radius: 'lg',
+	tileRadius: 'lg',
+	popupRadius: 'lg',
 	font: { family: 'Inter', size: 'md' },
 	dense: false,
 	animations: true

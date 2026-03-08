@@ -153,7 +153,7 @@
 	.rmi__label { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-subtle); font-weight: 700; }
 	.rmi__dpad { display: grid; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(3, 56px); gap: 8px; justify-content: center; }
 	.rmi__dpad-btn {
-		display: flex; align-items: center; justify-content: center; border-radius: 12px;
+		display: flex; align-items: center; justify-content: center; border-radius: var(--dialog-radius);
 		border: 1px solid var(--border); background: var(--hover); color: var(--fg-muted); cursor: pointer;
 	}
 	.rmi__dpad-btn--up { grid-column: 2; grid-row: 1; }

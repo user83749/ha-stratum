@@ -201,7 +201,7 @@
 		gap: 12px;
 		padding: 16px;
 		background: var(--hover);
-		border-radius: 16px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid var(--border);
 		color: var(--fg-muted);
 	}
@@ -243,7 +243,7 @@
 	.pmi__location-card {
 		background: var(--active);
 		border: 1px solid var(--border);
-		border-radius: 20px;
+		border-radius: var(--dialog-radius);
 		overflow: hidden;
 	}
 

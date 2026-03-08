@@ -106,7 +106,7 @@
 	.smi__icon-wrap {
 		width: 48px;
 		height: 48px;
-		border-radius: 14px;
+		border-radius: var(--dialog-radius);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -250,7 +250,7 @@
 	.smi__pill {
 		all: unset;
 		padding: 10px 16px;
-		border-radius: 12px;
+		border-radius: var(--dialog-radius);
 		background: var(--hover);
 		border: 1px solid var(--border);
 		font-size: 0.8rem;

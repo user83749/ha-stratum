@@ -290,8 +290,13 @@
 
   .sm-setpoint {
     position: absolute;
-    top: 2%;
-    right: 6%;
+    top: -1%;
+    right: 2%;
+    width: 42%;
+    height: 34%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: var(--c-font-size, 14px);
     font-weight: var(--c-font-weight, 700);
     letter-spacing: var(--c-letter-spacing, -0.02rem);
@@ -304,8 +309,8 @@
 
   .sm-setpoint-unit {
     font-size: var(--c-unit-font-size, 10.5px);
-    margin-left: 0.2px;
-    transform: translateY(-0.38em);
+    margin-left: 0.3px;
+    transform: translateY(-0.35em);
     display: inline-block;
   }
 

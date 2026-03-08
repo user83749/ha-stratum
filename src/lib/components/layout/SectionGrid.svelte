@@ -84,6 +84,43 @@
 	});
 
 	$effect(() => {
+		if (typeof window === 'undefined') return;
+		let raf1: number | null = null;
+		let raf2: number | null = null;
+
+		function syncGridWidth() {
+			if (!gridCtrEl) return;
+			const next = Math.round(gridCtrEl.clientWidth);
+			if (next > 0 && next !== gridCtrWidth) {
+				gridCtrWidth = next;
+			}
+		}
+
+		function onThemeApplied() {
+			// Theme token changes can alter vw-based paddings/gaps without firing
+			// ResizeObserver reliably on some browsers. Re-measure over 2 frames.
+			syncGridWidth();
+			if (raf1 !== null) cancelAnimationFrame(raf1);
+			if (raf2 !== null) cancelAnimationFrame(raf2);
+			raf1 = requestAnimationFrame(() => {
+				syncGridWidth();
+				raf1 = null;
+				raf2 = requestAnimationFrame(() => {
+					syncGridWidth();
+					raf2 = null;
+				});
+			});
+		}
+
+		window.addEventListener('stratum:theme-applied', onThemeApplied);
+		return () => {
+			window.removeEventListener('stratum:theme-applied', onThemeApplied);
+			if (raf1 !== null) cancelAnimationFrame(raf1);
+			if (raf2 !== null) cancelAnimationFrame(raf2);
+		};
+	});
+
+	$effect(() => {
 		return () => {
 			window.removeEventListener('pointermove', handleWindowPointerMove);
 			window.removeEventListener('pointerup', handleWindowPointerUp);
@@ -145,11 +182,16 @@
 			? section.grid.columns
 			: null;
 
-		// Default section columns follow the legacy YAML behavior:
-		// >1200px => 3 columns, <=1200px => 2 columns.
 		if (explicitCols !== null) return explicitCols;
-		if (typeof window !== 'undefined' && window.innerWidth > 1200) return 3;
-		return 2;
+		// Auto columns for section tile grids are based on actual section width
+		// (not viewport breakpoints) to avoid large-screen/theme token conflicts.
+		const base = Number(section.grid.baseSize ?? 120);
+		const gap = Number(section.grid.gap ?? 0);
+		if (!Number.isFinite(base) || base <= 0) return 2;
+		if (!Number.isFinite(gap)) return 2;
+		if (!gridCtrWidth || gridCtrWidth <= 0) return 2;
+		const fit = Math.floor((gridCtrWidth + gap) / (base + gap));
+		return Math.max(2, Math.min(3, fit));
 	}
 
 	const activeColumns = $derived(resolveColumns());

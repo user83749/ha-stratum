@@ -206,7 +206,7 @@
 	.hmi__icon-wrap {
 		width: 44px;
 		height: 44px;
-		border-radius: 12px;
+		border-radius: var(--dialog-radius);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -339,7 +339,7 @@
 		gap: 4px;
 		padding: 16px;
 		background: rgba(255,255,255,0.03);
-		border-radius: 16px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid rgba(255,255,255,0.05);
 	}
 
@@ -378,7 +378,7 @@
 
 	.hmi__pill {
 		height: 40px;
-		border-radius: 12px;
+		border-radius: var(--dialog-radius);
 		font-size: 0.8rem;
 		font-weight: 700;
 		text-transform: capitalize;

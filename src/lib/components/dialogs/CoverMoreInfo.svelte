@@ -145,7 +145,7 @@
 	.covmi__icon-wrap {
 		width: 48px;
 		height: 48px;
-		border-radius: 14px;
+		border-radius: var(--dialog-radius);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -223,7 +223,7 @@
 		height: 160px;
 		background: var(--hover);
 		border: 1px solid var(--border);
-		border-radius: 12px;
+		border-radius: var(--dialog-radius);
 		overflow: hidden;
 	}
 
@@ -294,7 +294,7 @@
 		align-items: center;
 		gap: 8px;
 		padding: 16px;
-		border-radius: 16px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid var(--border);
 		background: var(--hover);
 		color: var(--fg-muted);
@@ -340,7 +340,7 @@
 		gap: 12px;
 		padding: 16px;
 		background: var(--hover);
-		border-radius: 16px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid var(--border);
 	}
 

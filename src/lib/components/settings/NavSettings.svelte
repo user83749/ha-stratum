@@ -272,7 +272,7 @@ let mobileStyle = $derived(cfg.mobileStyle);
 			min="320"
 			max="1280"
 			value={cfg.mobileBreakpoint}
-			oninput={(e) => set({ mobileBreakpoint: parseInt((e.target as HTMLInputElement).value) || 768 })}
+			oninput={(e) => set({ mobileBreakpoint: parseInt((e.target as HTMLInputElement).value) || 800 })}
 			style="width: 100px"
 		/>
 	</div>

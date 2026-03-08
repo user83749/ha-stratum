@@ -124,16 +124,34 @@
 		</div>
 	</div>
 
-	<!-- ══ Corner radius ═══════════════════════════════════════════════════════ -->
+	<!-- ══ Tile corner radius ══════════════════════════════════════════════════ -->
 	<div class="ts__section">
-		<span class="ts__label">Corner radius</span>
+		<span class="ts__label">Tile Corner Radius</span>
 		<div class="ts__radius-row">
 			{#each RADIUS_OPTIONS as r (r.val)}
 				<button
 					class="ts__radius"
-					class:ts__radius--active={cfg.radius === r.val}
-					onclick={() => dashboardStore.setTheme({ radius: r.val })}
-					aria-pressed={cfg.radius === r.val}
+					class:ts__radius--active={(cfg.tileRadius ?? cfg.radius) === r.val}
+					onclick={() => dashboardStore.setTheme({ tileRadius: r.val })}
+					aria-pressed={(cfg.tileRadius ?? cfg.radius) === r.val}
+				>
+					<div class="ts__r-box" style="border-radius: {r.px}"></div>
+					<span>{r.label}</span>
+				</button>
+			{/each}
+		</div>
+	</div>
+
+	<!-- ══ Popup corner radius ═════════════════════════════════════════════════ -->
+	<div class="ts__section">
+		<span class="ts__label">Popup Corner Radius</span>
+		<div class="ts__radius-row">
+			{#each RADIUS_OPTIONS as r (r.val)}
+				<button
+					class="ts__radius"
+					class:ts__radius--active={(cfg.popupRadius ?? cfg.radius) === r.val}
+					onclick={() => dashboardStore.setTheme({ popupRadius: r.val })}
+					aria-pressed={(cfg.popupRadius ?? cfg.radius) === r.val}
 				>
 					<div class="ts__r-box" style="border-radius: {r.px}"></div>
 					<span>{r.label}</span>

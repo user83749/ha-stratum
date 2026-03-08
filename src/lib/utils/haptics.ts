@@ -20,18 +20,54 @@ const VALID_HAPTICS = new Set<HapticType>([
 ]);
 
 export function triggerHaptic(style: HapticType = 'medium'): void {
+	const hapticType: HapticType = VALID_HAPTICS.has(style) ? style : 'medium';
+	if (hapticType === 'none') return;
+	if (typeof window === 'undefined') return;
+
+	const emit = (target: EventTarget | null | undefined) => {
+		if (!target || typeof (target as EventTarget).dispatchEvent !== 'function') return;
+		try {
+			target.dispatchEvent(
+				new CustomEvent('haptic', {
+					bubbles: true,
+					composed: true,
+					detail: hapticType
+				})
+			);
+		} catch {
+			// no-op
+		}
+	};
+
+	let hostWindow: Window = window;
 	try {
-		const hapticType: HapticType = VALID_HAPTICS.has(style) ? style : 'medium';
-		if (hapticType === 'none') return;
-		window.parent.dispatchEvent(
-			new CustomEvent('haptic', {
-				bubbles: true,
-				composed: true,
-				detail: hapticType
-			})
-		);
+		let current: Window = window;
+		while (current.parent && current.parent !== current) {
+			current = current.parent;
+			hostWindow = current;
+		}
+	} catch {
+		// stop at cross-origin boundaries
+	}
+
+	try {
+		if (window.top) hostWindow = window.top;
 	} catch {
 		// no-op
+	}
+
+	// Dispatch once in the iframe window (for local listeners), then once in the
+	// highest reachable host window (HA companion listener context).
+	emit(window);
+	if (hostWindow !== window) emit(hostWindow);
+
+	const maybeFireEvent = (globalThis as { fireEvent?: (node: EventTarget, type: string, detail?: unknown) => void }).fireEvent;
+	if (typeof maybeFireEvent === 'function') {
+		try {
+			maybeFireEvent(hostWindow, 'haptic', hapticType);
+		} catch {
+			// no-op
+		}
 	}
 }
 

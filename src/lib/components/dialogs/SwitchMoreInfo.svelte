@@ -117,8 +117,9 @@
 		width: 22px;
 		height: 22px;
 		border-radius: 50%;
-		background: white;
-		box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+		background: var(--surface);
+		border: 1px solid var(--border);
+		box-shadow: 0 2px 6px color-mix(in srgb, var(--fg) 22%, transparent);
 	}
 	.swi__toggle:disabled { opacity: 0.45; cursor: not-allowed; }
 </style>

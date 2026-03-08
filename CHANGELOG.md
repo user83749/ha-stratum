@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.35] - 2026-03-08
+
+### Changed
+- Extensive updates to MoreInfo dialogs for various entity types (Todo, TV, Update, Vacuum, WaterHeater, Weather).
+- Refactored `SectionGrid` layout and responsiveness handling.
+- Improved settings panels for navigation and themes.
+- Enhanced `ClimateTile` and `TileWrapper` component logic.
+- Optimized theme application and utility methods.
+
 ## [1.0.34] - 2026-03-08
 
 ### Changed

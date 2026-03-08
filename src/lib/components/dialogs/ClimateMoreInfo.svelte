@@ -278,7 +278,7 @@
 	.cmi__icon-badge {
 		width: 40px;
 		height: 40px;
-		border-radius: 12px;
+		border-radius: var(--dialog-radius);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -365,7 +365,7 @@
 		padding: 6px 14px;
 		background: rgba(255,255,255,0.05);
 		backdrop-filter: blur(10px);
-		border-radius: 14px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid rgba(255,255,255,0.1);
 	}
 
@@ -439,7 +439,7 @@
 	.cmi__nudge {
 		width: 36px;
 		height: 36px;
-		border-radius: 10px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid rgba(255,255,255,0.1);
 		background: rgba(255,255,255,0.05);
 		color: var(--fg);
@@ -514,7 +514,7 @@
 		/* Keep the “3 across” feel, but allow centering when fewer than 3 */
 		flex: 0 1 calc((100% - 16px) / 3);
 		height: 40px;
-		border-radius: 12px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid rgba(255,255,255,0.1);
 		background: rgba(255,255,255,0.03);
 		color: var(--fg-muted);

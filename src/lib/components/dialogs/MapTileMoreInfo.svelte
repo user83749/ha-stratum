@@ -158,7 +158,7 @@
 	.mtmi__icon {
 		width: 48px;
 		height: 48px;
-		border-radius: 14px;
+		border-radius: var(--dialog-radius);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -209,7 +209,7 @@
 	.mtmi__map-container {
 		position: relative;
 		height: 240px;
-		border-radius: 20px;
+		border-radius: var(--dialog-radius);
 		overflow: hidden;
 		border: 1px solid var(--border);
 		background: var(--hover);
@@ -236,7 +236,7 @@
 		padding: 8px 14px;
 		background: var(--bg-elevated);
 		border: 1px solid var(--border);
-		border-radius: 10px;
+		border-radius: var(--dialog-radius);
 		font-size: 0.75rem;
 		font-weight: 700;
 		color: var(--fg);
@@ -289,7 +289,7 @@
 	.mtmi__coord {
 		padding: 16px;
 		background: var(--hover);
-		border-radius: 16px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid var(--border);
 		display: flex;
 		flex-direction: column;
@@ -320,7 +320,7 @@
 		align-items: center;
 		padding: 14px 16px;
 		background: var(--hover);
-		border-radius: 14px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid var(--border);
 		transition: all 0.2s ease;
 	}

@@ -307,7 +307,7 @@
 	.umi__icon-wrap {
 		width: 56px;
 		height: 56px;
-		border-radius: 10px;
+		border-radius: var(--dialog-radius);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -375,7 +375,7 @@
 		gap: 4px;
 		padding: 16px;
 		background: var(--hover);
-		border-radius: 16px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid var(--border);
 	}
 
@@ -418,7 +418,7 @@
 		padding: 12px;
 		background: var(--accent);
 		color: var(--accent-fg);
-		border-radius: 16px;
+		border-radius: var(--dialog-radius);
 		font-size: 0.95rem;
 		font-weight: 700;
 		cursor: pointer;
@@ -454,7 +454,7 @@
 		font-size: 0.8rem;
 		font-weight: 600;
 		cursor: pointer;
-		border-radius: 10px;
+		border-radius: var(--dialog-radius);
 		transition: all 0.2s ease;
 	}
 
@@ -480,7 +480,7 @@
 
 	.umi__release-box {
 		background: var(--hover);
-		border-radius: 16px;
+		border-radius: var(--dialog-radius);
 		border: 1px solid var(--border);
 		overflow: hidden;
 	}

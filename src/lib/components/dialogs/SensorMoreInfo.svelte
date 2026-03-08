@@ -387,7 +387,7 @@
 	.usmi__img {
 		width: 34px;
 		height: 34px;
-		border-radius: 8px;
+		border-radius: var(--dialog-radius);
 		display: flex;
 		align-items: center;
 		justify-content: center;
