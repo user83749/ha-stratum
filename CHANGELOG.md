@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.39] - 2026-03-09
+
+### Changed
+- Improved Home Assistant authentication message interception in `server.js`.
+- Stabilized the websocket session by avoiding forwarding late browser auth messages to HA.
+
 ## [1.0.38] - 2026-03-08
 
 ### Changed

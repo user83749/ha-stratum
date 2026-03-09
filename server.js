@@ -217,8 +217,9 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 // ─── WebSocket Relay (addon mode) ───────────────────────────────────────────
 // Browser connects to ws://our-server/api-stratum/ws
 // Server opens ws://supervisor/core/api/websocket with SUPERVISOR_TOKEN,
-// handles the HA auth handshake automatically, then relays all messages
-// bidirectionally — no token ever needed from the browser side.
+// handles the HA auth handshake automatically, then relays messages
+// bidirectionally — except browser "auth" messages, which are always
+// intercepted to keep auth ownership server-side and avoid late-auth churn.
 
 const wss = new WebSocketServer({ noServer: true });
 
@@ -299,12 +300,16 @@ wss.on('connection', (browserWs) => {
 	});
 
 	browserWs.on('message', (data) => {
-		// Queue messages until HA auth completes
+		// Always intercept browser auth messages.
+		// The relay performs HA auth server-side with SUPERVISOR_TOKEN and then
+		// synthesizes auth_required/auth_ok back to the browser. Forwarding any
+		// late browser {"type":"auth"} to HA can destabilize the WS session.
+		let msg;
+		try { msg = JSON.parse(data.toString()); } catch { /* non-JSON frames are relayed */ }
+		if (msg?.type === 'auth') return;
+
+		// Queue all non-auth messages until HA auth completes.
 		if (!haReady) {
-			// Intercept the browser's auth message — we handle auth ourselves
-			let msg;
-			try { msg = JSON.parse(data.toString()); } catch { /* ignore */ }
-			if (msg?.type === 'auth') return; // Discard browser's auth attempt
 			pendingFromBrowser.push(data);
 			return;
 		}
