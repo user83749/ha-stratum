@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.40] - 2026-03-09
+
+### Changed
+- Improved the websocket relay connection management.
+- Refined the authentication mirroring logic in `server.js`.
+
 ## [1.0.39] - 2026-03-09
 
 ### Changed

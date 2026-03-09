@@ -217,9 +217,10 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 // ─── WebSocket Relay (addon mode) ───────────────────────────────────────────
 // Browser connects to ws://our-server/api-stratum/ws
 // Server opens ws://supervisor/core/api/websocket with SUPERVISOR_TOKEN,
-// handles the HA auth handshake automatically, then relays messages
-// bidirectionally — except browser "auth" messages, which are always
-// intercepted to keep auth ownership server-side and avoid late-auth churn.
+// handles the HA auth handshake automatically, while mirroring HA's
+// auth_required/auth_ok frames to the browser so the client state machine
+// stays in sync. Browser "auth" messages are always intercepted to keep
+// auth ownership server-side and avoid late-auth churn.
 
 const wss = new WebSocketServer({ noServer: true });
 
@@ -257,19 +258,23 @@ wss.on('connection', (browserWs) => {
 		let msg;
 		try { msg = JSON.parse(data.toString()); } catch { /* forward raw */ }
 
-		// Intercept auth_required — respond automatically with SUPERVISOR_TOKEN
+		// HA requests auth. Mirror this frame to the browser so the client auth
+		// state machine sees the normal sequence, but keep auth ownership here:
+		// we still authenticate HA server-side with SUPERVISOR_TOKEN.
 		if (msg?.type === 'auth_required') {
+			if (browserWs.readyState === WebSocket.OPEN) {
+				browserWs.send(data);
+			}
 			haWs.send(JSON.stringify({ type: 'auth', access_token: SUPERVISOR_TOKEN }));
 			return;
 		}
 
-		// auth_ok — send auth_required + auth_ok to the browser so that
-		// home-assistant-js-websocket's handshake state machine completes correctly
+		// HA auth succeeded. Forward auth_ok exactly once (no synthetic duplicate
+		// auth_required/auth_ok burst) and then flush queued browser commands.
 		if (msg?.type === 'auth_ok') {
 			haReady = true;
 			if (browserWs.readyState === WebSocket.OPEN) {
-				browserWs.send(JSON.stringify({ type: 'auth_required', ha_version: msg.ha_version ?? '0.0.0' }));
-				browserWs.send(JSON.stringify({ type: 'auth_ok', ha_version: msg.ha_version ?? '0.0.0' }));
+				browserWs.send(data);
 			}
 			// Flush any messages the browser sent before relay was ready
 			for (const queued of pendingFromBrowser) {
@@ -301,8 +306,8 @@ wss.on('connection', (browserWs) => {
 
 	browserWs.on('message', (data) => {
 		// Always intercept browser auth messages.
-		// The relay performs HA auth server-side with SUPERVISOR_TOKEN and then
-		// synthesizes auth_required/auth_ok back to the browser. Forwarding any
+		// The relay performs HA auth server-side with SUPERVISOR_TOKEN while
+		// mirroring HA auth_required/auth_ok to the browser. Forwarding any
 		// late browser {"type":"auth"} to HA can destabilize the WS session.
 		let msg;
 		try { msg = JSON.parse(data.toString()); } catch { /* non-JSON frames are relayed */ }
