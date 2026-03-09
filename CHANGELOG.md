@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.38] - 2026-03-08
+
+### Changed
+- Extensive updates to MoreInfo dialogs for AlarmPanel, Climate, Cover, and Todo entities.
+- Improved TilePicker and ClimateTile UI components.
+- Enhanced MediaPlayerTile and TileWrapper rendering logic.
+- Refined Home Assistant service handling and haptics feedback.
+
 ## [1.0.37] - 2026-03-08
 
 ### Changed

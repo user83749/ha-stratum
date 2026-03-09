@@ -27,8 +27,13 @@ export function triggerHaptic(style: HapticType = 'medium'): void {
 	const emit = (target: EventTarget | null | undefined) => {
 		if (!target) return;
 		try {
+			const targetWindow = target as Window & { CustomEvent?: typeof CustomEvent };
+			const TargetCustomEvent =
+				(typeof targetWindow.CustomEvent === 'function'
+					? targetWindow.CustomEvent
+					: CustomEvent) as typeof CustomEvent;
 			(target as EventTarget).dispatchEvent(
-				new CustomEvent('haptic', {
+				new TargetCustomEvent('haptic', {
 					bubbles: true,
 					composed: true,
 					detail: hapticType
@@ -39,35 +44,42 @@ export function triggerHaptic(style: HapticType = 'medium'): void {
 		}
 	};
 
-	let hostWindow: Window = window;
-	try {
-		let current: Window = window;
-		while (current.parent && current.parent !== current) {
-			current = current.parent;
-			hostWindow = current;
+	const maybeFireEvent = (globalThis as { fireEvent?: (node: EventTarget, type: string, detail?: unknown) => void }).fireEvent;
+	const emitWithFallback = (target: Window) => {
+		emit(target);
+		if (typeof maybeFireEvent === 'function') {
+			try {
+				maybeFireEvent(target, 'haptic', hapticType);
+			} catch {
+				// no-op
+			}
 		}
-	} catch {
-		// stop at cross-origin boundaries
+	};
+
+	// Current frame
+	emitWithFallback(window);
+
+	// Every reachable parent frame (important for nested iframe ingress paths).
+	let current: Window = window;
+	while (true) {
+		let parent: Window;
+		try {
+			parent = current.parent;
+		} catch {
+			break;
+		}
+		if (!parent || parent === current) break;
+		emitWithFallback(parent);
+		current = parent;
 	}
 
+	// Final top dispatch (safe no-op if already emitted).
 	try {
-		if (window.top) hostWindow = window.top;
+		if (window.top && window.top !== current) {
+			emitWithFallback(window.top);
+		}
 	} catch {
 		// no-op
-	}
-
-	// Dispatch once in the iframe window (for local listeners), then once in the
-	// highest reachable host window (HA companion listener context).
-	emit(window);
-	if (hostWindow !== window) emit(hostWindow);
-
-	const maybeFireEvent = (globalThis as { fireEvent?: (node: EventTarget, type: string, detail?: unknown) => void }).fireEvent;
-	if (typeof maybeFireEvent === 'function') {
-		try {
-			maybeFireEvent(hostWindow, 'haptic', hapticType);
-		} catch {
-			// no-op
-		}
 	}
 }
 

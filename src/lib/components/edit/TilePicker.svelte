@@ -28,6 +28,7 @@
   let selectedEntityId = $state<string | undefined>(undefined);
   let selectedType = $state<TileType | null>(null);
   let selectedPreset = $state<'sm' | 'md' | 'lg' | 'xl'>('md');
+  let previewGridWidth = $state(0);
   const breakpoint = $derived($currentBreakpoint);
 
   function resolvePreviewBreakpoint(): 'sm' | 'md' | 'lg' {
@@ -210,12 +211,21 @@
     return 4;
   });
 
-  // Fixed row height that gives tiles enough room to render properly.
-  const previewRowHeight = 156;
+  // Keep preview cells square and responsive to available width so every tile
+  // preset has enough space and does not get vertically cropped.
+  const PREVIEW_GAP = 10;
+  const PREVIEW_PADDING_Y = 36;
+  const previewRowHeight = $derived.by(() => {
+    if (previewGridWidth <= 0) return 156;
+    const cols = Math.max(1, previewCols);
+    const usableWidth = Math.max(0, previewGridWidth - PREVIEW_GAP * (cols - 1));
+    const cell = usableWidth / cols;
+    return Math.round(Math.max(132, Math.min(220, cell)));
+  });
 
   const previewShellMinHeight = $derived.by(() => {
     const rows = previewTile?.layout?.h ?? 1;
-    return rows * previewRowHeight + 36;
+    return rows * previewRowHeight + PREVIEW_PADDING_Y;
   });
 
   function createTile() {
@@ -358,7 +368,11 @@
         </div>
 
         <div class="tp-preview-shell" style="min-height:{previewShellMinHeight}px;">
-          <div class="tp-preview-grid" style="grid-auto-rows:{previewRowHeight}px;--tp-preview-cols:{previewCols};">
+          <div
+            class="tp-preview-grid"
+            bind:clientWidth={previewGridWidth}
+            style="grid-auto-rows:{previewRowHeight}px;--tp-preview-cols:{previewCols};"
+          >
             {#if previewTile}
               {@const cols = previewTile.layout?.w ?? 1}
               {@const rows = previewTile.layout?.h ?? 1}
@@ -625,12 +639,14 @@
     grid-template-columns: repeat(var(--tp-preview-cols, 4), minmax(0, 1fr));
     gap: 10px;
     align-items: stretch;
+    align-content: center;
     width: 100%;
     overflow: visible;
   }
 
   .tp-preview-slot {
     display: flex;
+    height: 100%;
     min-width: 0;
     min-height: 0;
     border-radius: var(--radius);

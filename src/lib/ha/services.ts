@@ -435,15 +435,15 @@ export const todoService = {
 			...(dueDate ? { due_date: dueDate } : {}),
 			...(dueDateTime ? { due_datetime: dueDateTime } : {})
 		}, target(entityId)),
-	updateItem: (entityId: string, item: string, status?: TodoStatus, rename?: string, description?: string) =>
+	updateItem: (entityId: string, itemOrUid: string, status?: TodoStatus, rename?: string, description?: string) =>
 		callService('todo', 'update_item', {
-			item,
+			item: itemOrUid,
 			...(status ? { status } : {}),
 			...(rename ? { rename } : {}),
 			...(description ? { description } : {})
 		}, target(entityId)),
-	removeItem: (entityId: string, item: string) =>
-		callService('todo', 'remove_item', { item }, target(entityId)),
+	removeItem: (entityId: string, itemOrUid: string) =>
+		callService('todo', 'remove_item', { item: itemOrUid }, target(entityId)),
 	removeCompleted: (entityId: string) =>
 		callService('todo', 'remove_completed_items', {}, target(entityId))
 };

@@ -572,6 +572,7 @@
 		min-width: 0;
 		min-height: 0;
 		container-type: inline-size;
+		container-name: tile;
 		text-rendering: auto;
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
@@ -596,6 +597,25 @@
 		--control-chip-icon-size:         14px;
 		--control-chip-icon-size-compact: 13px;
 		transition: none;
+	}
+
+	/* Preview hardening: keep dense layouts from clipping in the Add Tile slot. */
+	.tile-wrapper.preview :global(.layout-lg) {
+		padding: min(18px, 6%);
+		gap: min(14px, 4%);
+	}
+
+	.tile-wrapper.preview :global(.layout-md) {
+		gap: min(10px, 3%);
+	}
+
+	.tile-wrapper.preview :global(.mode-switcher) {
+		padding: 6px;
+	}
+
+	.tile-wrapper.preview :global(.target-control) {
+		gap: min(22px, 5%);
+		padding: min(10px, 3.5%) min(20px, 6%);
 	}
 
 	/* ── Static card surface vars ────────────────────────────────────────── */

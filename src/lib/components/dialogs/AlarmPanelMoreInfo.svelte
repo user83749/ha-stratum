@@ -14,6 +14,7 @@
 	
 	const codeFormat = $derived(entity?.attributes.code_format as string | undefined);
 	const codeRequired = $derived(entity?.attributes.code_arm_required as boolean | undefined);
+	const supportedFeatures = $derived((entity?.attributes.supported_features as number | undefined) ?? 0);
 
 	let code = $state('');
 
@@ -29,6 +30,30 @@
 		__state === 'triggered' ? 'shield-alert' :
 		'shield-lock'
 	);
+
+	// alarm_control_panel supported_features bitmask
+	const ARM_HOME = 1;
+	const ARM_AWAY = 2;
+	const ARM_NIGHT = 4;
+	const ARM_VACATION = 32;
+	const unknownFeatures = $derived(supportedFeatures === 0);
+
+	const canArmHome = $derived(unknownFeatures || (supportedFeatures & ARM_HOME) !== 0);
+	const canArmAway = $derived(unknownFeatures || (supportedFeatures & ARM_AWAY) !== 0);
+	const canArmNight = $derived(unknownFeatures || (supportedFeatures & ARM_NIGHT) !== 0);
+	const canArmVacation = $derived(unknownFeatures || (supportedFeatures & ARM_VACATION) !== 0);
+
+	function requiresCode(action: 'disarm' | 'arm_home' | 'arm_away' | 'arm_night' | 'arm_vacation'): boolean {
+		if (!codeFormat) return false;
+		if (action === 'disarm') return true;
+		return !!codeRequired;
+	}
+
+	function canRun(action: 'disarm' | 'arm_home' | 'arm_away' | 'arm_night' | 'arm_vacation'): boolean {
+		if (isUnavail) return false;
+		if (!requiresCode(action)) return true;
+		return code.length > 0;
+	}
 
 	function addDigit(digit: string) { if (code.length < 8) code += digit; }
 	function clearCode() { code = ''; }
@@ -46,7 +71,7 @@
 			action === 'arm_home' ? alarmService.armHome(entityId, code) :
 			action === 'arm_away' ? alarmService.armAway(entityId, code) :
 			action === 'arm_night' ? alarmService.armNight(entityId, code) :
-			alarmService.armAway(entityId, code);
+			alarmService.armVacation(entityId, code);
 
 		call.then(() => { code = ''; }).catch(() => {});
 	}
@@ -77,39 +102,51 @@
 				{/if}
 			</div>
 
-			<div class="ami__keypad">
-				{#each ['1','2','3','4','5','6','7','8','9'] as d}
-					<button class="ami__key" onclick={() => addDigit(d)}>{d}</button>
-				{/each}
-				<button class="ami__key ami__key--clear" onclick={clearCode}>C</button>
-				<button class="ami__key" onclick={() => addDigit('0')}>0</button>
-				<button class="ami__key ami__key--back" onclick={() => code = code.slice(0,-1)}>
-					<Icon name="delete" size={20} />
-				</button>
-			</div>
+				<div class="ami__keypad">
+					{#each ['1','2','3','4','5','6','7','8','9'] as d}
+						<button class="ami__key" onclick={() => addDigit(d)} disabled={isUnavail}>{d}</button>
+					{/each}
+					<button class="ami__key ami__key--clear" onclick={clearCode} disabled={isUnavail}>C</button>
+					<button class="ami__key" onclick={() => addDigit('0')} disabled={isUnavail}>0</button>
+					<button class="ami__key ami__key--back" onclick={() => code = code.slice(0,-1)} disabled={isUnavail}>
+						<Icon name="delete" size={20} />
+					</button>
+				</div>
 		</div>
 
 		<div class="ami__actions">
 			{#if __state === 'disarmed'}
 				<div class="ami__action-grid">
-					<button class="ami__action-btn" onclick={() => handleAction('arm_home')}>
-						<Icon name="home" size={20} />
-						<span>Arm Home</span>
-					</button>
-					<button class="ami__action-btn ami__action-btn--primary" onclick={() => handleAction('arm_away')}>
-						<Icon name="shield-lock" size={20} />
-						<span>Arm Away</span>
-					</button>
-					<button class="ami__action-btn" onclick={() => handleAction('arm_night')}>
-						<Icon name="moon" size={20} />
-						<span>Arm Night</span>
-					</button>
+					{#if canArmHome}
+						<button class="ami__action-btn" onclick={() => handleAction('arm_home')} disabled={!canRun('arm_home')}>
+							<Icon name="home" size={20} />
+							<span>Arm Home</span>
+						</button>
+					{/if}
+					{#if canArmAway}
+						<button class="ami__action-btn ami__action-btn--primary" onclick={() => handleAction('arm_away')} disabled={!canRun('arm_away')}>
+							<Icon name="shield-lock" size={20} />
+							<span>Arm Away</span>
+						</button>
+					{/if}
+					{#if canArmNight}
+						<button class="ami__action-btn" onclick={() => handleAction('arm_night')} disabled={!canRun('arm_night')}>
+							<Icon name="moon" size={20} />
+							<span>Arm Night</span>
+						</button>
+					{/if}
+					{#if canArmVacation}
+						<button class="ami__action-btn" onclick={() => handleAction('arm_vacation')} disabled={!canRun('arm_vacation')}>
+							<Icon name="plane" size={20} />
+							<span>Arm Vacation</span>
+						</button>
+					{/if}
 				</div>
 			{:else}
 				<button 
 					class="ami__disarm-btn" 
 					onclick={() => handleAction('disarm')} 
-					disabled={codeRequired && code.length === 0}
+					disabled={!canRun('disarm')}
 				>
 					<Icon name="shield-check" size={24} />
 					<span>Disarm System</span>

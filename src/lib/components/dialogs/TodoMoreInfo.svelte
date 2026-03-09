@@ -53,7 +53,7 @@
 			);
 			return;
 		}
-		todoService.updateItem(entityId, item.summary, nextStatus).catch(() => {});
+		todoService.updateItem(entityId, item.uid ?? item.summary, nextStatus).catch(() => {});
 	}
 
 	function removeItem(item: TodoItem) {
@@ -64,7 +64,7 @@
 			);
 			return;
 		}
-		todoService.removeItem(entityId, item.summary).catch(() => {});
+		todoService.removeItem(entityId, item.uid ?? item.summary).catch(() => {});
 	}
 
 	function clearCompleted() {

@@ -11,6 +11,7 @@
 
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
+  const isWideMd = $derived(layoutW >= 2 && layoutH === 1);
   const sizePreset = $derived(
     layoutW >= 4 && layoutH >= 3 ? 'xl' :
     layoutW >= 3 && layoutH >= 2 ? 'lg' :
@@ -128,13 +129,13 @@
 
   {:else if sizePreset === 'md'}
     <!-- 2x1 Horizontal Row -->
-    <div class="layout-md">
+    <div class="layout-md" class:is-wide-md={isWideMd}>
       <button class="md-left" onclick={togglePower} aria-label="Toggle Power">
         <div class="md-icon" style="color: {modeColor}">
           {#if iconOverride && overrideIsCustom}
-            <Icon name={mainIcon} entity={entity} size={48} />
+            <Icon name={mainIcon} entity={entity} />
           {:else}
-            <Icon name={mainIcon} size={48} />
+            <Icon name={mainIcon} />
           {/if}
         </div>
         <div class="md-status">
@@ -155,10 +156,10 @@
         {#if !isOff && targetTemp !== undefined}
           <div class="md-controls">
             <button class="adj-btn" onclick={() => adjustTemp(-0.5)} aria-label="Lower temp">
-              <Icon name="minus" size={16} />
+              <Icon name="minus" />
             </button>
             <button class="adj-btn" onclick={() => adjustTemp(0.5)} aria-label="Raise temp">
-              <Icon name="plus" size={16} />
+              <Icon name="plus" />
             </button>
           </div>
         {/if}
@@ -290,17 +291,16 @@
 
   .sm-setpoint {
     position: absolute;
-    top: -1%;
+    top: 0;
     right: 2%;
-    width: 42%;
-    height: 34%;
+    max-width: 44%;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--c-font-size, 14px);
-    font-weight: var(--c-font-weight, 700);
-    letter-spacing: var(--c-letter-spacing, -0.02rem);
-    line-height: 1;
+    align-items: flex-start;
+    justify-content: flex-end;
+    font-size: var(--button-card-font-size);
+    font-weight: 500;
+    letter-spacing: var(--button-card-letter-spacing);
+    line-height: 1.15;
     text-align: right;
     white-space: nowrap;
     pointer-events: none;
@@ -308,9 +308,9 @@
   }
 
   .sm-setpoint-unit {
-    font-size: var(--c-unit-font-size, 10.5px);
-    margin-left: 0.3px;
-    transform: translateY(-0.35em);
+    font-size: 0.78em;
+    margin-left: 1px;
+    transform: translateY(-0.18em);
     display: inline-block;
   }
 
@@ -342,11 +342,15 @@
   .layout-md {
     flex: 1;
     display: flex;
-    flex-direction: column;
+    align-items: center;
     justify-content: space-between;
     padding: 0;
-    gap: 12px;
+    gap: calc(var(--tile-padding-effective) * 1.1);
     transition: all 0.3s ease;
+  }
+
+  .layout-md.is-wide-md {
+    gap: var(--tile-gap);
   }
 
   .md-left {
@@ -356,37 +360,70 @@
     font: inherit;
     text-align: left;
     display: flex;
-    align-items: flex-start;
-    gap: 20px;
+    align-items: center;
+    gap: calc(var(--tile-padding-effective) * 1.35);
     min-width: 0;
     cursor: pointer;
+    flex: 1;
+  }
+
+  .layout-md.is-wide-md .md-left {
+    gap: calc(var(--tile-padding-effective) * 1.2);
   }
 
   .md-status {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    gap: 1px;
+    flex: 1;
+  }
+
+  .md-icon {
+    width: calc(var(--hero-icon-size) * 1.05);
+    height: calc(var(--hero-icon-size) * 1.05);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .md-icon :global(svg),
+  .md-icon :global(.icon) {
+    width: 100%;
+    height: 100%;
   }
 
   .status-val {
     font-size: var(--button-card-font-size);
     font-weight: 500;
     text-transform: capitalize;
-  }
-
-  .device-name {
-    font-size: var(--button-card-font-size);
-    font-weight: 500;
-    color: var(--fg-subtle);
+    line-height: 1.15;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
+  .device-name {
+    font-size: var(--button-card-font-size);
+    font-weight: 500;
+    color: inherit;
+    opacity: 0.88;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.12;
+  }
+
   .md-right {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: calc(var(--tile-padding-effective) * 1.15);
+    flex-shrink: 0;
+  }
+
+  .layout-md.is-wide-md .md-right {
+    gap: calc(var(--tile-padding-effective) * 1);
   }
 
   .md-temp {
@@ -406,26 +443,43 @@
   .md-temp .target {
     font-size: var(--secondary-label-size);
     font-weight: 500;
-    color: var(--fg-muted);
-    margin-top: 2px;
+    color: inherit;
+    opacity: 0.8;
+    margin-top: 1px;
+    line-height: 1.1;
   }
 
   .md-controls {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    flex-direction: row;
+    gap: calc(var(--tile-padding-effective) * 0.45);
   }
 
   .adj-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+    width: var(--control-chip-size-compact);
+    height: var(--control-chip-size-compact);
+    border-radius: var(--control-chip-radius-compact);
     background: color-mix(in srgb, var(--fg) 6%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--fg-muted);
     transition: all 0.2s;
+  }
+
+  .adj-btn :global(svg),
+  .adj-btn :global(.icon) {
+    width: var(--action-icon-size);
+    height: var(--action-icon-size);
+  }
+
+  .layout-md:not(.is-wide-md) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .layout-md:not(.is-wide-md) .md-right {
+    justify-content: space-between;
   }
 
   .adj-btn:hover {

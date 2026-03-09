@@ -13,10 +13,27 @@
 	const __state = $derived((entity?.state as string | undefined) ?? 'unknown');
 	const position = $derived((entity?.attributes.current_position as number | undefined) ?? (__state === 'open' ? 100 : 0));
 	const tilt = $derived(entity?.attributes.current_tilt_position as number | undefined);
+	const supportedFeatures = $derived((entity?.attributes.supported_features as number | undefined) ?? 0);
 
 	let localPos = $state(0);
 	let dragging = $state(false);
+	let localTilt = $state(0);
+	let draggingTilt = $state(false);
 	$effect(() => { if (!dragging) localPos = position; });
+	$effect(() => { if (!draggingTilt) localTilt = tilt ?? 0; });
+
+	// cover supported_features bitmask
+	const OPEN = 1;
+	const CLOSE = 2;
+	const SET_POSITION = 4;
+	const STOP = 8;
+	const SET_TILT_POSITION = 128;
+	const unknownFeatures = $derived(supportedFeatures === 0);
+	const canOpen = $derived(unknownFeatures || (supportedFeatures & OPEN) !== 0);
+	const canClose = $derived(unknownFeatures || (supportedFeatures & CLOSE) !== 0);
+	const canStop = $derived(unknownFeatures || (supportedFeatures & STOP) !== 0);
+	const canSetPosition = $derived(unknownFeatures || (supportedFeatures & SET_POSITION) !== 0);
+	const canSetTilt = $derived(unknownFeatures || (supportedFeatures & SET_TILT_POSITION) !== 0);
 
 	function onInput(e: Event) {
 		dragging = true;
@@ -26,11 +43,28 @@
 	function onChange(e: Event) {
 		dragging = false;
 		const next = Number((e.target as HTMLInputElement).value);
+		if (!canSetPosition) return;
 		if (optimisticPreviewEnabled) {
 			applyPatch(entityId, { state: next > 0 ? 'open' : 'closed', attributes: { current_position: next } });
 		} else {
 			coverService.setPosition(entityId, next).catch(() => {});
 		}
+	}
+
+	function onTiltInput(e: Event) {
+		draggingTilt = true;
+		localTilt = Number((e.target as HTMLInputElement).value);
+	}
+
+	function onTiltChange(e: Event) {
+		draggingTilt = false;
+		const next = Number((e.target as HTMLInputElement).value);
+		if (!canSetTilt) return;
+		if (optimisticPreviewEnabled) {
+			applyPatch(entityId, { attributes: { current_tilt_position: next } });
+			return;
+		}
+		coverService.setTilt(entityId, next).catch(() => {});
 	}
 
 	function run(action: 'open' | 'stop' | 'close') {
@@ -68,7 +102,7 @@
 						value={localPos} 
 						oninput={onInput}
 						onchange={onChange}
-						disabled={isUnavail}
+						disabled={isUnavail || !canSetPosition}
 						class="covmi__slider"
 						aria-label="Cover position" 
 					/>
@@ -80,15 +114,15 @@
 			</div>
 
 			<div class="covmi__actions-grid">
-				<button class="covmi__action-btn" onclick={() => run('open')} disabled={isUnavail}>
+				<button class="covmi__action-btn" onclick={() => run('open')} disabled={isUnavail || !canOpen}>
 					<Icon name="chevrons-up" size={20} />
 					<span>Open</span>
 				</button>
-				<button class="covmi__action-btn covmi__action-btn--stop" onclick={() => run('stop')} disabled={isUnavail}>
+				<button class="covmi__action-btn covmi__action-btn--stop" onclick={() => run('stop')} disabled={isUnavail || !canStop}>
 					<Icon name="square" size={20} />
 					<span>Stop</span>
 				</button>
-				<button class="covmi__action-btn" onclick={() => run('close')} disabled={isUnavail}>
+				<button class="covmi__action-btn" onclick={() => run('close')} disabled={isUnavail || !canClose}>
 					<Icon name="chevrons-down" size={20} />
 					<span>Close</span>
 				</button>
@@ -102,12 +136,14 @@
 					<Icon name="rotate-cw" size={16} />
 					<input 
 						type="range" min="0" max="100" 
-						value={tilt}
-						disabled={isUnavail}
+							value={localTilt}
+							oninput={onTiltInput}
+							onchange={onTiltChange}
+							disabled={isUnavail || !canSetTilt}
 						class="covmi__slim-slider"
 						aria-label="Tilt position"
 					/>
-					<span class="covmi__tilt-val">{tilt}%</span>
+						<span class="covmi__tilt-val">{Math.round(localTilt)}%</span>
 				</div>
 			</div>
 		{/if}

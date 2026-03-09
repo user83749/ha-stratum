@@ -67,13 +67,36 @@
 		}, 150);
 	}
 
-	function setMode(mode: string) {
+	let settingMode = $state(false);
+	async function setMode(mode: string) {
 		if (isUnavail) return;
+		if (settingMode) return;
 		if (optimisticPreviewEnabled) {
 			applyPatch(entityId, { state: mode });
 			return;
 		}
-		climateService.setHvacMode(entityId, mode as any).catch(() => {});
+		settingMode = true;
+		try {
+			if (mode === 'off') {
+				try {
+					await climateService.turnOff(entityId);
+				} catch {
+					// Some integrations only support set_hvac_mode=off
+					await climateService.setHvacMode(entityId, 'off');
+				}
+				return;
+			}
+
+			// Some integrations need turn_on before accepting hvac mode changes from off.
+			if (hvacMode === 'off') {
+				try { await climateService.turnOn(entityId); } catch { /* no-op */ }
+			}
+			await climateService.setHvacMode(entityId, mode as any);
+		} catch {
+			// no-op
+		} finally {
+			settingMode = false;
+		}
 	}
 
 	function nudgeSingle(dir: 1 | -1) {
@@ -221,6 +244,7 @@
 						class="cmi__mode-btn" 
 						class:cmi__mode-btn--active={hvacMode === mode} 
 						style={hvacMode === mode ? `--active-color: ${actionColor}` : ''}
+						disabled={isUnavail || settingMode}
 						onclick={() => setMode(mode)}
 					>
 						<span class="cmi__mode-label">{mode.replace(/_/g, ' ')}</span>
