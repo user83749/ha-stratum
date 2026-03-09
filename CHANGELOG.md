@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.41] - 2026-03-09
+
+### Changed
+- Further improved websocket relay stabilization and error handling in `server.js`.
+- Refined session cleanup logic for cleaner disconnections.
+
 ## [1.0.40] - 2026-03-09
 
 ### Changed

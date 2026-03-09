@@ -254,7 +254,7 @@ wss.on('connection', (browserWs) => {
 		clearInterval(keepalive);
 	}
 
-	haWs.on('message', (data) => {
+	haWs.on('message', (data, isBinary) => {
 		let msg;
 		try { msg = JSON.parse(data.toString()); } catch { /* forward raw */ }
 
@@ -263,7 +263,9 @@ wss.on('connection', (browserWs) => {
 		// we still authenticate HA server-side with SUPERVISOR_TOKEN.
 		if (msg?.type === 'auth_required') {
 			if (browserWs.readyState === WebSocket.OPEN) {
-				browserWs.send(data);
+				// Forward HA text frames as text so browser JSON parsers do not
+				// receive Blob/ArrayBuffer during websocket auth phase.
+				browserWs.send(isBinary ? data : data.toString());
 			}
 			haWs.send(JSON.stringify({ type: 'auth', access_token: SUPERVISOR_TOKEN }));
 			return;
@@ -274,7 +276,7 @@ wss.on('connection', (browserWs) => {
 		if (msg?.type === 'auth_ok') {
 			haReady = true;
 			if (browserWs.readyState === WebSocket.OPEN) {
-				browserWs.send(data);
+				browserWs.send(isBinary ? data : data.toString());
 			}
 			// Flush any messages the browser sent before relay was ready
 			for (const queued of pendingFromBrowser) {
@@ -300,7 +302,7 @@ wss.on('connection', (browserWs) => {
 
 		// All other messages — pass through to browser
 		if (browserWs.readyState === WebSocket.OPEN) {
-			browserWs.send(data);
+			browserWs.send(isBinary ? data : data.toString());
 		}
 	});
 
