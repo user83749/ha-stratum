@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.42] - 2026-03-09
+
+### Changed
+- Further improved websocket relay stability and error handling in `server.js`.
+- Refined release notes fetching logic in `UpdateMoreInfo.svelte` to use sequence keys for better race condition handling.
+
 ## [1.0.41] - 2026-03-09
 
 ### Changed

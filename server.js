@@ -217,10 +217,9 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 // ─── WebSocket Relay (addon mode) ───────────────────────────────────────────
 // Browser connects to ws://our-server/api-stratum/ws
 // Server opens ws://supervisor/core/api/websocket with SUPERVISOR_TOKEN,
-// handles the HA auth handshake automatically, while mirroring HA's
-// auth_required/auth_ok frames to the browser so the client state machine
-// stays in sync. Browser "auth" messages are always intercepted to keep
-// auth ownership server-side and avoid late-auth churn.
+// mirrors HA auth_required/auth_ok frames to the browser, and rewrites the
+// browser auth payload with SUPERVISOR_TOKEN before forwarding to HA. This
+// preserves the normal client handshake order without exposing credentials.
 
 const wss = new WebSocketServer({ noServer: true });
 
@@ -235,6 +234,8 @@ wss.on('connection', (browserWs) => {
 	});
 
 	let haReady = false;
+	let haAuthRequested = false;
+	let pendingAuthPayload = null;
 	const pendingFromBrowser = [];
 
 	// ── Keepalive ping every 30s to prevent HA Ingress from killing idle WS ──
@@ -258,16 +259,20 @@ wss.on('connection', (browserWs) => {
 		let msg;
 		try { msg = JSON.parse(data.toString()); } catch { /* forward raw */ }
 
-		// HA requests auth. Mirror this frame to the browser so the client auth
-		// state machine sees the normal sequence, but keep auth ownership here:
-		// we still authenticate HA server-side with SUPERVISOR_TOKEN.
+		// HA requests auth. Mirror this frame to the browser so the client
+		// sees the normal sequence. When the browser sends {"type":"auth"},
+		// we rewrite access_token server-side and forward to HA.
 		if (msg?.type === 'auth_required') {
+			haAuthRequested = true;
 			if (browserWs.readyState === WebSocket.OPEN) {
 				// Forward HA text frames as text so browser JSON parsers do not
 				// receive Blob/ArrayBuffer during websocket auth phase.
 				browserWs.send(isBinary ? data : data.toString());
 			}
-			haWs.send(JSON.stringify({ type: 'auth', access_token: SUPERVISOR_TOKEN }));
+			if (pendingAuthPayload && haWs.readyState === WebSocket.OPEN) {
+				haWs.send(pendingAuthPayload);
+				pendingAuthPayload = null;
+			}
 			return;
 		}
 
@@ -275,6 +280,7 @@ wss.on('connection', (browserWs) => {
 		// auth_required/auth_ok burst) and then flush queued browser commands.
 		if (msg?.type === 'auth_ok') {
 			haReady = true;
+			haAuthRequested = false;
 			if (browserWs.readyState === WebSocket.OPEN) {
 				browserWs.send(isBinary ? data : data.toString());
 			}
@@ -306,22 +312,33 @@ wss.on('connection', (browserWs) => {
 		}
 	});
 
-	browserWs.on('message', (data) => {
-		// Always intercept browser auth messages.
-		// The relay performs HA auth server-side with SUPERVISOR_TOKEN while
-		// mirroring HA auth_required/auth_ok to the browser. Forwarding any
-		// late browser {"type":"auth"} to HA can destabilize the WS session.
+	browserWs.on('message', (data, isBinary) => {
+		// Intercept browser auth messages and rewrite token server-side.
 		let msg;
 		try { msg = JSON.parse(data.toString()); } catch { /* non-JSON frames are relayed */ }
-		if (msg?.type === 'auth') return;
+		if (msg?.type === 'auth') {
+			if (haReady) return;
+			if (!SUPERVISOR_TOKEN) {
+				browserWs.close(4401, 'SUPERVISOR_TOKEN missing');
+				return;
+			}
+			pendingAuthPayload = JSON.stringify({ type: 'auth', access_token: SUPERVISOR_TOKEN });
+			if (haWs.readyState === WebSocket.OPEN && haAuthRequested) {
+				haWs.send(pendingAuthPayload);
+				pendingAuthPayload = null;
+			}
+			return;
+		}
+		// Forward browser text frames as text; HA websocket API expects JSON text.
+		const relayPayload = isBinary ? data : data.toString();
 
 		// Queue all non-auth messages until HA auth completes.
 		if (!haReady) {
-			pendingFromBrowser.push(data);
+			pendingFromBrowser.push(relayPayload);
 			return;
 		}
 		if (haWs.readyState === WebSocket.OPEN) {
-			haWs.send(data);
+			haWs.send(relayPayload);
 		} else {
 			console.warn('[Stratum] WS relay: browser sent message but HA WS is not open (state:', haWs.readyState, ')');
 		}
