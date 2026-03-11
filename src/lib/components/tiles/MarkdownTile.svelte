@@ -1,17 +1,11 @@
 <script lang="ts">
   import type { Tile } from '$lib/types/dashboard';
+  import { getTileSizePreset } from '$lib/layout/tileSizing';
 
   let { tile }: { tile: Tile } = $props();
 
   const config = $derived(tile.config ?? {});
-  const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
-  const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
-  const sizePreset = $derived(
-    layoutW >= 4 && layoutH >= 3 ? 'xl' :
-    layoutW >= 3 && layoutH >= 2 ? 'lg' :
-    layoutW >= 2 || layoutH >= 2 ? 'md' :
-    'sm'
-  );
+  const sizePreset = $derived(getTileSizePreset(tile));
   const content = $derived(config.content as string ?? '');
   const visibleContent = $derived(sizePreset === 'sm' ? content.slice(0, 180) : content);
 

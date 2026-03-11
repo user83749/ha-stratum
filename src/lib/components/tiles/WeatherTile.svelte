@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
+  import { getTileSizePreset } from '$lib/layout/tileSizing';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
@@ -10,12 +11,9 @@
   const config = $derived(tile.config);
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
-  const sizePreset = $derived(
-    layoutW >= 4 && layoutH >= 3 ? 'xl' :
-    layoutW >= 3 && layoutH >= 2 ? 'lg' :
-    layoutW >= 2 || layoutH >= 2 ? 'md' :
-    'sm'
-  );
+  const isWideMd = $derived(layoutW >= 2 && layoutH === 1);
+  const isTallMd = $derived(layoutW === 1 && layoutH >= 2);
+  const sizePreset = $derived(getTileSizePreset(tile));
 
   const state = $derived(entity?.state ?? 'unknown');
   const attrs = $derived(entity?.attributes ?? {});
@@ -76,9 +74,9 @@
     <div class="layout-sm">
       <div class="sm-icon-wrap" style="color: {conditionColor(state)}">
         {#if iconOverride && overrideIsCustom}
-          <Icon name={mainIcon} entity={entity} size={42} />
+          <Icon name={mainIcon} entity={entity} size="100%" />
         {:else}
-          <Icon name={mainIcon} size={42} />
+          <Icon name={mainIcon} size="100%" />
         {/if}
       </div>
       <div class="sm-content">
@@ -99,12 +97,12 @@
 
   {:else if sizePreset === 'md'}
     <!-- 2x1 Horizontal Row -->
-    <div class="layout-md">
+    <div class="layout-md" class:is-wide-md={isWideMd} class:is-tall-md={isTallMd}>
       <div class="md-icon" style="color: {conditionColor(state)}">
         {#if iconOverride && overrideIsCustom}
-          <Icon name={mainIcon} entity={entity} size={48} />
+          <Icon name={mainIcon} entity={entity} size="100%" />
         {:else}
-          <Icon name={mainIcon} size={48} />
+          <Icon name={mainIcon} size="100%" />
         {/if}
       </div>
       <div class="md-content">
@@ -133,9 +131,9 @@
         <div class="lg-hero">
           <div class="lg-icon" style="color: {conditionColor(state)}">
             {#if iconOverride && overrideIsCustom}
-              <Icon name={mainIcon} entity={entity} size={sizePreset === 'xl' ? 92 : 72} />
+              <Icon name={mainIcon} entity={entity} size="100%" />
             {:else}
-              <Icon name={mainIcon} size={sizePreset === 'xl' ? 92 : 72} />
+              <Icon name={mainIcon} size="100%" />
             {/if}
           </div>
           <div class="lg-hero-text">
@@ -174,7 +172,7 @@
             <div class="forecast-day">
               <span class="day-lbl">{dayLabel(day.datetime)}</span>
               <span class="day-icon" style="color: {conditionColor(day.condition)}">
-                <Icon name={conditionIcon(day.condition)} size={22} />
+                <Icon name={conditionIcon(day.condition)} size="100%" />
               </span>
               <div class="day-temps">
                 <span class="high">{Math.round(day.temperature)}°</span>
@@ -190,6 +188,10 @@
 
 <style>
   .weather-tile {
+    --weather-icon-sm: calc(var(--button-card-font-size) * 2.55);
+    --weather-icon-md: calc(var(--button-card-font-size) * 2.95);
+    --weather-icon-lg: calc(var(--hero-text-size) * 0.92);
+    --weather-forecast-icon: calc(var(--button-card-font-size) * 1.35);
     width: 100%;
     height: 100%;
     display: flex;
@@ -206,6 +208,14 @@
     align-items: flex-start;
     justify-content: space-between;
     padding: 0;
+  }
+  .sm-icon-wrap {
+    width: var(--weather-icon-sm);
+    height: var(--weather-icon-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
 
   .sm-content {
@@ -246,12 +256,21 @@
     gap: 24px;
     transition: all 0.3s ease;
   }
+  .layout-md.is-tall-md {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 0;
+  }
 
   .md-icon {
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    width: var(--weather-icon-md);
+    height: var(--weather-icon-md);
   }
 
   .md-content {
@@ -260,6 +279,18 @@
     align-items: center;
     gap: 24px;
     min-width: 0;
+  }
+  .layout-md.is-tall-md .md-content {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .layout-md.is-tall-md .md-temp-group {
+    align-items: flex-start;
+  }
+  .layout-md.is-tall-md .md-meta {
+    width: 100%;
   }
 
   .md-temp-group {
@@ -343,6 +374,18 @@
     display: flex;
     align-items: center;
     gap: 24px;
+  }
+  .lg-icon {
+    width: var(--weather-icon-lg);
+    height: var(--weather-icon-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .layout-lg.is-xl .lg-icon {
+    width: calc(var(--weather-icon-lg) * 1.2);
+    height: calc(var(--weather-icon-lg) * 1.2);
   }
 
   .lg-hero-text {
@@ -439,6 +482,14 @@
     gap: 10px;
     flex: 1;
     min-width: 0;
+  }
+  .day-icon {
+    width: var(--weather-forecast-icon);
+    height: var(--weather-forecast-icon);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
 
   .day-lbl {

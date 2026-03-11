@@ -1,11 +1,10 @@
 import type { TileSize, TileType, TileSizePreset } from '$lib/types/dashboard';
+import type { Tile } from '$lib/types/dashboard';
 
 const ALL_PRESETS: TileSizePreset[] = ['sm', 'md', 'lg', 'xl'];
 
-// divider is the only type that can't go sm/md — it's a horizontal rule that
-// needs meaningful width to be useful.
 export function getAllowedPresets(type: TileType): TileSizePreset[] {
-	if (type === 'divider') return ['lg', 'xl'];
+	void type;
 	return ALL_PRESETS;
 }
 
@@ -19,23 +18,13 @@ export function resolvePresetToSpan(
 		: getAllowedPresets(type)[0];
 
 	let span: TileSize;
-	if (type === 'divider') {
-		span = preset === 'lg' ? { w: 6, h: 1 } : { w: 12, h: 1 };
-	} else if (type === 'media_hero') {
-		// Hero needs width to shine
-		span =
-			preset === 'sm' ? { w: 2, h: 1 } :
-				preset === 'md' ? { w: 4, h: 2 } :
-					preset === 'lg' ? { w: 6, h: 3 } :
-						{ w: 12, h: 5 };
-	} else {
-		// Standardized baseline footprints:
-		span =
-			preset === 'sm' ? { w: 1, h: 1 } :
-				preset === 'md' ? { w: 2, h: 1 } :
-					preset === 'lg' ? { w: 3, h: 3 } :
-						{ w: 4, h: 3 }; // xl
-	}
+	// Unified preset semantics across all tile types:
+	// sm = 1x1, md = 2x1, lg = 2x2, xl = 2x3.
+	span =
+		preset === 'sm' ? { w: 1, h: 1 } :
+			preset === 'md' ? { w: 2, h: 1 } :
+				preset === 'lg' ? { w: 2, h: 2 } :
+					{ w: 2, h: 3 };
 
 	if (breakpoint === 'sm') {
 		return { w: Math.min(span.w, 4), h: span.h };
@@ -45,17 +34,24 @@ export function resolvePresetToSpan(
 }
 
 export function inferPresetFromLegacySize(type: TileType, size?: Partial<TileSize> | null): TileSizePreset {
+	void type;
 	const w = Math.max(1, size?.w ?? 1);
 	const h = Math.max(1, size?.h ?? 1);
-	const area = w * h;
 
 	let preset: TileSizePreset;
 	if (w <= 1 && h <= 1) preset = 'sm';
-	else if ((w <= 2 && h <= 1) || (w <= 1 && h <= 2) || area <= 2) preset = 'md';
-	else if (area <= 4 || (w <= 3 && h <= 1)) preset = 'lg';
+	else if (w <= 2 && h <= 1) preset = 'md';
+	else if (w <= 2 && h <= 2) preset = 'lg';
 	else preset = 'xl';
 
 	const allowed = getAllowedPresets(type);
 	if (allowed.includes(preset)) return preset;
 	return allowed[0];
+}
+
+export function getTileSizePreset(tile: Tile): TileSizePreset {
+	if (tile.sizePreset && getAllowedPresets(tile.type).includes(tile.sizePreset)) {
+		return tile.sizePreset;
+	}
+	return inferPresetFromLegacySize(tile.type, tile.layout ?? tile.size);
 }

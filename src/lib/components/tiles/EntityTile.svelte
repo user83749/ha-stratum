@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
+  import { getTileSizePreset } from '$lib/layout/tileSizing';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { isCustomIcon } from '$lib/icons/customIcons';
   import {
@@ -14,14 +15,7 @@
   let { tile, entity }: { tile: Tile; entity: HassEntity | null } = $props();
 
   const cfg             = $derived(tile.config ?? {});
-  const layoutW         = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
-  const layoutH         = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
-  const sizePreset      = $derived(
-    layoutW >= 4 && layoutH >= 3 ? 'xl' :
-    layoutW >= 3 && layoutH >= 2 ? 'lg' :
-    layoutW >= 2 || layoutH >= 2 ? 'md' :
-    'sm'
-  );
+  const sizePreset = $derived(getTileSizePreset(tile));
   const showName        = $derived(cfg.show_name !== false);
   const showIcon        = $derived(cfg.show_icon !== false);
   const showState       = $derived(cfg.show_state !== false);

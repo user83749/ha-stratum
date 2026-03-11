@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.44] - 2026-03-10
+
+### Changed
+- Extensive cleanup and refactor of nearly all tile components (**Siren**, **Slider**, **Timer**, **Todo**, **Update**, **Vacuum**, **WaterHeater**, **Weather**, etc.).
+- Refined tile grid sizing logic in `tileSizing.ts`.
+- Improved **CustomIcon** component and expanded icon definitions.
+- Enhanced **TileRenderer** logic for more robust component mounting.
+
 ## [1.0.43] - 2026-03-10
 
 ### Changed

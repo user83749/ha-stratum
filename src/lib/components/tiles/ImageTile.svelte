@@ -1,19 +1,13 @@
 <script lang="ts">
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
+  import { getTileSizePreset } from '$lib/layout/tileSizing';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
   const config = $derived(tile.config);
-  const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
-  const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
-  const sizePreset = $derived(
-    layoutW >= 4 && layoutH >= 3 ? 'xl' :
-    layoutW >= 3 && layoutH >= 2 ? 'lg' :
-    layoutW >= 2 || layoutH >= 2 ? 'md' :
-    'sm'
-  );
+  const sizePreset = $derived(getTileSizePreset(tile));
   const name = $derived(config.name ?? entity?.attributes?.friendly_name ?? 'Image');
   const showName = $derived(config.show_name !== false);
   const objectFit = $derived((config as Record<string, unknown>).object_fit as string ?? 'cover');

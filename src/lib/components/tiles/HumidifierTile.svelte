@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
+  import { getTileSizePreset } from '$lib/layout/tileSizing';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { humidifierService } from '$lib/ha/services';
   import { clamp } from '$lib/utils/format';
@@ -14,12 +15,7 @@
   const layoutH   = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
   const isWideMd = $derived(layoutW >= 2 && layoutH === 1);
   const isTallMd = $derived(layoutW === 1 && layoutH >= 2);
-  const sizePreset = $derived(
-    layoutW >= 4 && layoutH >= 3 ? 'xl' :
-    layoutW >= 3 && layoutH >= 2 ? 'lg' :
-    layoutW >= 2 || layoutH >= 2 ? 'md' :
-    'sm'
-  );
+  const sizePreset = $derived(getTileSizePreset(tile));
 
   const entityId    = $derived(entity?.entity_id ?? tile.entity_id ?? '');
   const attrs       = $derived(entity?.attributes ?? {});

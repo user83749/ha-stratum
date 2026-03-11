@@ -39,32 +39,32 @@
 
 	// ─── Archetypes ──────────────────────────────────────────────────────────
 	const archetype = $derived.by(() => {
-		if (deviceClass === 'curtain') return 'horizontal';
-		if (['garage', 'gate', 'door'].includes(deviceClass)) return 'portal';
+		if (['curtain', 'gate', 'door'].includes(deviceClass)) return 'horizontal';
+		if (deviceClass === 'garage') return 'portal';
 		return 'vertical';
 	});
 
 	const headerIcon = $derived.by(() => {
+		const isOpen = __state === 'open' || __state === 'opening';
 		const map: Record<string, string> = {
-			garage: __state === 'open' ? 'garage-open' : 'garage',
-			gate: 'gate',
-			curtain: 'curtains',
-			awning: 'tent',
-			window: 'window-open',
-			door: __state === 'open' ? 'door-open' : 'door-closed',
-			shutter: 'window-shutter',
-			blind: 'blinds',
-			shade: 'blinds'
+			garage: isOpen ? 'mdi:garage-open' : 'mdi:garage',
+			gate: isOpen ? 'mdi:gate-open' : 'mdi:gate',
+			curtain: isOpen ? 'mdi:curtains' : 'mdi:curtains-closed',
+			awning: isOpen ? 'mdi:awning' : 'mdi:awning-outline',
+			window: isOpen ? 'mdi:window-open' : 'mdi:window-closed',
+			door: isOpen ? 'mdi:door-open' : 'mdi:door-closed',
+			shutter: isOpen ? 'mdi:window-shutter-open' : 'mdi:window-shutter',
+			blind: isOpen ? 'mdi:blinds-open' : 'mdi:blinds',
+			shade: isOpen ? 'mdi:blinds-open' : 'mdi:blinds',
+			damper: 'mdi:air-filter'
 		};
-		return map[deviceClass] ?? 'blinds';
+		return map[deviceClass] ?? 'mdi:help-box';
 	});
 
 	const labels = $derived.by(() => {
-		const isVert = archetype === 'vertical';
-		return {
-			open: isVert ? 'Raise' : 'Open',
-			close: isVert ? 'Lower' : 'Close'
-		};
+		if (deviceClass === 'awning') return { open: 'Extend', close: 'Retract' };
+		if (['garage', 'gate', 'door', 'curtain', 'damper'].includes(deviceClass)) return { open: 'Open', close: 'Close' };
+		return { open: 'Raise', close: 'Lower' };
 	});
 
 	function onInput(e: Event) {
@@ -114,13 +114,8 @@
 
 <div class="covmi">
 	<div class="covmi__header">
-		<div class="covmi__icon-wrap" 
-			class:covmi__icon-wrap--active={__state === 'open'} 
-			class:covmi__icon-wrap--moving={isMoving}
-		>
-			<div class="covmi__icon-inner" class:is-moving={isMoving}>
-				<Icon name={headerIcon} size={28} />
-			</div>
+		<div class="covmi__icon-wrap" class:covmi__icon-wrap--active={__state === 'open'}>
+			<Icon name={headerIcon} size={28} />
 		</div>
 		<div class="covmi__titles">
 			<h2 class="covmi__title">{entity?.attributes.friendly_name ?? 'Cover'}</h2>
@@ -133,63 +128,63 @@
 		<div class="covmi__main-control" class:covmi__main-control--horizontal={archetype === 'horizontal'} class:covmi__main-control--portal={archetype === 'portal'}>
 			
 			{#if archetype === 'portal'}
-				<button class="covmi__portal-hero" 
-					class:active={__state === 'open'}
-					onclick={() => run(__state === 'open' ? 'close' : 'open')}
-					disabled={isUnavail}
-				>
-					<div class="covmi__portal-icon">
+				<div class="covmi__portal-group">
+					<button class="covmi__portal-hero" 
+						class:active={__state === 'open'}
+						onclick={() => run(__state === 'open' ? 'close' : 'open')}
+						disabled={isUnavail}
+					>
 						<Icon name={headerIcon} size={64} />
-					</div>
-					<div class="covmi__portal-blob"></div>
-				</button>
+						<div class="covmi__portal-blob"></div>
+					</button>
 
-			{:else if archetype === 'horizontal'}
-				<div class="covmi__visual-track covmi__visual-track--horizontal">
-					<div class="covmi__track covmi__track--horizontal">
-						<div class="covmi__curtain-panel covmi__curtain-panel--left" style="width: {50 - (localPos / 2)}%"></div>
-						<div class="covmi__curtain-panel covmi__curtain-panel--right" style="width: {50 - (localPos / 2)}%"></div>
-						<input 
-							type="range" min="0" max="100" step="1" 
-							value={localPos} 
-							oninput={onInput}
-							onchange={onChange}
-							disabled={isUnavail || !canSetPosition}
-							class="covmi__slider"
-							aria-label="Cover position" 
-						/>
-					</div>
-					<div class="covmi__pos-badge">
-						<span class="covmi__pos-val">{Math.round(localPos)}%</span>
-						<span class="covmi__pos-label">Position</span>
-					</div>
+					{#if isMoving && canStop}
+						<button class="covmi__stop-chip" onclick={() => run('stop')}>
+							<Icon name="square" size={16} />
+							<span>Stop</span>
+						</button>
+					{/if}
 				</div>
 
 			{:else}
-				<div class="covmi__visual-track">
-					<div class="covmi__track">
-						<div class="covmi__slats"></div>
-						<div class="covmi__fill" style="height: {localPos}%"></div>
-						<input 
-							type="range" min="0" max="100" step="1" 
-							value={localPos} 
-							oninput={onInput}
-							onchange={onChange}
-							disabled={isUnavail || !canSetPosition}
-							class="covmi__slider"
-							aria-label="Cover position" 
-						/>
-					</div>
-					<div class="covmi__pos-badge">
-						<span class="covmi__pos-val">{Math.round(localPos)}%</span>
-						<span class="covmi__pos-label">Position</span>
-					</div>
+				<div class="covmi__visual-track" class:covmi__visual-track--horizontal={archetype === 'horizontal'}>
+					{#if canSetPosition}
+						<div class="covmi__track" class:covmi__track--horizontal={archetype === 'horizontal'}>
+							{#if deviceClass === 'curtain'}
+								<div class="covmi__curtain-panel covmi__curtain-panel--left" style="width: {50 - (localPos / 2)}%"></div>
+								<div class="covmi__curtain-panel covmi__curtain-panel--right" style="width: {50 - (localPos / 2)}%"></div>
+							{:else if archetype === 'horizontal'}
+								<!-- Generic horizontal fill for Gate/Door with position support -->
+								<div class="covmi__fill covmi__fill--horizontal" style="width: {localPos}%"></div>
+							{:else}
+								<div class="covmi__slats"></div>
+								<div class="covmi__fill" class:covmi__fill--bottom={deviceClass === 'damper'} style="{deviceClass === 'damper' ? 'height' : 'top'}: 0; {deviceClass === 'damper' ? 'height' : 'top'}: {deviceClass === 'damper' ? localPos : 0}%; {deviceClass === 'damper' ? '' : `height: ${100 - localPos}%`}"></div>
+							{/if}
+							<input 
+								type="range" min="0" max="100" step="1" 
+								value={localPos} 
+								oninput={onInput}
+								onchange={onChange}
+								disabled={isUnavail || !canSetPosition}
+								class="covmi__slider"
+								aria-label="Cover position" 
+							/>
+						</div>
+						<div class="covmi__pos-badge">
+							<span class="covmi__pos-val">{Math.round(localPos)}%</span>
+							<span class="covmi__pos-label">{deviceClass === 'damper' ? 'Flow' : 'Position'}</span>
+						</div>
+					{:else}
+						<div class="covmi__placeholder-icon" style="color: {__state === 'open' ? 'var(--accent)' : 'var(--fg-subtle)'}">
+							<Icon name={headerIcon} size={80} />
+						</div>
+					{/if}
 				</div>
 			{/if}
 
 			<div class="covmi__actions-grid">
 				<button class="covmi__action-btn" onclick={() => run('open')} disabled={isUnavail || !canOpen}>
-					<Icon name="chevrons-up" size={20} />
+					<Icon name={archetype === 'horizontal' ? 'chevrons-right' : 'chevrons-up'} size={20} />
 					<span>{labels.open}</span>
 				</button>
 				<button class="covmi__action-btn covmi__action-btn--stop" onclick={() => run('stop')} disabled={isUnavail || !canStop}>
@@ -197,7 +192,7 @@
 					<span>Stop</span>
 				</button>
 				<button class="covmi__action-btn" onclick={() => run('close')} disabled={isUnavail || !canClose}>
-					<Icon name="chevrons-down" size={20} />
+					<Icon name={archetype === 'horizontal' ? 'chevrons-left' : 'chevrons-down'} size={20} />
 					<span>{labels.close}</span>
 				</button>
 			</div>
@@ -268,27 +263,6 @@
 		background: color-mix(in srgb, var(--accent) 12%, transparent);
 		color: var(--accent);
 		border-color: color-mix(in srgb, var(--accent) 25%, transparent);
-	}
-
-	.covmi__icon-wrap--moving {
-		border-color: var(--color-warning);
-		color: var(--color-warning);
-		background: color-mix(in srgb, var(--color-warning) 8%, transparent);
-		animation: covmi-pulse 2s ease-in-out infinite;
-	}
-
-	.covmi__icon-inner.is-moving {
-		animation: covmi-bounce 1.5s ease-in-out infinite;
-	}
-
-	@keyframes covmi-pulse {
-		0%, 100% { border-color: color-mix(in srgb, var(--color-warning) 25%, transparent); box-shadow: 0 0 0 0 transparent; }
-		50% { border-color: var(--color-warning); box-shadow: 0 0 12px color-mix(in srgb, var(--color-warning) 15%, transparent); }
-	}
-
-	@keyframes covmi-bounce {
-		0%, 100% { transform: translateY(0); }
-		50% { transform: translateY(-4px); }
 	}
 
 	.covmi__titles {
@@ -385,24 +359,37 @@
 
 	.covmi__fill {
 		position: absolute;
-		bottom: 0;
 		left: 0;
 		width: 100%;
 		background: var(--accent);
-		transition: height 0.12s linear;
+		transition: all 0.12s linear;
 		opacity: 0.4;
+	}
+
+	.covmi__fill--bottom {
+		bottom: 0;
+		top: auto !important;
+	}
+
+	.covmi__fill--horizontal {
+		top: 0;
+		height: 100%;
+		left: 0;
+		transition: width 0.12s linear;
 	}
 
 	.covmi__fill::after {
 		content: '';
 		position: absolute;
-		top: 0;
 		left: 0;
 		width: 100%;
 		height: 4px;
 		background: var(--accent);
 		box-shadow: 0 0 12px var(--accent);
 	}
+
+	.covmi__fill:not(.covmi__fill--bottom)::after { bottom: 0; top: auto; }
+	.covmi__fill.covmi__fill--bottom::after { top: 0; bottom: auto; }
 
 	.covmi__curtain-panel {
 		position: absolute;
@@ -415,11 +402,18 @@
 	.covmi__curtain-panel--left { left: 0; border-right: 2px solid var(--accent); }
 	.covmi__curtain-panel--right { right: 0; border-left: 2px solid var(--accent); }
 
+	.covmi__portal-group {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 24px;
+	}
+
 	.covmi__portal-hero {
 		all: unset;
 		position: relative;
-		width: 120px;
-		height: 120px;
+		width: 140px;
+		height: 140px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -429,13 +423,22 @@
 	.covmi__portal-hero:active { transform: scale(0.96); }
 	.covmi__portal-hero:disabled { opacity: 0.4; cursor: not-allowed; }
 
-	.covmi__portal-icon {
-		position: relative;
-		z-index: 2;
-		color: var(--fg-muted);
-		transition: color 0.3s;
+	.covmi__stop-chip {
+		all: unset;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 16px;
+		background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+		color: var(--color-warning);
+		border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
+		border-radius: 99px;
+		font-size: 0.75rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		cursor: pointer;
+		animation: covmi-pulse 2s infinite;
 	}
-	.covmi__portal-hero.active .covmi__portal-icon { color: var(--accent); }
 
 	.covmi__portal-blob {
 		position: absolute;
@@ -448,7 +451,12 @@
 	.covmi__portal-hero.active .covmi__portal-blob {
 		background: color-mix(in srgb, var(--accent) 12%, transparent);
 		border-color: var(--accent);
-		box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 20%, transparent);
+		box-shadow: 0 0 32px color-mix(in srgb, var(--accent) 20%, transparent);
+	}
+
+	.covmi__placeholder-icon {
+		opacity: 0.5;
+		margin: 20px 0;
 	}
 
 	.covmi__slider {

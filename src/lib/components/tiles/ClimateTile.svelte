@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
+  import { getTileSizePreset } from '$lib/layout/tileSizing';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { clamp } from '$lib/utils/format';
   import { climateService, type HvacMode } from '$lib/ha/services';
@@ -13,12 +14,7 @@
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
   const isWideMd = $derived(layoutW >= 2 && layoutH === 1);
   const isTallMd = $derived(layoutW === 1 && layoutH >= 2);
-  const sizePreset = $derived(
-    layoutW >= 4 && layoutH >= 3 ? 'xl' :
-    layoutW >= 3 && layoutH >= 2 ? 'lg' :
-    layoutW >= 2 || layoutH >= 2 ? 'md' :
-    'sm'
-  );
+  const sizePreset = $derived(getTileSizePreset(tile));
 
   const entityId    = $derived(tile.entity_id ?? entity?.entity_id ?? '');
   const name        = $derived((tile.config.name as string | undefined) ?? entity?.attributes.friendly_name ?? 'Climate');

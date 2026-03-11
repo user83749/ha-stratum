@@ -23,11 +23,17 @@ export interface CustomIconMeta {
 	dynamic: boolean;
 }
 
+// Backward-compatible aliases for renamed custom icons.
+const CUSTOM_ICON_ALIASES: Record<string, string> = {
+	fan2: 'fan',
+	gate: 'customgate'
+};
+
 export const CUSTOM_ICONS: Record<string, CustomIconMeta> = {
 	plex: { width: '77%', marginLeft: '0%', marginTop: '0%', dynamic: false },
 	floorlamp: { width: '87%', marginLeft: '-18%', marginTop: '-.1%', dynamic: true },
 	// Gate icon: HA uses absolute positioning + top offset on the custom field.
-	gate: { width: '80%', marginLeft: '-3%', marginTop: '0%', position: 'absolute', left: '0', top: '-4%', overflow: 'visible', dynamic: true },
+	customgate: { width: '80%', marginLeft: '-3%', marginTop: '0%', position: 'absolute', left: '0', top: '-4%', overflow: 'visible', dynamic: true },
 	garage: { width: '77%', marginLeft: '-7%', marginTop: '-15%', dynamic: true },
 	bedroom: { width: '76%', marginLeft: '-1%', marginTop: '0%', dynamic: true },
 	kodi: { width: '77%', marginLeft: '0%', marginTop: '0%', dynamic: false },
@@ -52,19 +58,21 @@ export const CUSTOM_ICONS: Record<string, CustomIconMeta> = {
 	tvlights: { width: '77%', marginLeft: '-10%', marginTop: '-1%', dynamic: true },
 	climate: { width: '78%', marginLeft: '-10%', marginTop: '0%', dynamic: true },
 	bathroom: { width: '78%', marginLeft: '-10%', marginTop: '0%', dynamic: true },
-	fan2: { width: '75%', marginLeft: '-3%', marginTop: '0%', dynamic: true },
+	fan: { width: '75%', marginLeft: '-3%', marginTop: '0%', dynamic: true },
 	closet: { width: '80%', marginLeft: '-16%', marginTop: '0%', dynamic: true },
 	away: { width: '79%', marginLeft: '-1%', marginTop: '-1%', dynamic: true },
 	home: { width: '72%', marginLeft: '-1%', marginTop: '0%', dynamic: true },
 	sleep: { width: '76%', marginLeft: '-1%', marginTop: '0%', dynamic: true },
 };
 
-export const CUSTOM_ICON_NAMES = Object.keys(CUSTOM_ICONS);
+export const CUSTOM_ICON_NAMES = Object.keys(CUSTOM_ICONS).sort((a, b) => a.localeCompare(b));
 
 export function isCustomIcon(name: string): boolean {
-	return name in CUSTOM_ICONS;
+	const resolved = CUSTOM_ICON_ALIASES[name] ?? name;
+	return resolved in CUSTOM_ICONS;
 }
 
 export function getCustomIconMeta(name: string): CustomIconMeta | null {
-	return CUSTOM_ICONS[name] ?? null;
+	const resolved = CUSTOM_ICON_ALIASES[name] ?? name;
+	return CUSTOM_ICONS[resolved] ?? null;
 }

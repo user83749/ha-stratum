@@ -4,7 +4,6 @@
   import { getDomain, getEntityName } from '$lib/ha/entities';
   import { dashboardStore } from '$lib/stores/dashboard';
   import { editMode } from '$lib/stores/editMode';
-  import { currentBreakpoint } from '$lib/stores/ui';
   import Icon from '$lib/components/ui/Icon.svelte';
   import TileRenderer from '$lib/components/tiles/TileRenderer.svelte';
   import type { Tile, TileType } from '$lib/types/dashboard';
@@ -29,15 +28,15 @@
   let selectedType = $state<TileType | null>(null);
   let selectedPreset = $state<'sm' | 'md' | 'lg' | 'xl'>('md');
   let previewGridWidth = $state(0);
-  const breakpoint = $derived($currentBreakpoint);
+  const PREVIEW_IMAGE_DATA_URI =
+    'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 600 360%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop stop-color=%22%23364a5c%22/%3E%3Cstop offset=%221%22 stop-color=%22%23232f3c%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%22600%22 height=%22360%22 fill=%22url(%23g)%22/%3E%3Ccircle cx=%22125%22 cy=%22115%22 r=%2232%22 fill=%22%23ffffff33%22/%3E%3Cpath d=%22M70 280L185 170l85 78 95-108 165 140H70z%22 fill=%22%23ffffff22%22/%3E%3Ctext x=%2250%25%22 y=%2252%25%22 fill=%22%23f5f7fa%22 font-size=%2230%22 text-anchor=%22middle%22 font-family=%22system-ui,-apple-system,Segoe UI,Roboto,sans-serif%22%3EImage Preview%3C/text%3E%3C/svg%3E';
+  const PREVIEW_IFRAME_DATA_URI =
+    'data:text/html,%3C!doctype%20html%3E%3Chtml%3E%3Chead%3E%3Cmeta%20charset=%22utf-8%22/%3E%3Cmeta%20name=%22viewport%22%20content=%22width=device-width,initial-scale=1%22/%3E%3Cstyle%3Ehtml,body%7Bheight:100%25;margin:0;font-family:system-ui,-apple-system,Segoe%20UI,Roboto,sans-serif;background:linear-gradient(135deg,%231f2d3d,%2333475f);color:%23eef3f8;display:grid;place-items:center%7D.card%7Bpadding:14px%2018px;border-radius:14px;background:rgba(255,255,255,.1);backdrop-filter:blur(6px);font-size:16px%7D%3C/style%3E%3C/head%3E%3Cbody%3E%3Cdiv%20class=%22card%22%3EWebpage%20Preview%3C/div%3E%3C/body%3E%3C/html%3E';
 
+  // Preview uses canonical desktop spans so preset dimensions stay stable and
+  // visually distinct regardless of current viewport or section column hint.
   function resolvePreviewBreakpoint(): 'sm' | 'md' | 'lg' {
-    return breakpoint;
-  }
-
-  function clampSpanToView(span: { w: number; h: number }) {
-    if (!columnHint || columnHint <= 0) return span;
-    return { ...span, w: Math.min(span.w, columnHint) };
+    return 'lg';
   }
 
   $effect(() => {
@@ -183,9 +182,49 @@
     step = 'size';
   }
 
+  function buildPreviewConfig(type: TileType): Tile['config'] {
+    const base: Tile['config'] = {
+      tap_action: { type: 'none' },
+      hold_action: { type: 'none' },
+      double_tap_action: { type: 'none' }
+    };
+
+    if (type === 'markdown') {
+      return {
+        ...base,
+        content: '## Tile Preview\n- Sample line one\n- Sample line two'
+      };
+    }
+
+    if (type === 'iframe') {
+      return {
+        ...base,
+        url: PREVIEW_IFRAME_DATA_URI
+      };
+    }
+
+    if (type === 'image') {
+      return {
+        ...base,
+        url: PREVIEW_IMAGE_DATA_URI
+      };
+    }
+
+    if (type === 'media_hero') {
+      return {
+        ...base,
+        name: 'Now Playing',
+        show_artwork: true,
+        show_progress: true
+      };
+    }
+
+    return base;
+  }
+
   const previewTile = $derived.by(() => {
     if (!selectedType) return null;
-    const span = clampSpanToView(resolvePresetToSpan(selectedType, selectedPreset, resolvePreviewBreakpoint()));
+    const span = resolvePresetToSpan(selectedType, selectedPreset, resolvePreviewBreakpoint());
     const preview: Tile = {
       id: 'preview',
       type: selectedType,
@@ -194,21 +233,14 @@
       sizePreset: selectedPreset,
       layout: { x: 0, y: 0, w: span.w, h: span.h },
       visibility: { ...VISIBLE_ALL },
-      config: {
-        tap_action: { type: 'none' },
-        hold_action: { type: 'none' },
-        double_tap_action: { type: 'none' }
-      }
+      config: buildPreviewConfig(selectedType)
     };
     return preview;
   });
 
   const previewCols = $derived.by(() => {
-    const hinted = Math.max(1, Math.floor(columnHint || 0));
-    if (hinted > 0) return Math.min(6, hinted);
-    if (breakpoint === 'sm') return 2;
-    if (breakpoint === 'md') return 3;
-    return 4;
+    const tileCols = previewTile?.layout?.w ?? 1;
+    return Math.max(4, Math.min(12, tileCols));
   });
 
   // Keep preview cells square and responsive to available width so every tile
@@ -220,7 +252,9 @@
     const cols = Math.max(1, previewCols);
     const usableWidth = Math.max(0, previewGridWidth - PREVIEW_GAP * (cols - 1));
     const cell = usableWidth / cols;
-    return Math.round(Math.max(132, Math.min(220, cell)));
+    // Keep preview geometry true to grid semantics (1x1, 2x1, 2x2, 2x3):
+    // each grid row matches one grid column in size (square cells).
+    return Math.round(cell);
   });
 
   const previewShellMinHeight = $derived.by(() => {
@@ -230,7 +264,8 @@
 
   function createTile() {
     if (!selectedType) return;
-    const span = clampSpanToView(resolvePresetToSpan(selectedType, selectedPreset, resolvePreviewBreakpoint()));
+    // Persist the selected preset span directly; placement logic handles fit.
+    const span = resolvePresetToSpan(selectedType, selectedPreset, resolvePreviewBreakpoint());
     const newTile: Tile = {
       id: generateId(),
       type: selectedType,
