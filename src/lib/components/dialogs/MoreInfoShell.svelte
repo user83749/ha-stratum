@@ -14,8 +14,8 @@
 	import type { Snippet } from 'svelte';
 	import type { MoreInfoStyle, DrawerSide } from '$lib/types/dashboard';
 	import Icon from '$lib/components/ui/Icon.svelte';
-	import { onMount } from 'svelte';
 	import { haptic } from '$lib/utils/haptics';
+	import { dashboardStore } from '$lib/stores/dashboard';
 
 	interface Props {
 		open:      boolean;
@@ -99,6 +99,8 @@
 	});
 
 	// Mobile bottom-sheet behaviour
+	const cfg = $derived($dashboardStore);
+	const mobileBreakpoint = $derived(cfg.nav.mobileBreakpoint ?? 800);
 	let isMobileSheet = $state(false);
 	let dragY = $state(0);
 	let dragging = $state(false);
@@ -109,8 +111,10 @@
 	let dragStartT = 0;
 	let dragPointerId: number | null = null;
 
-	onMount(() => {
-		const mq = window.matchMedia('(max-width: 800px)');
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		const breakpoint = Number.isFinite(mobileBreakpoint) ? Math.round(mobileBreakpoint) : 800;
+		const mq = window.matchMedia(`(max-width: ${Math.max(320, Math.min(1280, breakpoint))}px)`);
 		const apply = () => { isMobileSheet = mq.matches; };
 		apply();
 		mq.addEventListener?.('change', apply);
@@ -133,7 +137,7 @@
 		// Do not treat taps/drags that start on interactive controls as sheet drags.
 		// (Buttons, sliders, inputs, etc.)
 		return !!el.closest(
-			'button, a, input, select, textarea, [role="button"], [role="slider"], [contenteditable="true"], [data-no-sheet-drag]'
+			'button, a, input, select, textarea, [role="button"], [role="slider"], [role="switch"], [role="option"], [contenteditable="true"], [data-no-sheet-drag], [data-no-page-swipe]'
 		);
 	}
 
@@ -597,40 +601,40 @@
 	}
 
 	/* ── Mobile bottom-sheet override ───────────────────────────────────────── */
-	@media (max-width: 800px) {
+	/* Applied via the runtime `moreinfo-panel--sheet` class, which now tracks
+	   the user-configured mobile breakpoint from nav settings. */
+	.moreinfo-panel--sheet {
+		left: 0 !important;
+		right: 0 !important;
+		bottom: 0 !important;
+		top: auto !important;
+		width: 100dvw !important;
+		height: 94dvh !important;
+		padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+		border-radius: var(--dialog-radius, var(--radius-lg)) var(--dialog-radius, var(--radius-lg)) 0 0 !important;
+		border: none !important;
+		border-top: 1px solid var(--border) !important;
+		box-shadow: var(--shadow-lg) !important;
+		transform: translateY(var(--sheet-drag, 0px)) !important;
+		transition-duration: 0.28s;
+		/* Prevent iOS from intercepting vertical swipes; we own the gesture. */
+		touch-action: pan-y;
+	}
+	.moreinfo-panel--sheet.moreinfo-panel--closing {
+		transform: translateY(calc(100% + var(--sheet-drag, 0px))) !important;
+	}
+
+	/* Keep content from stretching over the reserved bottom breathing room. */
+	.moreinfo-panel--sheet .moreinfo-body {
+		padding-bottom: 0;
+	}
+	.moreinfo-panel--sheet .moreinfo-body > :global(*) {
+		min-height: auto;
+	}
+
+	@starting-style {
 		.moreinfo-panel--sheet {
-			left: 0 !important;
-			right: 0 !important;
-			bottom: 0 !important;
-			top: auto !important;
-			width: 100dvw !important;
-			height: 94dvh !important;
-			padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
-			border-radius: var(--dialog-radius, var(--radius-lg)) var(--dialog-radius, var(--radius-lg)) 0 0 !important;
-			border: none !important;
-			border-top: 1px solid var(--border) !important;
-			box-shadow: var(--shadow-lg) !important;
-			transform: translateY(var(--sheet-drag, 0px)) !important;
-			transition-duration: 0.28s;
-			/* Prevent iOS from intercepting vertical swipes; we own the gesture. */
-			touch-action: pan-y;
-		}
-		.moreinfo-panel--sheet.moreinfo-panel--closing {
 			transform: translateY(calc(100% + var(--sheet-drag, 0px))) !important;
-		}
-
-		/* Keep content from stretching over the reserved bottom breathing room. */
-		.moreinfo-panel--sheet .moreinfo-body {
-			padding-bottom: 0;
-		}
-		.moreinfo-panel--sheet .moreinfo-body > :global(*) {
-			min-height: auto;
-		}
-
-		@starting-style {
-			.moreinfo-panel--sheet {
-				transform: translateY(calc(100% + var(--sheet-drag, 0px))) !important;
-			}
 		}
 	}
 

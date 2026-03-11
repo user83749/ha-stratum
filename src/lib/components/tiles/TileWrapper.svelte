@@ -218,10 +218,13 @@
 	let pointerDownX   = $state(0);
 	let pointerDownY   = $state(0);
 	let didScroll      = $state(false);
+	let controlPointerActive = $state(false);
 
 	const HOLD_THRESHOLD_MS = 500;
 	const DBL_TAP_WINDOW_MS = 300;
 	const SCROLL_THRESHOLD_PX = 8;
+	const INTERACTIVE_SELECTOR =
+		'button, input, select, textarea, a, [role="button"], [role="slider"], [role="checkbox"], [role="switch"], [role="listbox"], [role="option"]';
 
 	const tileDefaults = $derived($dashboardStore.tileDefaults);
 
@@ -297,16 +300,25 @@
 		let t = e.target as Element | null;
 		if (t && t.nodeType === 3) t = t.parentElement;
 		if (!t || !t.closest) return false;
-		const match = t.closest('button, input, select, textarea, a, [role="button"], [role="slider"], [role="checkbox"], [role="switch"], [role="listbox"], [role="option"]');
+		const match = t.closest(INTERACTIVE_SELECTOR);
 		return !!match && match !== e.currentTarget;
 	}
 
 	function onPointerDown(e: PointerEvent) {
 		if (editing) { handleEditClick(e as unknown as MouseEvent); return; }
 		if (e.button !== 0) return;
+		controlPointerActive = false;
 
 		// Suppress tile-level actions when clicking a child control.
-		if (isInteractiveTarget(e)) return;
+		if (isInteractiveTarget(e)) {
+			controlPointerActive = true;
+			clearHold();
+			clearTapTimer();
+			clickCount = 0;
+			didHold = false;
+			didScroll = false;
+			return;
+		}
 
 		didHold = false;
 		didScroll = false;
@@ -322,6 +334,7 @@
 			didHold = true;
 			holdTimer = null;
 			clickCount = 0;
+			clearTapTimer();
 			haptic('medium');
 			fireAction('hold');
 		}, HOLD_THRESHOLD_MS);
@@ -340,7 +353,21 @@
 
 	function onPointerUp(e: PointerEvent) {
 		if (editing) return;
-		if (isInteractiveTarget(e)) return;
+		// If this pointer sequence started from an internal control (slider/button/etc),
+		// never fire tile-level tap/hold/double-tap actions.
+		if (controlPointerActive) {
+			controlPointerActive = false;
+			clearHold();
+			didHold = false;
+			didScroll = false;
+			return;
+		}
+		if (isInteractiveTarget(e)) {
+			clearHold();
+			didHold = false;
+			didScroll = false;
+			return;
+		}
 		const elapsed = Date.now() - pointerDownAt;
 		if (didScroll || didHold || elapsed >= HOLD_THRESHOLD_MS) {
 			clearHold();
@@ -356,44 +383,46 @@
 		spawnRipple(e);
 
 		if (!hasDblTap) {
-			haptic('selection');
+			haptic('light');
 			// No double-tap configured — fire tap immediately
 			fireAction('tap');
 			return;
 		}
 
-		// Double-tap is handled by onDoubleClick (native dblclick event).
-		// Here we just fire the tap after the double-tap window if no second click comes.
-		haptic('selection');
-		clickCount++;
-		if (clickCount === 1) {
-			tapTimer = setTimeout(() => {
-				tapTimer = null;
-				clickCount = 0;
-				fireAction('tap');
-			}, DBL_TAP_WINDOW_MS);
-		} else {
-			// onDoubleClick will handle this — reset clickCount
+		// Manual double-tap handling (pointer-based) so mobile/touch does not
+		// depend on native dblclick synthesis.
+		if (tapTimer !== null) {
+			hapticDouble();
+			clearTapTimer();
 			clickCount = 0;
+			fireAction('double_tap');
+			return;
 		}
+
+		haptic('light');
+		clickCount = 1;
+		tapTimer = setTimeout(() => {
+			tapTimer = null;
+			clickCount = 0;
+			fireAction('tap');
+		}, DBL_TAP_WINDOW_MS);
 	}
 
 	function onPointerLeave() {
 		if (editing) return;
+		controlPointerActive = false;
 		clearHold();
 		didHold = false;
 		didScroll = false;
 	}
 
-	// Native dblclick bubbles up even from child buttons/inputs — guard against that.
-	function onDoubleClick(e: MouseEvent) {
-		if (editing) return;
-		if (!hasDblTap) return;
-		if (isInteractiveTarget(e)) return;
-		hapticDouble();
+	function onPointerCancel() {
+		controlPointerActive = false;
+		clearHold();
 		clearTapTimer();
+		didHold = false;
+		didScroll = false;
 		clickCount = 0;
-		fireAction('double_tap');
 	}
 
 	// (Variant system removed — styling is driven system-wide by the theme)
@@ -467,9 +496,13 @@
 	onpointermove={onPointerMove}
 	onpointerup={onPointerUp}
 	onpointerleave={onPointerLeave}
-	ondblclick={onDoubleClick}
+	onpointercancel={onPointerCancel}
 	onkeydown={(e) => {
 		if (editing) return;
+		const targetEl = e.target as Element | null;
+		if (targetEl && targetEl !== e.currentTarget && targetEl.closest(INTERACTIVE_SELECTOR)) {
+			return;
+		}
 		if (isInteractive && (e.key === 'Enter' || e.key === ' ')) {
 			e.preventDefault();
 			fireAction('tap');
@@ -477,7 +510,7 @@
 	}}
 >
 	<!-- Tile content slot -->
-	<div class="tile-inner">{@render children()}</div>
+	<div class="tile-inner" inert={editing ? true : undefined}>{@render children()}</div>
 
 	<!-- Ripple overlays -->
 	{#each ripples as ripple (ripple.id)}
@@ -725,6 +758,13 @@
 	/* .tile-inner stays display:contents for layout passthrough */
 	.tile-inner {
 		display: contents;
+	}
+
+	/* In edit mode, all inner tile controls are inert so taps only select/edit
+	   and never trigger entity actions. Edit handles remain active because they
+	   are outside `.tile-inner`. */
+	.editing .tile-inner {
+		pointer-events: none;
 	}
 
 	/* Button-card tiles: wrapper padding must be 0 so BaseTile's % padding matches HA. */

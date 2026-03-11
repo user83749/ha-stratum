@@ -12,6 +12,7 @@
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
   const isWideMd = $derived(layoutW >= 2 && layoutH === 1);
+  const isTallMd = $derived(layoutW === 1 && layoutH >= 2);
   const sizePreset = $derived(
     layoutW >= 4 && layoutH >= 3 ? 'xl' :
     layoutW >= 3 && layoutH >= 2 ? 'lg' :
@@ -99,7 +100,28 @@
   }
 
   function togglePower(): void {
-    climateService.setHvacMode(entityId, isOff ? (hvacModes.find(m => m !== 'off') ?? 'heat') as HvacMode : 'off');
+    if (!entityId) return;
+    if (!isOff) {
+      climateService.setHvacMode(entityId, 'off');
+      return;
+    }
+
+    const available = hvacModes.filter((m) => m !== 'off');
+    const preferredOrder: HvacMode[] = ['heat', 'cool', 'heat_cool', 'auto', 'dry', 'fan_only'];
+    const preferred = preferredOrder.find((mode) => available.includes(mode));
+    const fallback = available[0];
+
+    if (preferred) {
+      climateService.setHvacMode(entityId, preferred);
+      return;
+    }
+    if (fallback) {
+      climateService.setHvacMode(entityId, fallback as HvacMode);
+      return;
+    }
+
+    // No explicit hvac mode available; defer to generic climate turn_on.
+    climateService.turnOn(entityId);
   }
 </script>
 
@@ -129,8 +151,9 @@
 
   {:else if sizePreset === 'md'}
     <!-- 2x1 Horizontal Row -->
-    <div class="layout-md" class:is-wide-md={isWideMd}>
-      <button class="md-left" onclick={togglePower} aria-label="Toggle Power">
+    <div class="layout-md" class:is-wide-md={isWideMd} class:is-tall-md={isTallMd}>
+      <!-- Primary tile action is handled by TileWrapper interaction settings -->
+      <div class="md-left">
         <div class="md-icon" style="color: {modeColor}">
           {#if iconOverride && overrideIsCustom}
             <Icon name={mainIcon} entity={entity} />
@@ -142,14 +165,18 @@
           <div class="status-val" style="color: {stateTextColor}">{modeLabel}</div>
           <div class="device-name" style="color: {nameTextColor}">{name}</div>
         </div>
-      </button>
+      </div>
 
       <div class="md-right">
         {#if currentTemp !== undefined}
           <div class="md-temp">
             <span class="val">{Math.round(currentTemp)}{tempUnit}</span>
-            {#if targetTemp !== undefined && !isOff}
-              <span class="target">Set to {Math.round(targetTemp)}°</span>
+            {#if targetTemp !== undefined && !isOff && !isTallMd}
+              {#if isWideMd}
+                <span class="target target--inline">Set {Math.round(targetTemp)}°</span>
+              {:else}
+                <span class="target">Set to {Math.round(targetTemp)}°</span>
+              {/if}
             {/if}
           </div>
         {/if}
@@ -291,8 +318,8 @@
 
   .sm-setpoint {
     position: absolute;
-    top: 0;
-    right: 2%;
+    top: 1px;
+    right: 0;
     max-width: 44%;
     display: flex;
     align-items: flex-start;
@@ -363,8 +390,8 @@
     align-items: center;
     gap: calc(var(--tile-padding-effective) * 1.35);
     min-width: 0;
-    cursor: pointer;
-    flex: 1;
+    cursor: default;
+    flex: 1 1 auto;
   }
 
   .layout-md.is-wide-md .md-left {
@@ -419,17 +446,20 @@
     display: flex;
     align-items: center;
     gap: calc(var(--tile-padding-effective) * 1.15);
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    min-width: 0;
   }
 
   .layout-md.is-wide-md .md-right {
-    gap: calc(var(--tile-padding-effective) * 1);
+    gap: calc(var(--tile-padding-effective) * 0.62);
   }
 
   .md-temp {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    justify-content: center;
+    min-width: 0;
   }
 
   .md-temp .val {
@@ -449,10 +479,30 @@
     line-height: 1.1;
   }
 
+  .layout-md.is-wide-md .md-temp .val {
+    font-size: calc(var(--hero-text-size) * 0.86);
+    letter-spacing: -0.05em;
+  }
+
+  .layout-md.is-wide-md .md-temp .target.target--inline {
+    font-size: var(--secondary-label-size);
+    margin-top: 0;
+    line-height: 1;
+    opacity: 0.82;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
   .md-controls {
     display: flex;
     flex-direction: row;
     gap: calc(var(--tile-padding-effective) * 0.45);
+  }
+
+  .layout-md.is-wide-md .md-controls {
+    gap: calc(var(--tile-padding-effective) * 0.34);
   }
 
   .adj-btn {
@@ -465,6 +515,11 @@
     justify-content: center;
     color: var(--fg-muted);
     transition: all 0.2s;
+  }
+
+  .layout-md.is-wide-md .adj-btn {
+    width: calc(var(--control-chip-size-compact) * 0.88);
+    height: calc(var(--control-chip-size-compact) * 0.88);
   }
 
   .adj-btn :global(svg),
@@ -480,6 +535,41 @@
 
   .layout-md:not(.is-wide-md) .md-right {
     justify-content: space-between;
+  }
+
+  .layout-md.is-tall-md {
+    gap: calc(var(--tile-padding-effective) * 0.9);
+  }
+
+  .layout-md.is-tall-md .md-left {
+    gap: calc(var(--tile-padding-effective) * 1.05);
+  }
+
+  .layout-md.is-tall-md .md-right {
+    gap: calc(var(--tile-padding-effective) * 0.85);
+  }
+
+  .layout-md.is-tall-md .md-temp {
+    align-items: flex-start;
+  }
+
+  .layout-md.is-tall-md .md-temp .val {
+    font-size: calc(var(--hero-text-size) * 0.92);
+    letter-spacing: -0.05em;
+  }
+
+  .layout-md.is-tall-md .md-temp .target {
+    font-size: calc(var(--secondary-label-size) * 1.02);
+    line-height: 1.12;
+  }
+
+  .layout-md.is-tall-md .md-controls {
+    gap: calc(var(--tile-padding-effective) * 0.4);
+  }
+
+  .layout-md.is-tall-md .adj-btn {
+    width: calc(var(--control-chip-size-compact) * 0.94);
+    height: calc(var(--control-chip-size-compact) * 0.94);
   }
 
   .adj-btn:hover {

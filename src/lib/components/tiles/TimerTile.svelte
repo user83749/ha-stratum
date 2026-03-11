@@ -12,6 +12,7 @@
   const config = $derived(tile.config);
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
+  const isTallMd = $derived(layoutW === 1 && layoutH >= 2);
   const sizePreset = $derived(
     layoutW >= 4 && layoutH >= 3 ? 'xl' :
     layoutW >= 3 && layoutH >= 2 ? 'lg' :
@@ -97,7 +98,7 @@
   const statusLabel = $derived(isActive ? 'Active' : isPaused ? 'Paused' : 'Idle');
   const showStatus = $derived(sizePreset !== 'sm');
   const showControls = $derived(sizePreset !== 'sm');
-  const showProgress = $derived(sizePreset !== 'sm' && totalSecs > 0);
+  const showProgress = $derived(sizePreset !== 'sm' && totalSecs > 0 && !isTallMd);
   const showFinishAt = $derived((sizePreset === 'lg' || sizePreset === 'xl') && !!finishesAt);
 
   const finishLabel = $derived.by(() => {
@@ -213,19 +214,25 @@
     color: var(--fg-subtle);
     flex-shrink: 0;
     opacity: 0.7;
-    margin-top: 8px;
+    margin-top: 6px;
     display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .controls {
     display: flex;
-    gap: 6px;
-    margin-top: 12px;
+    gap: calc(var(--tile-padding-effective) * 0.4);
+    margin-top: 10px;
+    flex-wrap: wrap;
   }
 
   .ctrl-btn {
     all: unset;
-    padding: 6px 16px;
+    height: calc(var(--action-icon-size) * 0.95);
+    padding: 0 calc(var(--tile-padding-effective) * 1.1);
+    min-width: calc(var(--action-icon-size) * 1.35);
     border-radius: 999px;
     border: 1px solid var(--border);
     background: color-mix(in srgb, var(--fg) 6%, transparent);
@@ -260,7 +267,7 @@
     height: 4px;
     border-radius: 99px;
     background: color-mix(in srgb, var(--fg) 10%, transparent);
-    margin-top: 12px;
+    margin-top: 10px;
     overflow: hidden;
   }
 

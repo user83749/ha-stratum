@@ -61,6 +61,23 @@
 		try { await fn(); } catch { /* silent */ }
 	}
 
+	async function climateSetOff(entityId: string): Promise<void> {
+		try {
+			await callService('climate', 'turn_off', {}, { entity_id: entityId });
+		} catch {
+			// Some climate integrations only accept hvac_mode=off.
+			await callService('climate', 'set_hvac_mode', { hvac_mode: 'off' }, { entity_id: entityId });
+		}
+	}
+
+	async function climateSetMode(entityId: string, mode: 'heat' | 'cool' | 'auto', currentState: string): Promise<void> {
+		// Some integrations require an explicit turn_on before changing mode from off.
+		if (currentState === 'off') {
+			try { await callService('climate', 'turn_on', {}, { entity_id: entityId }); } catch { /* no-op */ }
+		}
+		await callService('climate', 'set_hvac_mode', { hvac_mode: mode }, { entity_id: entityId });
+	}
+
 	const quickActions = $derived((): QuickAction[] => {
 		if (!entity) return [];
 		const e = entityId;
@@ -112,16 +129,16 @@
 			case 'climate':
 				return [
 					{ label: 'Off',  icon: 'power',     variant: 'off',
-					  run: () => safe(() => callService('climate', 'turn_off', {}, { entity_id: e }),
+					  run: () => safe(() => climateSetOff(e),
 					    () => applyPatch(e, { state: 'off' })) },
 					{ label: 'Heat', icon: 'flame',     variant: 'on',
-					  run: () => safe(() => callService('climate', 'set_hvac_mode', { hvac_mode: 'heat' }, { entity_id: e }),
+					  run: () => safe(() => climateSetMode(e, 'heat', s),
 					    () => applyPatch(e, { state: 'heat' })) },
 					{ label: 'Cool', icon: 'snowflake', variant: 'on',
-					  run: () => safe(() => callService('climate', 'set_hvac_mode', { hvac_mode: 'cool' }, { entity_id: e }),
+					  run: () => safe(() => climateSetMode(e, 'cool', s),
 					    () => applyPatch(e, { state: 'cool' })) },
 					{ label: 'Auto', icon: 'cpu',
-					  run: () => safe(() => callService('climate', 'set_hvac_mode', { hvac_mode: 'auto' }, { entity_id: e }),
+					  run: () => safe(() => climateSetMode(e, 'auto', s),
 					    () => applyPatch(e, { state: 'auto' })) },
 				];
 			case 'media_player':

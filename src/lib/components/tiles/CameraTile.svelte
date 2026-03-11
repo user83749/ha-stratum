@@ -7,7 +7,14 @@
 	interface Props { tile: Tile; entity: HassEntity | null; }
 	const { tile, entity }: Props = $props();
 
-	const sizePreset     = $derived(tile.sizePreset ?? 'md');
+	const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
+	const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
+	const sizePreset = $derived(
+		layoutW >= 4 && layoutH >= 3 ? 'xl' :
+		layoutW >= 3 && layoutH >= 2 ? 'lg' :
+		layoutW >= 2 || layoutH >= 2 ? 'md' :
+		'sm'
+	);
 	const name           = $derived((tile.config.name as string | undefined) ?? entity?.attributes.friendly_name ?? 'Camera');
 	const iconOverride   = $derived(((tile.config.icon as string | undefined) ?? '').trim() || undefined);
 	const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
@@ -196,8 +203,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 48px;
-		height: 48px;
+		width: calc(var(--control-chip-size) * 1.15);
+		height: calc(var(--control-chip-size) * 1.15);
 		border-radius: 50%;
 		background: color-mix(in srgb, var(--fg-muted) 10%, transparent);
 		color: var(--fg-muted);
@@ -238,6 +245,10 @@
 		font-weight: 500;
 		color: var(--fg);
 		text-align: center;
+		max-width: 100%;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.no-stream-state {
@@ -276,4 +287,15 @@
 	.camera-tile[data-size='sm'] .no-stream-state,
 	.camera-tile[data-size='sm'] .motion-pill {
 		display: none;
-	}</style>
+	}
+
+	@container tile (max-width: 170px) {
+		.name-overlay {
+			padding: 14px 8px 6px;
+		}
+
+		.overlay-name {
+			font-size: var(--secondary-label-size);
+		}
+	}
+</style>

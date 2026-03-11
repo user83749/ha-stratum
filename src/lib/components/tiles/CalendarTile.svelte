@@ -85,7 +85,7 @@
 </div>
 
 <style>
-  .cal-tile { display: flex; flex-direction: column; width: 100%; height: 100%; gap: 8px; overflow: hidden; }
+  .cal-tile { display: flex; flex-direction: column; width: 100%; height: 100%; gap: var(--tile-gap); overflow: hidden; min-height: 0; }
 
   .top { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .icon-sq {
@@ -112,15 +112,26 @@
   .empty { flex: 1; display: flex; align-items: center; justify-content: center; font-size: var(--secondary-label-size); color: var(--fg-subtle); }
 
   .event-card {
-    display: flex; gap: 10px; flex: 1; min-height: 0; overflow: hidden;
+    display: flex; gap: 8px; flex: 1; min-height: 0; overflow: hidden;
     background: color-mix(in srgb, var(--accent) 8%, transparent);
     border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
-    border-radius: var(--radius-sm); padding: 10px 12px;
+    border-radius: var(--radius-sm); padding: calc(var(--tile-padding-effective) * 0.72) calc(var(--tile-padding-effective) * 0.86);
   }
   .event-bar { width: 3px; border-radius: 2px; background: var(--accent); flex-shrink: 0; align-self: stretch; }
-  .event-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; margin-top: auto; }
+  .event-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; margin-top: 0; justify-content: center; }
   .event-rel { font-size: var(--secondary-label-size); font-weight: 500; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
   .event-name { font-size: var(--control-label-size); font-weight: 500; color: var(--fg); line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .event-time { font-size: var(--secondary-label-size); color: var(--fg-muted); }
+  .event-time { font-size: var(--secondary-label-size); color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  @container tile (max-width: 180px) {
+    .top {
+      gap: 8px;
+    }
+
+    .event-card {
+      gap: 6px;
+      padding: calc(var(--tile-padding-effective) * 0.58) calc(var(--tile-padding-effective) * 0.7);
+    }
+  }
 
 </style>

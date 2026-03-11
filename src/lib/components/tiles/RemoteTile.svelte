@@ -10,6 +10,7 @@
   const config = $derived(tile.config);
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
+  const isTallMd = $derived(layoutW === 1 && layoutH >= 2);
   const sizePreset = $derived(
     layoutW >= 4 && layoutH >= 3 ? 'xl' :
     layoutW >= 3 && layoutH >= 2 ? 'lg' :
@@ -20,7 +21,7 @@
   const attrs = $derived(entity?.attributes ?? {});
   const name = $derived(config.name ?? attrs.friendly_name ?? 'Remote');
   const isOn = $derived(entity?.state === 'on');
-  const showHeader = $derived(sizePreset !== 'sm');
+  const showHeader = $derived(sizePreset !== 'sm' && !isTallMd);
   const showAuxRows = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 
   function send(command: string) {
@@ -33,7 +34,7 @@
   }
 </script>
 
-<div class="remote-tile" class:on={isOn} data-size={sizePreset}>
+<div class="remote-tile" class:on={isOn} class:is-tall-md={isTallMd} data-size={sizePreset}>
 
   <!-- Name + power at top -->
   {#if showHeader}
@@ -144,6 +145,12 @@
     margin: auto;
   }
 
+  .remote-tile.is-tall-md .dpad {
+    grid-template-columns: repeat(3, var(--action-icon-size));
+    grid-template-rows: repeat(3, var(--action-icon-size));
+    gap: 4px;
+  }
+
   .dpad-btn {
     all: unset;
     display: flex;
@@ -203,6 +210,10 @@
     cursor: pointer;
     color: var(--fg-muted);
     transition: all var(--transition);
+  }
+
+  .remote-tile.is-tall-md .header {
+    margin-bottom: 2px;
   }
 
   .act-btn:hover { background: color-mix(in srgb, var(--fg) 14%, transparent); color: var(--fg); }

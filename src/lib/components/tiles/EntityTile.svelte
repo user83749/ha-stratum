@@ -14,6 +14,14 @@
   let { tile, entity }: { tile: Tile; entity: HassEntity | null } = $props();
 
   const cfg             = $derived(tile.config ?? {});
+  const layoutW         = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
+  const layoutH         = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
+  const sizePreset      = $derived(
+    layoutW >= 4 && layoutH >= 3 ? 'xl' :
+    layoutW >= 3 && layoutH >= 2 ? 'lg' :
+    layoutW >= 2 || layoutH >= 2 ? 'md' :
+    'sm'
+  );
   const showName        = $derived(cfg.show_name !== false);
   const showIcon        = $derived(cfg.show_icon !== false);
   const showState       = $derived(cfg.show_state !== false);
@@ -36,6 +44,7 @@
   const secondaryEntity = $derived(
     cfg.secondary_entity_id ? ($entities[cfg.secondary_entity_id] ?? null) : null
   );
+  const showExtraMeta = $derived(sizePreset !== 'sm');
   const secondaryValue = $derived.by(() => {
     if (!secondaryEntity) return null;
     if (cfg.secondary_attribute) {
@@ -54,6 +63,7 @@
         value: String(entity!.attributes[key])
       }));
   });
+  const showAttributeCards = $derived((sizePreset === 'lg' || sizePreset === 'xl') && attributeRows.length > 0);
 
   const lastChangedText = $derived.by(() => {
     if (!showLastChanged || !entity?.last_changed) return '';
@@ -67,6 +77,7 @@
   class="entity-tile"
   class:active
   class:unavailable
+  class:no-icon={!showIcon}
   style="--ec: {entityColor};"
 >
   <!-- Grid layout: icon | (empty circle area) / name / state -->
@@ -89,15 +100,15 @@
   {#if showState}
     <span class="state-text">{stateText}</span>
   {/if}
-  {#if secondaryValue !== null}
+  {#if showExtraMeta && secondaryValue !== null}
     <span class="secondary-val">{secondaryValue}</span>
   {/if}
-  {#if showLastChanged && lastChangedText}
+  {#if showExtraMeta && showLastChanged && lastChangedText}
     <span class="changed-val">{lastChangedText}</span>
   {/if}
 
   <!-- Attribute cards — shown only on larger tiles via container query -->
-  {#if attributeRows.length > 0}
+  {#if showAttributeCards}
     <div class="attr-grid">
       {#each attributeRows as row}
         <div class="attr-card">
@@ -124,6 +135,13 @@
     gap: 1.3%;
     align-items: start;
     position: relative;
+  }
+
+  .entity-tile.no-icon {
+    grid-template-areas:
+      "n n"
+      "s s";
+    grid-template-rows: repeat(2, min-content);
   }
 
   /* ── Icon (grid-area: icon) ──────────────────────────────────────────── */
@@ -216,7 +234,7 @@
 
   /* ── Attribute grid — hidden by default, shown on larger tiles ────────── */
   .attr-grid {
-    display: none;
+    display: grid;
     grid-column: 1 / -1;
     grid-template-columns: 1fr 1fr;
     gap: 5px;

@@ -12,6 +12,8 @@
   const config    = $derived(tile.config);
   const layoutW   = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH   = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
+  const isWideMd = $derived(layoutW >= 2 && layoutH === 1);
+  const isTallMd = $derived(layoutW === 1 && layoutH >= 2);
   const sizePreset = $derived(
     layoutW >= 4 && layoutH >= 3 ? 'xl' :
     layoutW >= 3 && layoutH >= 2 ? 'lg' :
@@ -71,7 +73,8 @@
 <div class="hum-tile size-{sizePreset}" class:is-off={isOff} class:unavailable style="--mc: {modeColor}; --hp: {humPct}%;">
   {#if sizePreset === 'sm'}
     <!-- 1x1 Bold Complication -->
-    <button class="layout-sm" onclick={toggle}>
+    <!-- Primary tile action is handled by TileWrapper interaction settings -->
+    <div class="layout-sm">
       <div class="sm-icon" style="color: {isOn ? activeColor : offColor}">
         {#if iconOverride && overrideIsCustom}
           <Icon name={mainIcon} entity={entity} size={38} />
@@ -91,12 +94,13 @@
           <span class="target-val" style="color: {activeColor}">{targetHum}%</span>
         {/if}
       </div>
-    </button>
+    </div>
 
   {:else if sizePreset === 'md'}
     <!-- 2x1 Horizontal Row -->
-    <div class="layout-md">
-      <button class="md-left" onclick={toggle} aria-label="Toggle Power">
+    <div class="layout-md" class:is-wide-md={isWideMd} class:is-tall-md={isTallMd}>
+      <!-- Primary tile action is handled by TileWrapper interaction settings -->
+      <div class="md-left">
         <div class="md-icon" style="background: {iconOverride ? 'transparent' : isOn ? 'color-mix(in srgb, var(--mc) 20%, transparent)' : 'color-mix(in srgb, var(--fg) 8%, transparent)'}; color: {isOn ? 'var(--mc)' : offColor}">
           {#if iconOverride && overrideIsCustom}
             <Icon name={mainIcon} entity={entity} size={32} />
@@ -108,12 +112,12 @@
           <div class="status-val" style="color: {isOn ? activeColor : offColor}">{isOn ? 'Humidifying' : 'Off'}</div>
           <div class="device-name" style="color: {isOn ? activeColor : offColor}; opacity: {isOn ? 0.7 : 1}">{name}</div>
         </div>
-      </button>
+      </div>
 
       <div class="md-right">
         <div class="md-hum">
           <span class="val" style="color: {isOn ? activeColor : 'var(--fg)'}">{currentHum !== undefined ? Math.round(currentHum) : Math.round(targetHum)}%</span>
-          {#if isOn}
+          {#if isOn && !isTallMd}
             <span class="target" style="color: {activeColor}; opacity: 0.7;">Target {targetHum}%</span>
           {/if}
         </div>
@@ -279,11 +283,17 @@
   .layout-md {
     flex: 1;
     display: flex;
-    flex-direction: column;
+    align-items: center;
     justify-content: space-between;
     padding: 0;
-    gap: 12px;
+    gap: calc(var(--tile-padding-effective) * 1.05);
     transition: all 0.3s ease;
+  }
+
+  .layout-md.is-tall-md {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
   }
 
   .md-left {
@@ -293,15 +303,21 @@
     font: inherit;
     text-align: left;
     display: flex;
-    align-items: flex-start;
-    gap: 20px;
+    align-items: center;
+    gap: calc(var(--tile-padding-effective) * 1.2);
     min-width: 0;
-    cursor: pointer;
+    cursor: default;
+    flex: 1 1 auto;
+  }
+
+  .layout-md.is-tall-md .md-left {
+    align-items: flex-start;
+    gap: calc(var(--tile-padding-effective) * 0.95);
   }
 
   .md-icon {
-    width: var(--hero-text-size);
-    height: var(--hero-text-size);
+    width: calc(var(--hero-icon-size) * 1.02);
+    height: calc(var(--hero-icon-size) * 1.02);
     border-radius: 25%;
     display: flex;
     align-items: center;
@@ -337,14 +353,20 @@
   .md-right {
     display: flex;
     align-items: center;
-    gap: 0.75vw;
+    gap: calc(var(--tile-padding-effective) * 0.9);
     flex-shrink: 0;
+    min-width: 0;
+  }
+
+  .layout-md.is-tall-md .md-right {
+    justify-content: space-between;
   }
 
   .md-hum {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    min-width: 0;
   }
 
   .md-hum .val {
@@ -364,14 +386,18 @@
 
   .md-controls {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    flex-direction: row;
+    gap: calc(var(--tile-padding-effective) * 0.4);
+  }
+
+  .layout-md.is-tall-md .md-controls {
+    gap: calc(var(--tile-padding-effective) * 0.34);
   }
 
   .adj-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
+    width: var(--control-chip-size-compact);
+    height: var(--control-chip-size-compact);
+    border-radius: var(--control-chip-radius-compact);
     background: color-mix(in srgb, var(--fg) 8%, transparent);
     display: flex;
     align-items: center;

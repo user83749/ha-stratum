@@ -205,17 +205,17 @@
 	/* Actions */
 	.ap__actions {
 		display: flex;
-		gap: 6px;
+		gap: 5px;
 		flex-wrap: wrap;
-		margin-top: 8px;
+		margin-top: 6px;
 	}
 
 	.ap__btn {
 		display: inline-flex;
 		align-items: center;
 		gap: 5px;
-		height: var(--action-icon-size);
-		padding: 0 12px;
+		height: calc(var(--action-icon-size) * 0.95);
+		padding: 0 calc(var(--tile-padding-effective) * 1.1);
 		border-radius: 999px;
 		font-size: var(--secondary-label-size);
 		font-weight: 500;
@@ -318,4 +318,14 @@
 	}
 
 	.ap__cancel:hover { background: var(--hover); color: var(--fg); }
+
+	@container tile (max-width: 190px) {
+		.ap__actions {
+			gap: 4px;
+		}
+
+		.ap__btn {
+			padding: 0 calc(var(--tile-padding-effective) * 0.9);
+		}
+	}
 </style>

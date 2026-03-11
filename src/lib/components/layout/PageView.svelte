@@ -603,7 +603,10 @@
 	:global(.page-sections-grid > *) {
 		min-width: 0;
 	}
-	@media (max-width: 1200px) {
+	/* NOTE: Previously 1200px to mirror YAML literally.
+	   Adjusted to 1160px so Stratum's 3-column section layout visually lines up
+	   with the user's HA YAML dashboard timing in practice. */
+	@media (max-width: 1160px) {
 		.page-sections-grid {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}

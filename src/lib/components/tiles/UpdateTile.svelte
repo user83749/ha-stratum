@@ -41,13 +41,12 @@
   const autoUpdate = $derived(attrs.auto_update as boolean ?? false);
   const skippedVersion = $derived(attrs.skipped_version as string ?? '');
   const updateColor = $derived(
-    isUnavail ? 'var(--fg-subtle)' :
-    hasUpdate ? 'var(--color-info)' :
-    'var(--fg-subtle)'
+    hasUpdate ? 'var(--color-info)' : 'var(--tile-label-off, #97989c)'
   );
 
   let installing = $state(false);
   const showVersionInfo = $derived(sizePreset !== 'sm');
+  const showDetailedVersions = $derived(sizePreset === 'lg' || sizePreset === 'xl');
   const showActions = $derived((sizePreset === 'lg' || sizePreset === 'xl') && hasUpdate && !inProgress && !installing);
   const stateText = $derived(
     isUnavail ? 'Unavailable' :
@@ -87,11 +86,15 @@
     {#if showVersionInfo}
       <div class="meta">
         {#if hasUpdate}
-          <div class="version-line">
-            <span class="old-ver">{installedVersion}</span>
-            <Icon name="arrow-right" size={10} />
-            <span class="new-ver">{latestVersion}</span>
-          </div>
+          {#if showDetailedVersions}
+            <div class="version-line">
+              <span class="old-ver">{installedVersion}</span>
+              <Icon name="arrow-right" size={10} />
+              <span class="new-ver">{latestVersion}</span>
+            </div>
+          {:else}
+            <div class="version-label">Latest {latestVersion}</div>
+          {/if}
         {:else if installedVersion}
           <div class="version-label">{installedVersion}</div>
         {/if}
@@ -131,9 +134,9 @@
     min-width: 0;
   }
 
-  .version-line { display: flex; align-items: center; gap: 4px; font-size: var(--secondary-label-size); }
-  .old-ver { color: var(--fg-subtle); }
-  .new-ver { font-weight: 500; color: var(--uc); }
+  .version-line { display: flex; align-items: center; gap: 4px; font-size: var(--secondary-label-size); min-width: 0; }
+  .old-ver { color: var(--fg-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .new-ver { font-weight: 500; color: var(--uc); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .version-label { font-size: var(--secondary-label-size); color: var(--fg-subtle); }
 
   .auto-badge {
@@ -143,7 +146,7 @@
     align-self: flex-start; letter-spacing: 0.04em;
   }
 
-  .actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+  .actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; flex-wrap: wrap; }
 
   .install-btn {
     all: unset; display: flex; align-items: center; gap: 5px;

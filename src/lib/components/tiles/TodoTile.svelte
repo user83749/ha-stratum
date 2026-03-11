@@ -11,6 +11,7 @@
   const config = $derived(tile.config);
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
+  const isTallMd = $derived(layoutW === 1 && layoutH >= 2);
   const sizePreset = $derived(
     layoutW >= 4 && layoutH >= 3 ? 'xl' :
     layoutW >= 3 && layoutH >= 2 ? 'lg' :
@@ -56,7 +57,7 @@
   const displayItems = $derived(showDone ? items : pending);
   const visibleItems = $derived(
     sizePreset === 'sm' ? displayItems.slice(0, 2) :
-    sizePreset === 'md' ? displayItems.slice(0, 4) :
+    sizePreset === 'md' ? displayItems.slice(0, isTallMd ? 2 : 4) :
     displayItems
   );
   const showCount = $derived(sizePreset !== 'sm');
@@ -155,6 +156,10 @@
     font-weight: 500;
     color: var(--fg);
     flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .count {
@@ -184,6 +189,7 @@
     all: unset;
     display: flex; align-items: center; gap: 8px; padding: 5px 4px; border-radius: var(--radius-sm);
     cursor: pointer; transition: background var(--transition); width: 100%; box-sizing: border-box;
+    min-height: calc(var(--action-icon-size) * 0.86);
   }
   .todo-item:hover { background: var(--hover); }
   .todo-item.done { opacity: 0.5; }

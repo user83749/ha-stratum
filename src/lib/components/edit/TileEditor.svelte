@@ -86,44 +86,8 @@
 		save({ [key]: action });
 	}
 
-	const LIGHT_TOGGLES = [
-		['show_brightness_slider',  'Brightness slider'],
-		['show_color_temp_slider',  'Color temp slider'],
-		['show_color_picker',       'Color picker'],
-		['show_effect_list',        'Effect list']
-	] as const;
-	const CLIMATE_TOGGLES = [
-		['show_current_temp',  'Current temperature'],
-		['show_humidity',      'Humidity'],
-		['show_fan_mode',      'Fan mode'],
-		['show_hvac_modes',    'HVAC modes'],
-		['show_preset_modes',  'Preset modes'],
-		['show_swing_mode',    'Swing mode']
-	] as const;
-	const COVER_TOGGLES = [
-		['show_position_slider', 'Position slider'],
-		['show_tilt',            'Tilt'],
-		['show_tilt_slider',     'Tilt slider']
-	] as const;
-	const MEDIA_TOGGLES = [
-		['show_artwork',    'Album artwork'],
-		['show_progress',   'Progress bar'],
-		['show_volume',     'Volume'],
-		['show_source',     'Source selector'],
-		['show_sound_mode', 'Sound mode']
-	] as const;
-	const FAN_TOGGLES = [
-		['show_speed_slider', 'Speed slider'],
-		['show_oscillate',    'Oscillate'],
-		['show_direction',    'Direction'],
-		['show_preset_modes_fan', 'Preset modes']
-	] as const;
-	const WEATHER_TOGGLES = [
-		['weather_show_humidity',      'Humidity'],
-		['weather_show_wind',          'Wind'],
-		['weather_show_precipitation', 'Precipitation'],
-		['weather_show_uv_index',      'UV index']
-	] as const;
+	// Note: only keep tile-specific controls here when they are actively wired
+	// into runtime tile/dialog rendering. Unwired toggles are intentionally omitted.
 	// ── Player map helpers (media_hero) ──────────────────────────────────────
 
 	interface PlayerMapEntry { state: string; entity_id: string; picture_entity: string; name: string; icon: string; }
@@ -285,28 +249,7 @@
 			<div class="te__group">
 				<span class="te__section-title">Tile-specific settings</span>
 
-				{#if domain === 'light' || tile.type === 'light'}
-					{#each LIGHT_TOGGLES as [key, label]}
-						<label class="te__check"><input type="checkbox" checked={tile.config[key] !== false} onchange={(e) => save({ [key]: (e.target as HTMLInputElement).checked })} />{label}</label>
-					{/each}
-				{/if}
-
-				{#if domain === 'climate' || tile.type === 'climate'}
-					{#each CLIMATE_TOGGLES as [key, label]}
-						<label class="te__check"><input type="checkbox" checked={tile.config[key] !== false} onchange={(e) => save({ [key]: (e.target as HTMLInputElement).checked })} />{label}</label>
-					{/each}
-				{/if}
-
-				{#if domain === 'cover' || tile.type === 'cover'}
-					{#each COVER_TOGGLES as [key, label]}
-						<label class="te__check"><input type="checkbox" checked={tile.config[key] !== false} onchange={(e) => save({ [key]: (e.target as HTMLInputElement).checked })} />{label}</label>
-					{/each}
-				{/if}
-
 				{#if domain === 'media_player' || tile.type === 'media_player'}
-					{#each MEDIA_TOGGLES as [key, label]}
-						<label class="te__check"><input type="checkbox" checked={tile.config[key] !== false} onchange={(e) => save({ [key]: (e.target as HTMLInputElement).checked })} />{label}</label>
-					{/each}
 					{#if showTvRemoteMapping}
 						<span class="te__label te__mt12">TV remote button entities</span>
 						<p class="te__hint">
@@ -487,20 +430,6 @@
 							<Icon name="plus" size={14} /> <span>Add player mapping</span>
 						</button>
 					</div>
-				{/if}
-
-				{#if domain === 'weather' || tile.type === 'weather'}
-					{#each WEATHER_TOGGLES as [key, label]}
-						<label class="te__check"><input type="checkbox" checked={tile.config[key] !== false} onchange={(e) => save({ [key]: (e.target as HTMLInputElement).checked })} />{label}</label>
-					{/each}
-					<span class="te__label">Forecast days</span>
-					<input class="te__input te__input--num" type="number" min="1" max="7" value={(tile.config.weather_forecast_days as number) ?? 5} oninput={(e) => save({ weather_forecast_days: parseInt((e.target as HTMLInputElement).value) || 5 })} />
-				{/if}
-
-				{#if domain === 'fan' || tile.type === 'fan'}
-					{#each FAN_TOGGLES as [key, label]}
-						<label class="te__check"><input type="checkbox" checked={tile.config[key] !== false} onchange={(e) => save({ [key]: (e.target as HTMLInputElement).checked })} />{label}</label>
-					{/each}
 				{/if}
 
 				{#if domain === 'camera' || tile.type === 'camera'}

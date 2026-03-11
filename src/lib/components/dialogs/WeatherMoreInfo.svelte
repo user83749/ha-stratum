@@ -13,22 +13,102 @@
 	const wind = $derived(entity?.attributes.wind_speed as number | undefined);
 	const windUnit = $derived((entity?.attributes.wind_speed_unit as string | undefined) ?? 'km/h');
 	const pressure = $derived(entity?.attributes.pressure as number | undefined);
+	const pressureUnit = $derived(
+		(entity?.attributes.pressure_unit as string | undefined) ??
+		(entity?.attributes.native_pressure_unit as string | undefined) ??
+		'hPa'
+	);
 	const visibility = $derived(entity?.attributes.visibility as number | undefined);
+	const visibilityUnit = $derived(
+		(entity?.attributes.visibility_unit as string | undefined) ??
+		(entity?.attributes.precipitation_unit as string | undefined) ??
+		'km'
+	);
 
-	interface ForecastDay { datetime: string; temperature: number; templow?: number; condition: string; }
-	const forecast = $derived((entity?.attributes.forecast as ForecastDay[] | undefined) ?? []);
+	interface ForecastDay {
+		datetime?: string;
+		temperature?: number;
+		templow?: number;
+		condition?: string;
+	}
+	const forecastRaw = $derived((entity?.attributes.forecast as ForecastDay[] | undefined) ?? []);
+	const forecast = $derived.by(() => {
+		if (!Array.isArray(forecastRaw)) return [];
+		return forecastRaw
+			.map((day) => {
+				const dt = day.datetime ?? ((day as Record<string, unknown>).date as string | undefined) ?? '';
+				const high =
+					day.temperature ??
+					((day as Record<string, unknown>).temperature_high as number | undefined) ??
+					((day as Record<string, unknown>).native_temperature as number | undefined);
+				const low =
+					day.templow ??
+					((day as Record<string, unknown>).temperature_low as number | undefined) ??
+					((day as Record<string, unknown>).native_templow as number | undefined);
+				const condition =
+					day.condition ??
+					((day as Record<string, unknown>).forecast_condition as string | undefined) ??
+					((day as Record<string, unknown>).state as string | undefined) ??
+					'unknown';
+				return { datetime: dt, temperature: high, templow: low, condition };
+			})
+			.filter((day) => day.temperature !== undefined || day.templow !== undefined || !!day.condition);
+	});
 
 	function condIcon(c: string): string {
-		const map: Record<string,string> = { 
-			'clear-night':'moon', sunny:'sun', partlycloudy:'cloud-sun', 
-			cloudy:'cloud', fog:'cloud-fog', rainy:'cloud-rain', 
-			snowy:'cloud-snow', windy:'wind', lightning:'zap', pouring:'cloud-drizzle' 
+		const map: Record<string, string> = {
+			'clear-night': 'moon',
+			clear: 'sun',
+			sunny: 'sun',
+			partlycloudy: 'cloud-sun',
+			'partly-cloudy': 'cloud-sun',
+			cloudy: 'cloud',
+			fog: 'cloud-fog',
+			hail: 'cloud-rain',
+			lightning: 'zap',
+			'lightning-rainy': 'cloud-lightning',
+			pouring: 'cloud-drizzle',
+			rainy: 'cloud-rain',
+			snowy: 'cloud-snow',
+			'snowy-rainy': 'cloud-snow',
+			windy: 'wind',
+			'windy-variant': 'wind',
+			exceptional: 'alert-triangle'
 		};
-		return map[c] ?? 'cloud';
+		const key = String(c ?? '').trim().toLowerCase().replace(/_/g, '-').replace(/\s+/g, '-');
+		return map[key] ?? 'cloud';
+	}
+
+	function formatConditionLabel(c: string): string {
+		const key = String(c ?? '').trim().toLowerCase().replace(/_/g, '-').replace(/\s+/g, '-');
+		const labels: Record<string, string> = {
+			'clear-night': 'Clear Night',
+			clear: 'Clear',
+			sunny: 'Sunny',
+			partlycloudy: 'Partly Cloudy',
+			cloudy: 'Cloudy',
+			fog: 'Fog',
+			hail: 'Hail',
+			lightning: 'Lightning',
+			'lightning-rainy': 'Lightning Rain',
+			pouring: 'Pouring',
+			rainy: 'Rainy',
+			snowy: 'Snowy',
+			'snowy-rainy': 'Snowy Rain',
+			windy: 'Windy',
+			'windy-variant': 'Windy',
+			exceptional: 'Exceptional'
+		};
+		if (labels[key]) return labels[key];
+		return key
+			.replace(/-/g, ' ')
+			.replace(/\b\w/g, (m) => m.toUpperCase());
 	}
 
 	function dayLabel(ds: string) {
+		if (!ds) return '—';
 		const d = new Date(ds);
+		if (Number.isNaN(d.getTime())) return '—';
 		if (d.toDateString() === new Date().toDateString()) return 'Today';
 		return d.toLocaleDateString(undefined, { weekday: 'short' });
 	}
@@ -40,7 +120,7 @@
 			<Icon name={condIcon(state)} size={32} />
 		</div>
 		<div class="wmi__titles">
-			<h2 class="wmi__title">{state.replace(/_/g, ' ')}</h2>
+			<h2 class="wmi__title">{formatConditionLabel(state)}</h2>
 			<span class="wmi__subtitle">{entity?.attributes.friendly_name ?? 'Weather'}</span>
 		</div>
 		<div class="wmi__main-temp">
@@ -69,14 +149,14 @@
 				<Icon name="gauge" size={14} />
 				<div class="wmi__metric-info">
 					<span class="wmi__metric-label">Pressure</span>
-					<span class="wmi__metric-val">{pressure ?? '--'} hPa</span>
+					<span class="wmi__metric-val">{pressure ?? '--'} {pressureUnit}</span>
 				</div>
 			</div>
 			<div class="wmi__metric">
 				<Icon name="eye" size={14} />
 				<div class="wmi__metric-info">
 					<span class="wmi__metric-label">Visibility</span>
-					<span class="wmi__metric-val">{visibility ?? '--'} km</span>
+					<span class="wmi__metric-val">{visibility ?? '--'} {visibilityUnit}</span>
 				</div>
 			</div>
 		</div>
@@ -92,7 +172,7 @@
 								<Icon name={condIcon(day.condition)} size={20} />
 							</div>
 							<div class="wmi__day-temps">
-								<span class="wmi__day-high">{Math.round(day.temperature)}{unit}</span>
+								<span class="wmi__day-high">{day.temperature !== undefined ? Math.round(day.temperature) : '--'}{unit}</span>
 								{#if day.templow !== undefined}
 									<span class="wmi__day-low">{Math.round(day.templow)}{unit}</span>
 								{/if}

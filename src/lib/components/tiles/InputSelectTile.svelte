@@ -27,7 +27,8 @@
   const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
   const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const options = $derived((attrs.options as string[]) ?? []);
-  const showCycleArrows = $derived(sizePreset !== 'sm');
+  const isTallMd = $derived(layoutW === 1 && layoutH >= 2);
+  const showCycleArrows = $derived(sizePreset !== 'sm' && !isTallMd);
   const showOptionsMeta = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 
   let open = $state(false);
@@ -142,7 +143,7 @@
   .select-row {
     margin-top: 8px;
     display: flex;
-    gap: 4px;
+    gap: calc(var(--tile-padding-effective) * 0.28);
     flex-shrink: 0;
   }
 
@@ -157,9 +158,9 @@
 
   .arrow-btn {
     all: unset;
-    width: var(--action-icon-size-lg);
-    height: var(--action-icon-size);
-    border-radius: 8px;
+    width: var(--control-chip-size-compact);
+    height: var(--control-chip-size-compact);
+    border-radius: var(--control-chip-radius-compact);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -180,8 +181,8 @@
   .open-btn {
     all: unset;
     flex: 1;
-    height: var(--action-icon-size);
-    border-radius: 8px;
+    height: var(--control-chip-size-compact);
+    border-radius: var(--control-chip-radius-compact);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -201,15 +202,13 @@
 
   /* ── Dropdown ───────────────────────────────────────────────────────────── */
   .dropdown {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    position: relative;
+    margin-top: 6px;
     background: var(--bg-elevated);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
     overflow-y: auto;
-    max-height: 180px;
+    max-height: 150px;
     box-shadow: var(--shadow-lg);
     z-index: 10;
   }
@@ -236,5 +235,16 @@
     background: color-mix(in srgb, var(--accent) 18%, transparent);
     color: var(--accent);
     font-weight: 500;
+  }
+
+  @container tile (max-width: 170px) {
+    .dropdown {
+      max-height: 120px;
+    }
+
+    .opt {
+      padding: 7px 10px;
+      font-size: var(--button-card-font-size);
+    }
   }
 </style>

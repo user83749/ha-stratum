@@ -228,6 +228,10 @@
     cursor: pointer;
     transition: all var(--transition);
     text-transform: capitalize;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
 
   .mode-chip.active {
@@ -236,7 +240,7 @@
     border-color: color-mix(in srgb, var(--hc) 40%, var(--border));
   }
 
-  @container tile (max-width: 160px) { .modes { display: none; } }
-  @container tile (max-height: 140px) { .slider-area { display: none; } }
-  @container tile (max-height: 100px) { .current-badge { display: none; } }
+  @container tile (max-width: 180px) { .modes { display: none; } }
+  @container tile (max-height: 96px) { .slider-area { display: none; } }
+  @container tile (max-height: 84px) { .current-badge { display: none; } }
 </style>

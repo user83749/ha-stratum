@@ -11,6 +11,7 @@
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const __state = $derived((entity?.state as string | undefined) ?? 'unknown');
+	const isMoving = $derived(__state === 'opening' || __state === 'closing');
 	const position = $derived((entity?.attributes.current_position as number | undefined) ?? (__state === 'open' ? 100 : 0));
 	const tilt = $derived(entity?.attributes.current_tilt_position as number | undefined);
 	const supportedFeatures = $derived((entity?.attributes.supported_features as number | undefined) ?? 0);
@@ -28,12 +29,43 @@
 	const SET_POSITION = 4;
 	const STOP = 8;
 	const SET_TILT_POSITION = 128;
+	const deviceClass = $derived(entity?.attributes.device_class as string ?? 'blind');
 	const unknownFeatures = $derived(supportedFeatures === 0);
 	const canOpen = $derived(unknownFeatures || (supportedFeatures & OPEN) !== 0);
 	const canClose = $derived(unknownFeatures || (supportedFeatures & CLOSE) !== 0);
 	const canStop = $derived(unknownFeatures || (supportedFeatures & STOP) !== 0);
 	const canSetPosition = $derived(unknownFeatures || (supportedFeatures & SET_POSITION) !== 0);
 	const canSetTilt = $derived(unknownFeatures || (supportedFeatures & SET_TILT_POSITION) !== 0);
+
+	// ─── Archetypes ──────────────────────────────────────────────────────────
+	const archetype = $derived.by(() => {
+		if (deviceClass === 'curtain') return 'horizontal';
+		if (['garage', 'gate', 'door'].includes(deviceClass)) return 'portal';
+		return 'vertical';
+	});
+
+	const headerIcon = $derived.by(() => {
+		const map: Record<string, string> = {
+			garage: __state === 'open' ? 'garage-open' : 'garage',
+			gate: 'gate',
+			curtain: 'curtains',
+			awning: 'tent',
+			window: 'window-open',
+			door: __state === 'open' ? 'door-open' : 'door-closed',
+			shutter: 'window-shutter',
+			blind: 'blinds',
+			shade: 'blinds'
+		};
+		return map[deviceClass] ?? 'blinds';
+	});
+
+	const labels = $derived.by(() => {
+		const isVert = archetype === 'vertical';
+		return {
+			open: isVert ? 'Raise' : 'Open',
+			close: isVert ? 'Lower' : 'Close'
+		};
+	});
 
 	function onInput(e: Event) {
 		dragging = true;
@@ -82,8 +114,13 @@
 
 <div class="covmi">
 	<div class="covmi__header">
-		<div class="covmi__icon-wrap" class:covmi__icon-wrap--active={__state === 'open'}>
-			<Icon name="blinds" size={28} />
+		<div class="covmi__icon-wrap" 
+			class:covmi__icon-wrap--active={__state === 'open'} 
+			class:covmi__icon-wrap--moving={isMoving}
+		>
+			<div class="covmi__icon-inner" class:is-moving={isMoving}>
+				<Icon name={headerIcon} size={28} />
+			</div>
 		</div>
 		<div class="covmi__titles">
 			<h2 class="covmi__title">{entity?.attributes.friendly_name ?? 'Cover'}</h2>
@@ -93,30 +130,67 @@
 	</div>
 
 	<div class="covmi__body">
-		<div class="covmi__main-control">
-			<div class="covmi__visual-track">
-				<div class="covmi__track">
-					<div class="covmi__fill" style="height: {localPos}%"></div>
-					<input 
-						type="range" min="0" max="100" step="1" 
-						value={localPos} 
-						oninput={onInput}
-						onchange={onChange}
-						disabled={isUnavail || !canSetPosition}
-						class="covmi__slider"
-						aria-label="Cover position" 
-					/>
+		<div class="covmi__main-control" class:covmi__main-control--horizontal={archetype === 'horizontal'} class:covmi__main-control--portal={archetype === 'portal'}>
+			
+			{#if archetype === 'portal'}
+				<button class="covmi__portal-hero" 
+					class:active={__state === 'open'}
+					onclick={() => run(__state === 'open' ? 'close' : 'open')}
+					disabled={isUnavail}
+				>
+					<div class="covmi__portal-icon">
+						<Icon name={headerIcon} size={64} />
+					</div>
+					<div class="covmi__portal-blob"></div>
+				</button>
+
+			{:else if archetype === 'horizontal'}
+				<div class="covmi__visual-track covmi__visual-track--horizontal">
+					<div class="covmi__track covmi__track--horizontal">
+						<div class="covmi__curtain-panel covmi__curtain-panel--left" style="width: {50 - (localPos / 2)}%"></div>
+						<div class="covmi__curtain-panel covmi__curtain-panel--right" style="width: {50 - (localPos / 2)}%"></div>
+						<input 
+							type="range" min="0" max="100" step="1" 
+							value={localPos} 
+							oninput={onInput}
+							onchange={onChange}
+							disabled={isUnavail || !canSetPosition}
+							class="covmi__slider"
+							aria-label="Cover position" 
+						/>
+					</div>
+					<div class="covmi__pos-badge">
+						<span class="covmi__pos-val">{Math.round(localPos)}%</span>
+						<span class="covmi__pos-label">Position</span>
+					</div>
 				</div>
-				<div class="covmi__pos-badge">
-					<span class="covmi__pos-val">{Math.round(localPos)}%</span>
-					<span class="covmi__pos-label">Position</span>
+
+			{:else}
+				<div class="covmi__visual-track">
+					<div class="covmi__track">
+						<div class="covmi__slats"></div>
+						<div class="covmi__fill" style="height: {localPos}%"></div>
+						<input 
+							type="range" min="0" max="100" step="1" 
+							value={localPos} 
+							oninput={onInput}
+							onchange={onChange}
+							disabled={isUnavail || !canSetPosition}
+							class="covmi__slider"
+							aria-label="Cover position" 
+						/>
+					</div>
+					<div class="covmi__pos-badge">
+						<span class="covmi__pos-val">{Math.round(localPos)}%</span>
+						<span class="covmi__pos-label">Position</span>
+					</div>
 				</div>
-			</div>
+			{/if}
 
 			<div class="covmi__actions-grid">
 				<button class="covmi__action-btn" onclick={() => run('open')} disabled={isUnavail || !canOpen}>
 					<Icon name="chevrons-up" size={20} />
-					<span>Open</span>
+					<span>{labels.open}</span>
 				</button>
 				<button class="covmi__action-btn covmi__action-btn--stop" onclick={() => run('stop')} disabled={isUnavail || !canStop}>
 					<Icon name="square" size={20} />
@@ -124,7 +198,7 @@
 				</button>
 				<button class="covmi__action-btn" onclick={() => run('close')} disabled={isUnavail || !canClose}>
 					<Icon name="chevrons-down" size={20} />
-					<span>Close</span>
+					<span>{labels.close}</span>
 				</button>
 			</div>
 		</div>
@@ -196,6 +270,27 @@
 		border-color: color-mix(in srgb, var(--accent) 25%, transparent);
 	}
 
+	.covmi__icon-wrap--moving {
+		border-color: var(--color-warning);
+		color: var(--color-warning);
+		background: color-mix(in srgb, var(--color-warning) 8%, transparent);
+		animation: covmi-pulse 2s ease-in-out infinite;
+	}
+
+	.covmi__icon-inner.is-moving {
+		animation: covmi-bounce 1.5s ease-in-out infinite;
+	}
+
+	@keyframes covmi-pulse {
+		0%, 100% { border-color: color-mix(in srgb, var(--color-warning) 25%, transparent); box-shadow: 0 0 0 0 transparent; }
+		50% { border-color: var(--color-warning); box-shadow: 0 0 12px color-mix(in srgb, var(--color-warning) 15%, transparent); }
+	}
+
+	@keyframes covmi-bounce {
+		0%, 100% { transform: translateY(0); }
+		50% { transform: translateY(-4px); }
+	}
+
 	.covmi__titles {
 		flex: 1;
 		display: flex;
@@ -244,6 +339,8 @@
 		align-items: center;
 		gap: 32px;
 	}
+	.covmi__main-control--horizontal { gap: 40px; }
+	.covmi__main-control--portal { gap: 40px; }
 
 	.covmi__visual-track {
 		display: flex;
@@ -251,6 +348,11 @@
 		gap: 32px;
 		width: 100%;
 		max-width: 240px;
+	}
+	.covmi__visual-track--horizontal {
+		flex-direction: column;
+		max-width: 100%;
+		gap: 20px;
 	}
 
 	.covmi__track {
@@ -261,6 +363,24 @@
 		border: 1px solid var(--border);
 		border-radius: var(--dialog-radius);
 		overflow: hidden;
+	}
+	.covmi__track--horizontal {
+		width: 100%;
+		height: 80px;
+		max-width: 280px;
+	}
+
+	.covmi__slats {
+		position: absolute;
+		inset: 0;
+		background-image: repeating-linear-gradient(
+			to bottom,
+			transparent,
+			transparent 11px,
+			rgba(0,0,0,0.1) 11px,
+			rgba(0,0,0,0.1) 12px
+		);
+		opacity: 0.5;
 	}
 
 	.covmi__fill {
@@ -284,6 +404,53 @@
 		box-shadow: 0 0 12px var(--accent);
 	}
 
+	.covmi__curtain-panel {
+		position: absolute;
+		top: 0;
+		height: 100%;
+		background: var(--accent);
+		opacity: 0.4;
+		transition: width 0.12s linear;
+	}
+	.covmi__curtain-panel--left { left: 0; border-right: 2px solid var(--accent); }
+	.covmi__curtain-panel--right { right: 0; border-left: 2px solid var(--accent); }
+
+	.covmi__portal-hero {
+		all: unset;
+		position: relative;
+		width: 120px;
+		height: 120px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		transition: transform 0.2s;
+	}
+	.covmi__portal-hero:active { transform: scale(0.96); }
+	.covmi__portal-hero:disabled { opacity: 0.4; cursor: not-allowed; }
+
+	.covmi__portal-icon {
+		position: relative;
+		z-index: 2;
+		color: var(--fg-muted);
+		transition: color 0.3s;
+	}
+	.covmi__portal-hero.active .covmi__portal-icon { color: var(--accent); }
+
+	.covmi__portal-blob {
+		position: absolute;
+		inset: 0;
+		background: var(--hover);
+		border: 2px solid var(--border);
+		border-radius: 50%;
+		transition: all 0.3s;
+	}
+	.covmi__portal-hero.active .covmi__portal-blob {
+		background: color-mix(in srgb, var(--accent) 12%, transparent);
+		border-color: var(--accent);
+		box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 20%, transparent);
+	}
+
 	.covmi__slider {
 		position: absolute;
 		inset: 0;
@@ -292,14 +459,22 @@
 		opacity: 0;
 		cursor: ns-resize;
 		margin: 0;
+	}
+	.covmi__track:not(.covmi__track--horizontal) .covmi__slider {
 		writing-mode: vertical-lr;
 		direction: rtl;
+	}
+	.covmi__track--horizontal .covmi__slider {
+		cursor: ew-resize;
 	}
 
 	.covmi__pos-badge {
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
+	}
+	.covmi__visual-track--horizontal .covmi__pos-badge {
+		align-items: center;
 	}
 
 	.covmi__pos-val {

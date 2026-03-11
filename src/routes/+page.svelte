@@ -5,7 +5,7 @@
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { dashboardStore } from '$lib/stores/dashboard';
-	import { uiStore, activePageId } from '$lib/stores/ui';
+	import { uiStore, activeDialog, activePageId } from '$lib/stores/ui';
 	import { editMode, isEditing, editSelection, editorOpen } from '$lib/stores/editMode';
 	import { undoStore } from '$lib/stores/undoStore';
 	import AppShell from '$lib/components/layout/AppShell.svelte';
@@ -299,15 +299,28 @@
 
 	let _touchStartX = 0;
 	let _touchStartY = 0;
+	let _touchStartInteractive = false;
+
+	function isSwipeInteractiveTarget(target: EventTarget | null): boolean {
+		if (!(target instanceof Element)) return false;
+		return !!target.closest(
+			'input, select, textarea, button, a, [role="button"], [role="slider"], [role="switch"], [contenteditable="true"], [data-no-page-swipe], .moreinfo-panel, .moreinfo-backdrop'
+		);
+	}
 
 	function handleTouchStart(e: TouchEvent) {
+		_touchStartInteractive = false;
 		if (!cfg.display.swipeNavigation) return;
+		if ($activeDialog) return;
 		_touchStartX = e.touches[0].clientX;
 		_touchStartY = e.touches[0].clientY;
+		_touchStartInteractive = isSwipeInteractiveTarget(e.target);
 	}
 
 	function handleTouchEnd(e: TouchEvent) {
 		if (!cfg.display.swipeNavigation) return;
+		if ($activeDialog) return;
+		if (_touchStartInteractive) return;
 		const dx = e.changedTouches[0].clientX - _touchStartX;
 		const dy = e.changedTouches[0].clientY - _touchStartY;
 		// Only trigger horizontal swipe if horizontal dominates

@@ -264,30 +264,6 @@ export interface TileConfig {
 
 	// ── Light ────────────────────────────────────────────────────────────────
 	color_mode?: 'color_temp' | 'rgb' | 'rgbw' | 'hs';
-	show_brightness_slider?: boolean;
-	show_color_picker?: boolean;
-	show_color_temp_slider?: boolean;
-	show_effect_list?: boolean;       // dropdown of available light effects
-
-	// ── Climate ──────────────────────────────────────────────────────────────
-	show_current_temp?: boolean;
-	show_humidity?: boolean;
-	show_fan_mode?: boolean;
-	show_hvac_modes?: boolean;
-	show_preset_modes?: boolean;      // eco, sleep, activity, etc.
-	show_swing_mode?: boolean;
-
-	// ── Cover / Valve ────────────────────────────────────────────────────────
-	// (valve uses the same tile config as cover)
-	show_position_slider?: boolean;
-	show_tilt?: boolean;
-	show_tilt_slider?: boolean;
-
-	// ── Fan ──────────────────────────────────────────────────────────────────
-	show_speed_slider?: boolean;
-	show_oscillate?: boolean;
-	show_direction?: boolean;
-	show_preset_modes_fan?: boolean;  // fan preset modes (e.g. auto, sleep)
 
 	// ── Humidifier ───────────────────────────────────────────────────────────
 	show_humidity_slider?: boolean;   // target humidity slider
@@ -311,9 +287,6 @@ export interface TileConfig {
 	// ── Media player ─────────────────────────────────────────────────────────
 	show_artwork?: boolean;
 	show_progress?: boolean;
-	show_volume?: boolean;
-	show_source?: boolean;
-	show_sound_mode?: boolean;
 	artwork_size?: 'sm' | 'md' | 'lg' | 'fill';
 	media_controls?: ('play' | 'next' | 'previous' | 'shuffle' | 'repeat')[];
 	switcher_entity_id?: string;     // select.conditional_media for switching
@@ -403,13 +376,8 @@ export interface TileConfig {
 	energy_chart_period?: 'hour' | 'day' | 'month';
 
 	// ── Weather tile ─────────────────────────────────────────────────────────
-	weather_show_humidity?: boolean;
-	weather_show_wind?: boolean;
-	weather_show_precipitation?: boolean;
-	weather_show_uv_index?: boolean;
 	weather_show_visibility?: boolean;
 	weather_forecast_type?: 'daily' | 'hourly' | 'twice_daily';
-	weather_forecast_days?: number;    // 1–7 for daily, 1–48h for hourly
 
 	// ── Todo tile ────────────────────────────────────────────────────────────
 	todo_show_completed?: boolean;

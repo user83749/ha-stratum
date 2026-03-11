@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.43] - 2026-03-10
+
+### Changed
+- Extensive updates to MoreInfo dialogs for Cover, Weather, and various entity types.
+- Major refactor and improvements to almost all tile components (Camera, Climate, Entity, Humidifier, InputSelect, Remote, Timer, Todo, Update, WaterHeater).
+- Refined Dashboard type definitions and page layout.
+- Enhanced TileWrapper stability and rendering.
+
 ## [1.0.42] - 2026-03-09
 
 ### Changed

@@ -660,6 +660,7 @@
     min-height: 0;
     transform: none !important;
     filter: none !important;
+    pointer-events: none;
   }
 
   .tp-confirm {
