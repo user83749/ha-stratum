@@ -78,7 +78,7 @@ export function normalizeTilesForColumns(
 	const normalized: Array<{ tile: Tile; layout: TileLayout }> = [];
 
 	for (const tile of tiles) {
-		const preset = tile.sizePreset ?? inferPresetFromLegacySize(tile.type, tile.size);
+		const preset = inferPresetFromLegacySize(tile.type, tile.layout ?? tile.size);
 		const fallback = resolvePresetToSpan(tile.type, preset, cols <= MOBILE_SECTION_COLS ? 'sm' : 'lg');
 		const preferred = normalizeBox(tile.layout, tile.size ?? fallback);
 		const clamped = {
@@ -100,7 +100,9 @@ export function normalizeTilesForStorage(tiles: Tile[], cols: number): Tile[] {
 	return normalizeTilesForColumns(tiles, cols).map(({ tile, layout }) => ({
 		...tile,
 		layout,
-		sizePreset: tile.sizePreset ?? inferPresetFromLegacySize(tile.type, tile.size),
+		// Keep preset aligned to actual snapped layout so tile render variants
+		// always follow the current dimensions.
+		sizePreset: inferPresetFromLegacySize(tile.type, layout),
 		// Keep legacy size in sync with the resolved snapped layout while the
 		// old field still exists for migration compatibility.
 		size: { w: layout.w, h: layout.h }
@@ -116,7 +118,7 @@ export function appendTileToLayout(tiles: Tile[], tile: Tile, cols: number): Til
 		occupy(existing.layout, occupied);
 	}
 
-	const preset = tile.sizePreset ?? inferPresetFromLegacySize(tile.type, tile.size);
+	const preset = inferPresetFromLegacySize(tile.type, tile.layout ?? tile.size);
 	const fallback = tile.size ?? resolvePresetToSpan(tile.type, preset, 'lg');
 	const layout = findFirstFitPosition(occupied, cols, tile.layout ?? fallback);
 

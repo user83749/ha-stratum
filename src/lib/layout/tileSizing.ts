@@ -50,8 +50,18 @@ export function inferPresetFromLegacySize(type: TileType, size?: Partial<TileSiz
 }
 
 export function getTileSizePreset(tile: Tile): TileSizePreset {
+	// Always derive from live dimensions when available so resizing (drag or edit)
+	// immediately switches the rendered tile variant (sm/md/lg/xl).
+	const inferred = inferPresetFromLegacySize(tile.type, tile.layout ?? tile.size);
+	const hasLiveSize =
+		typeof tile.layout?.w === 'number' ||
+		typeof tile.layout?.h === 'number' ||
+		typeof tile.size?.w === 'number' ||
+		typeof tile.size?.h === 'number';
+
+	if (hasLiveSize) return inferred;
 	if (tile.sizePreset && getAllowedPresets(tile.type).includes(tile.sizePreset)) {
 		return tile.sizePreset;
 	}
-	return inferPresetFromLegacySize(tile.type, tile.layout ?? tile.size);
+	return inferred;
 }

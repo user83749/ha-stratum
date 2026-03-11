@@ -19,7 +19,8 @@
 	const targetTempHigh = $derived(entity?.attributes.target_temp_high as number | undefined);
 	const minTemp = $derived((entity?.attributes.min_temp as number | undefined) ?? 55);
 	const maxTemp = $derived((entity?.attributes.max_temp as number | undefined) ?? 85);
-	const tempStep = $derived((entity?.attributes.target_temp_step as number | undefined) ?? 1);
+	// Product requirement: climate nudges/sliders use fixed 1-step increments.
+	const tempStep = 1;
 	const tempUnit = $derived((entity?.attributes.temperature_unit as string | undefined) ?? '°');
 	const hvacAction = $derived((entity?.attributes.hvac_action as string | undefined) ?? '');
 	const supportsRange = $derived(targetTempLow !== undefined && targetTempHigh !== undefined);

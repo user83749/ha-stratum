@@ -238,28 +238,22 @@
     return preview;
   });
 
-  const previewCols = $derived.by(() => {
-    const tileCols = previewTile?.layout?.w ?? 1;
-    return Math.max(4, Math.min(12, tileCols));
+  // Preview canvas uses true square grid cells and a fixed 2-column reference
+  // width so every preset remains legible (especially sm/md) while preserving
+  // exact geometry (1x1, 2x1, 2x2, 2x3).
+  const PREVIEW_PADDING_Y = 36;
+  const previewCellSize = $derived.by(() => {
+    if (previewGridWidth <= 0) return 160;
+    const usable = Math.max(0, previewGridWidth - 40);
+    const cell = usable / 2;
+    return Math.round(Math.min(320, Math.max(160, cell)));
   });
 
-  // Keep preview cells square and responsive to available width so every tile
-  // preset has enough space and does not get vertically cropped.
-  const PREVIEW_GAP = 10;
-  const PREVIEW_PADDING_Y = 36;
-  const previewRowHeight = $derived.by(() => {
-    if (previewGridWidth <= 0) return 156;
-    const cols = Math.max(1, previewCols);
-    const usableWidth = Math.max(0, previewGridWidth - PREVIEW_GAP * (cols - 1));
-    const cell = usableWidth / cols;
-    // Keep preview geometry true to grid semantics (1x1, 2x1, 2x2, 2x3):
-    // each grid row matches one grid column in size (square cells).
-    return Math.round(cell);
-  });
+  const previewTileWidth = $derived((previewTile?.layout?.w ?? 1) * previewCellSize);
+  const previewTileHeight = $derived((previewTile?.layout?.h ?? 1) * previewCellSize);
 
   const previewShellMinHeight = $derived.by(() => {
-    const rows = previewTile?.layout?.h ?? 1;
-    return rows * previewRowHeight + PREVIEW_PADDING_Y;
+    return previewTileHeight + PREVIEW_PADDING_Y;
   });
 
   function createTile() {
@@ -402,18 +396,12 @@
           {/each}
         </div>
 
-        <div class="tp-preview-shell" style="min-height:{previewShellMinHeight}px;">
-          <div
-            class="tp-preview-grid"
-            bind:clientWidth={previewGridWidth}
-            style="grid-auto-rows:{previewRowHeight}px;--tp-preview-cols:{previewCols};"
-          >
+        <div class="tp-preview-shell" bind:clientWidth={previewGridWidth} style="min-height:{previewShellMinHeight}px;">
+          <div class="tp-preview-canvas">
             {#if previewTile}
-              {@const cols = previewTile.layout?.w ?? 1}
-              {@const rows = previewTile.layout?.h ?? 1}
               <div
                 class="tp-preview-slot"
-                style="grid-column: span {cols}; grid-row: span {rows};"
+                style="width:{previewTileWidth}px; height:{previewTileHeight}px;"
               >
                 <TileRenderer tile={previewTile} preview={true} />
               </div>
@@ -669,13 +657,12 @@
     overflow: auto;
   }
 
-  .tp-preview-grid {
+  .tp-preview-canvas {
     display: grid;
-    grid-template-columns: repeat(var(--tp-preview-cols, 4), minmax(0, 1fr));
-    gap: 10px;
-    align-items: stretch;
-    align-content: center;
-    width: 100%;
+    place-items: center;
+    min-width: 100%;
+    width: max-content;
+    min-height: 100%;
     overflow: visible;
   }
 

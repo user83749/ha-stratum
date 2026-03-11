@@ -611,45 +611,9 @@
 		-moz-osx-font-smoothing: grayscale;
 	}
 
-	/* Tile previews in Add Tile: keep all token sizes bounded so every preset
-	   (sm/md/lg/xl) fits cleanly in the preview slot without vw-based overflow. */
-	.tile-wrapper.preview {
-		--button-card-font-size:          12px;
-		--tile-padding-effective:         10px;
-		--tile-padding:                   10px;
-		--hero-text-size:                 22px;
-		--hero-icon-size:                 28px;
-		--hero-icon-size-compact:         24px;
-		--action-icon-size:               13px;
-		--action-icon-size-sm:            11px;
-		--action-icon-size-lg:            15px;
-		--control-chip-size:              34px;
-		--control-chip-radius:            10px;
-		--control-chip-size-compact:      30px;
-		--control-chip-radius-compact:    9px;
-		--control-chip-icon-size:         14px;
-		--control-chip-icon-size-compact: 13px;
-		transition: none;
-	}
-
-	/* Preview hardening: keep dense layouts from clipping in the Add Tile slot. */
-	.tile-wrapper.preview :global(.layout-lg) {
-		padding: min(18px, 6%);
-		gap: min(14px, 4%);
-	}
-
-	.tile-wrapper.preview :global(.layout-md) {
-		gap: min(10px, 3%);
-	}
-
-	.tile-wrapper.preview :global(.mode-switcher) {
-		padding: 6px;
-	}
-
-	.tile-wrapper.preview :global(.target-control) {
-		gap: min(22px, 5%);
-		padding: min(10px, 3.5%) min(20px, 6%);
-	}
+	/* Keep previews visually stable in the picker while preserving the same
+	   design token system used by real dashboard tiles. */
+	.tile-wrapper.preview { transition: none; }
 
 	/* ── Static card surface vars ────────────────────────────────────────── */
 		.tile-wrapper {

@@ -3,7 +3,7 @@
 	import { entities } from '$lib/ha/websocket';
 	import { getDomain, getEntityName } from '$lib/ha/entities';
 	import { isTvLikeMediaEntity, TV_REMOTE_BUTTON_DEFS, type TvRemoteCommand, resolveTvCommandEntityId } from '$lib/ha/tvRemote';
-	import { getAllowedPresets } from '$lib/layout/tileSizing';
+	import { getAllowedPresets, getTileSizePreset } from '$lib/layout/tileSizing';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { CUSTOM_ICON_NAMES } from '$lib/icons/customIcons';
 	import type { Tile, Action } from '$lib/types/dashboard';
@@ -46,6 +46,18 @@
 		entity ? getEntityName(entity) : (tile?.entity_id ?? tile?.type ?? 'Tile')
 	);
 	const allowedPresets = $derived(tile ? getAllowedPresets(tile.type) : []);
+	const activePreset = $derived(tile ? getTileSizePreset(tile) : 'md');
+	const hasTileSpecificSettings = $derived.by(() => {
+		if (!tile) return false;
+		if ((domain === 'media_player' || tile.type === 'media_player') && showTvRemoteMapping) return true;
+		if (tile.type === 'media_hero') return true;
+		if (tile.type === 'gauge') return true;
+		if (tile.type === 'alarm_panel') return true;
+		if (tile.type === 'markdown') return true;
+		if (tile.type === 'iframe') return true;
+		if (tile.type === 'image') return true;
+		return false;
+	});
 
 	$effect(() => {
 		if (!tile) return;
@@ -237,7 +249,7 @@
 					{#each allowedPresets as preset}
 						<button
 							class="te__preset"
-							class:te__preset--active={(tile.sizePreset ?? 'md') === preset}
+							class:te__preset--active={activePreset === preset}
 							onclick={() => setSizePreset(preset)}
 						>
 							{preset === 'sm' ? 'Small' : preset === 'md' ? 'Medium' : preset === 'lg' ? 'Large' : 'XL'}
@@ -246,6 +258,7 @@
 				</div>
 			</div>
 
+			{#if hasTileSpecificSettings}
 			<div class="te__group">
 				<span class="te__section-title">Tile-specific settings</span>
 
@@ -432,17 +445,6 @@
 					</div>
 				{/if}
 
-				{#if domain === 'camera' || tile.type === 'camera'}
-					<span class="te__label">Stream type</span>
-					<select class="te__select" value={(tile.config.stream_type as string) ?? 'auto'} onchange={(e) => save({ stream_type: (e.target as HTMLSelectElement).value })}>
-						<option value="auto">Auto</option>
-						<option value="hls">HLS</option>
-						<option value="webrtc">WebRTC</option>
-						<option value="mjpeg">MJPEG</option>
-					</select>
-					<label class="te__check"><input type="checkbox" checked={!!tile.config.ptz} onchange={(e) => save({ ptz: (e.target as HTMLInputElement).checked || undefined })} />PTZ controls</label>
-				{/if}
-
 				{#if tile.type === 'gauge'}
 					<div class="te__grid3">
 						{#each [['min','Min'],['max','Max']] as [key, label]}
@@ -454,30 +456,12 @@
 					</div>
 				{/if}
 
-				{#if tile.type === 'slider'}
-					<div class="te__grid3">
-						{#each [['slider_min','Min'],['slider_max','Max'],['slider_step','Step']] as [key, label]}
-							<div>
-								<span class="te__label">{label}</span>
-								<input class="te__input te__input--num" type="number" value={(tile.config[key] as number) ?? (key === 'slider_min' ? 0 : key === 'slider_max' ? 100 : 1)} oninput={(e) => save({ [key]: parseFloat((e.target as HTMLInputElement).value) })} />
-							</div>
-						{/each}
-					</div>
-				{/if}
-
 			{#if tile.type === 'alarm_panel'}
 				<label class="te__check">
 					<input type="checkbox" checked={tile.config.show_keypad !== false}
 						onchange={(e) => save({ show_keypad: (e.target as HTMLInputElement).checked })} />
 					Show keypad
 				</label>
-				<span class="te__label">Code format</span>
-				<select class="te__select"
-					value={(tile.config.code_format as string) ?? 'number'}
-					onchange={(e) => save({ code_format: (e.target as HTMLSelectElement).value })}>
-					<option value="number">Number pad</option>
-					<option value="text">Text input</option>
-				</select>
 			{/if}
 
 			{#if tile.type === 'markdown'}
@@ -496,6 +480,7 @@
 				{/if}
 
 				</div>
+			{/if}
 
 			<div class="te__group">
 				<span class="te__section-title">Visibility</span>

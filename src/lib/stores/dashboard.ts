@@ -303,7 +303,7 @@ function createDashboardStore() {
 					.find((p) => p.id === pageId)
 					?.sections.find((s) => s.id === sectionId);
 				if (!section) return;
-				const sizePreset = tile.sizePreset ?? inferPresetFromLegacySize(tile.type, tile.size);
+				const sizePreset = inferPresetFromLegacySize(tile.type, tile.layout ?? tile.size);
 				const size = tile.size ?? resolvePresetToSpan(tile.type, sizePreset);
 				section.tiles = appendTileToLayout(section.tiles, {
 					...tile,
@@ -319,7 +319,7 @@ function createDashboardStore() {
 					.find((p) => p.id === pageId)
 					?.sections.find((s) => s.id === sectionId);
 				if (!section) return;
-				const sizePreset = tile.sizePreset ?? inferPresetFromLegacySize(tile.type, tile.size);
+				const sizePreset = inferPresetFromLegacySize(tile.type, tile.layout ?? tile.size);
 				const size = tile.size ?? resolvePresetToSpan(tile.type, sizePreset);
 				const nextTiles = [...section.tiles];
 				const index = position === undefined ? nextTiles.length : Math.max(0, Math.min(position, nextTiles.length));

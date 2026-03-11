@@ -119,10 +119,10 @@
         </div>
         {#if isOn}
           <div class="md-controls">
-            <button class="adj-btn" style="background: color-mix(in srgb, {activeColor} 10%, transparent); color: {activeColor}" onclick={() => adjustHum(-5)} aria-label="Lower humidity">
+            <button class="adj-btn" style="background: color-mix(in srgb, {activeColor} 10%, transparent); color: {activeColor}" onclick={() => adjustHum(-1)} aria-label="Lower humidity">
               <Icon name="minus" size={16} />
             </button>
-            <button class="adj-btn" style="background: color-mix(in srgb, {activeColor} 10%, transparent); color: {activeColor}" onclick={() => adjustHum(5)} aria-label="Raise humidity">
+            <button class="adj-btn" style="background: color-mix(in srgb, {activeColor} 10%, transparent); color: {activeColor}" onclick={() => adjustHum(1)} aria-label="Raise humidity">
               <Icon name="plus" size={16} />
             </button>
           </div>

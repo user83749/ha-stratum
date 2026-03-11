@@ -97,13 +97,21 @@
 			case 'camera':
 				return makePreviewEntity(entityId, 'idle', {
 					friendly_name: fallbackName,
-					access_token: 'preview'
+					access_token: 'preview',
+					entity_picture: PREVIEW_ART_DATA_URI,
+					motion_detection: true
 				});
 			case 'alarm_panel':
 				return makePreviewEntity(entityId, 'disarmed', {
 					friendly_name: fallbackName,
 					code_format: 'number',
 					supported_features: 7
+				});
+			case 'siren':
+				return makePreviewEntity(entityId, 'on', {
+					friendly_name: fallbackName,
+					available_tones: ['Burglar', 'Fire', 'Chime'],
+					tone: 'Burglar'
 				});
 			case 'fan':
 				return makePreviewEntity(entityId, 'on', {
@@ -121,6 +129,12 @@
 					battery_level: 74,
 					fan_speed_list: ['quiet', 'balanced', 'turbo'],
 					fan_speed: 'balanced'
+				});
+			case 'lawn_mower':
+				return makePreviewEntity(entityId, 'mowing', {
+					friendly_name: fallbackName,
+					activity: 'mowing',
+					battery_level: 82
 				});
 			case 'humidifier':
 				return makePreviewEntity(entityId, 'on', {
@@ -383,17 +397,36 @@
 		return true;
 	});
 
+	const previewHistory = $derived.by(() => {
+		if (!preview) return [];
+		const now = Date.now();
+		return [
+			{ t: new Date(now - 50 * 60_000).toISOString(), v: 31.2 },
+			{ t: new Date(now - 40 * 60_000).toISOString(), v: 34.6 },
+			{ t: new Date(now - 30 * 60_000).toISOString(), v: 33.8 },
+			{ t: new Date(now - 20 * 60_000).toISOString(), v: 37.4 },
+			{ t: new Date(now - 10 * 60_000).toISOString(), v: 39.1 },
+			{ t: new Date(now).toISOString(), v: 42.5 }
+		];
+	});
+
 	const componentProps = $derived.by(() => {
 		switch (tile.type) {
 			case 'divider':
 			case 'markdown':
 				return { tile };
 			case 'history':
-				return { tile, entity, mode: 'history' };
+				return { tile, entity, mode: 'history', history: preview ? previewHistory : undefined };
 			case 'gauge':
-				return { tile, entity, mode: 'gauge' };
+				return { tile, entity, mode: 'gauge', history: preview ? previewHistory : undefined };
 			case 'statistic':
-				return { tile, entity, mode: 'statistic' };
+				return {
+					tile,
+					entity,
+					mode: 'statistic',
+					history: preview ? previewHistory : undefined,
+					statisticValue: preview ? 42.5 : undefined
+				};
 			default:
 				return { tile, entity };
 		}

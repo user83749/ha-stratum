@@ -7,7 +7,7 @@
 	import TileRenderer from '$lib/components/tiles/TileRenderer.svelte';
 	import type { Section, TileLayout, TileSizePreset } from '$lib/types/dashboard';
 	import { normalizeTilesForColumns } from '$lib/layout/sectionLayout';
-	import { getAllowedPresets, resolvePresetToSpan } from '$lib/layout/tileSizing';
+	import { getAllowedPresets, getTileSizePreset, resolvePresetToSpan } from '$lib/layout/tileSizing';
 
 	interface Props {
 		section: Section;
@@ -559,7 +559,7 @@
 		finishTileDrag(false);
 		const item = positionedTiles.find((candidate) => candidate.tile.id === tileId);
 		if (!item) return;
-		const initialPreset = item.tile.sizePreset ?? 'md';
+		const initialPreset = getTileSizePreset(item.tile);
 
 		editMode.focusTile(pageId, section.id, tileId);
 		editMode.setDragging(true);

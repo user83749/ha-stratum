@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.45] - 2026-03-10
+
+### Changed
+- Extensive updates to `ClimateMoreInfo` and `TilePicker` components.
+- Improved `SectionGrid` layout and responsiveness via updated `sectionLayout.ts`.
+- Enhanced stability for `TileRenderer` and `TileWrapper`.
+- Refined `dashboard.ts` store for improved state management and synchronization.
+- Optimized `tileSizing.ts` logic for more precise tile dimensioning.
+
 ## [1.0.44] - 2026-03-10
 
 ### Changed

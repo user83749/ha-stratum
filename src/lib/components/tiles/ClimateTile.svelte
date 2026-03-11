@@ -27,9 +27,11 @@
   const maxTemp     = $derived((entity?.attributes.max_temp as number | undefined) ?? 32);
   const hvacMode    = $derived(entity?.state ?? 'off');
   const hvacAction  = $derived((entity?.attributes.hvac_action as string | undefined) ?? '');
+  // Prefer live hvac_action when available so state text reflects what the unit
+  // is actually doing right now (heating/cooling), otherwise fall back to mode.
   const effectiveState = $derived(
-    hvacMode === 'heat_cool' || hvacMode === 'auto'
-      ? (hvacAction === 'heating' || hvacAction === 'cooling' ? hvacAction : hvacMode)
+    hvacAction === 'heating' || hvacAction === 'cooling' || hvacAction === 'drying' || hvacAction === 'fan'
+      ? hvacAction
       : hvacMode
   );
   const hvacModes   = $derived((entity?.attributes.hvac_modes as string[] | undefined) ?? []);
@@ -77,12 +79,16 @@
   const mainIcon = $derived(iconOverride ?? modeIcon);
 
   const MODE_LABELS: Record<string, string> = {
-    off: 'Off', heat: 'Heating', cool: 'Cooling',
+    off: 'Off', heat: 'Heat', cool: 'Cool',
     heating: 'Heating', cooling: 'Cooling',
-    heat_cool: 'Auto', auto: 'Auto', fan_only: 'Fan', dry: 'Dry'
+    heat_cool: 'Auto', auto: 'Auto', fan_only: 'Fan', fan: 'Fan', dry: 'Dry', drying: 'Drying'
   };
 
   const modeLabel = $derived(MODE_LABELS[effectiveState] ?? effectiveState.replace(/_/g, ' '));
+  // In 1x2 climate tiles, avoid rendering setpoint text and +/- controls together
+  // to prevent right-side crowding that truncates left-side content.
+  const showMdControls = $derived(!isOff && targetTemp !== undefined);
+  const showMdSetpoint = $derived(targetTemp !== undefined && !isOff && !isTallMd && !isWideMd);
   const tempUnit = '°';
 
   function adjustTemp(delta: number): void {
@@ -167,21 +173,17 @@
         {#if currentTemp !== undefined}
           <div class="md-temp">
             <span class="val">{Math.round(currentTemp)}{tempUnit}</span>
-            {#if targetTemp !== undefined && !isOff && !isTallMd}
-              {#if isWideMd}
-                <span class="target target--inline">Set {Math.round(targetTemp)}°</span>
-              {:else}
-                <span class="target">Set to {Math.round(targetTemp)}°</span>
-              {/if}
+            {#if showMdSetpoint}
+              <span class="target">Set to {Math.round(targetTemp!)}°</span>
             {/if}
           </div>
         {/if}
-        {#if !isOff && targetTemp !== undefined}
+        {#if showMdControls}
           <div class="md-controls">
-            <button class="adj-btn" onclick={() => adjustTemp(-0.5)} aria-label="Lower temp">
+            <button class="adj-btn" onclick={() => adjustTemp(-1)} aria-label="Lower temp">
               <Icon name="minus" />
             </button>
-            <button class="adj-btn" onclick={() => adjustTemp(0.5)} aria-label="Raise temp">
+            <button class="adj-btn" onclick={() => adjustTemp(1)} aria-label="Raise temp">
               <Icon name="plus" />
             </button>
           </div>
@@ -226,14 +228,14 @@
             <div class="current-hero">{Math.round(currentTemp)}<span class="unit">{tempUnit}</span></div>
           {/if}
           <div class="target-control">
-            <button class="temp-btn" disabled={isOff} onclick={() => adjustTemp(-0.5)}>
+            <button class="temp-btn" disabled={isOff} onclick={() => adjustTemp(-1)}>
               <Icon name="minus" size={24} />
             </button>
             <div class="target-val">
               <span class="lbl">TARGET</span>
               <span class="num">{targetTemp !== undefined ? Math.round(targetTemp) : '--'}°</span>
             </div>
-            <button class="temp-btn" disabled={isOff} onclick={() => adjustTemp(0.5)}>
+            <button class="temp-btn" disabled={isOff} onclick={() => adjustTemp(1)}>
               <Icon name="plus" size={24} />
             </button>
           </div>
@@ -478,17 +480,6 @@
   .layout-md.is-wide-md .md-temp .val {
     font-size: calc(var(--hero-text-size) * 0.86);
     letter-spacing: -0.05em;
-  }
-
-  .layout-md.is-wide-md .md-temp .target.target--inline {
-    font-size: var(--secondary-label-size);
-    margin-top: 0;
-    line-height: 1;
-    opacity: 0.82;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
   }
 
   .md-controls {
