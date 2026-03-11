@@ -149,7 +149,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 3px;
+    gap: calc(var(--button-card-font-size) * 0.22);
     font-size: var(--secondary-label-size);
     font-weight: 500;
     color: var(--fg-muted);
@@ -160,7 +160,7 @@
     position: relative;
     z-index: 1;
     display: flex;
-    gap: 5px;
+    gap: calc(var(--button-card-font-size) * 0.38);
     flex-shrink: 0;
   }
 
@@ -168,11 +168,11 @@
     all: unset;
     flex: 1;
     height: var(--action-icon-size);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: calc(var(--button-card-font-size) * 0.3);
     font-size: var(--secondary-label-size);
     font-weight: 500;
     color: var(--fg-muted);

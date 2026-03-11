@@ -76,7 +76,7 @@
     align-items: center;
     width: 100%;
     height: 100%;
-    gap: 6px;
+    gap: calc(var(--tile-padding-effective) * 0.5);
     border-radius: inherit;
   }
 
@@ -136,7 +136,7 @@
     display: grid;
     grid-template-columns: repeat(3, var(--action-icon-size-lg));
     grid-template-rows: repeat(3, var(--action-icon-size-lg));
-    gap: 3px;
+    gap: calc(var(--tile-padding-effective) * 0.28);
     flex-shrink: 0;
     margin: auto;
   }
@@ -144,7 +144,7 @@
   .remote-tile.is-tall-md .dpad {
     grid-template-columns: repeat(3, var(--action-icon-size));
     grid-template-rows: repeat(3, var(--action-icon-size));
-    gap: 4px;
+    gap: calc(var(--tile-padding-effective) * 0.34);
   }
 
   .dpad-btn {
@@ -152,7 +152,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: var(--control-chip-radius-compact);
     background: color-mix(in srgb, var(--fg) 6%, transparent);
     border: 1px solid var(--border);
     cursor: pointer;
@@ -189,18 +189,18 @@
     position: relative;
     z-index: 1;
     display: flex;
-    gap: 5px;
+    gap: calc(var(--tile-padding-effective) * 0.42);
     flex-shrink: 0;
   }
 
   .act-btn {
     all: unset;
-    width: 36px;
-    height: 30px;
+    width: calc(var(--action-icon-size-lg) * 1.8);
+    height: calc(var(--action-icon-size-lg) * 1.5);
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: var(--control-chip-radius-compact);
     background: color-mix(in srgb, var(--fg) 6%, transparent);
     border: 1px solid var(--border);
     cursor: pointer;
@@ -209,7 +209,7 @@
   }
 
   .remote-tile.is-tall-md .header {
-    margin-bottom: 2px;
+    margin-bottom: calc(var(--tile-padding-effective) * 0.18);
   }
 
   .act-btn:hover { background: color-mix(in srgb, var(--fg) 14%, transparent); color: var(--fg); }

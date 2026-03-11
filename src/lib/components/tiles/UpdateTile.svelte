@@ -124,11 +124,11 @@
   .meta {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: calc(var(--tile-padding-effective) * 0.35);
     min-width: 0;
   }
 
-  .version-line { display: flex; align-items: center; gap: 4px; font-size: var(--secondary-label-size); min-width: 0; }
+  .version-line { display: flex; align-items: center; gap: calc(var(--tile-padding-effective) * 0.35); font-size: var(--secondary-label-size); min-width: 0; }
   .old-ver { color: var(--fg-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .new-ver { font-weight: 500; color: var(--uc); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .version-label { font-size: var(--secondary-label-size); color: var(--fg-subtle); }
@@ -136,15 +136,15 @@
   .auto-badge {
     display: inline-block; font-size: var(--secondary-label-size); font-weight: 500;
     background: var(--hover); border: 1px solid var(--border);
-    border-radius: 4px; padding: 1px 5px; color: var(--fg-muted);
+    border-radius: calc(var(--radius-sm) * 0.55); padding: calc(var(--tile-padding-effective) * 0.08) calc(var(--tile-padding-effective) * 0.44); color: var(--fg-muted);
     align-self: flex-start; letter-spacing: 0.04em;
   }
 
-  .actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; flex-wrap: wrap; }
+  .actions { display: flex; gap: calc(var(--tile-padding-effective) * 0.53); flex-shrink: 0; align-items: center; flex-wrap: wrap; }
 
   .install-btn {
-    all: unset; display: flex; align-items: center; gap: 5px;
-    height: var(--action-icon-size); padding: 0 12px; border-radius: 20px;
+    all: unset; display: flex; align-items: center; gap: calc(var(--tile-padding-effective) * 0.44);
+    height: var(--action-icon-size); padding: 0 calc(var(--tile-padding-effective) * 1.05); border-radius: var(--control-chip-radius-compact);
     background: color-mix(in srgb, var(--color-info) 18%, var(--hover));
     color: var(--color-info); border: 1px solid color-mix(in srgb, var(--color-info) 30%, var(--border));
     font-size: var(--secondary-label-size); font-weight: 500; cursor: pointer; transition: background var(--transition);

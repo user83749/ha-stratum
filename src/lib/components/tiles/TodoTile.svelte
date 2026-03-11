@@ -109,18 +109,20 @@
 
 <style>
   .todo-tile {
+    --todo-check-size: calc(var(--button-card-font-size) * 1.35);
+    --todo-input-height: calc(var(--action-icon-size) * 1.2);
     display: flex;
     flex-direction: column;
     width: 100%;
     height: 100%;
-    gap: 8px;
+    gap: calc(var(--tile-padding-effective) * 0.7);
     overflow: hidden;
   }
 
   .header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: calc(var(--tile-padding-effective) * 0.88);
     flex-shrink: 0;
   }
 
@@ -176,14 +178,14 @@
   .items {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: calc(var(--tile-padding-effective) * 0.16);
     flex: 1;
     overflow-y: auto;
   }
 
   .todo-item {
     all: unset;
-    display: flex; align-items: center; gap: 8px; padding: 5px 4px; border-radius: var(--radius-sm);
+    display: flex; align-items: center; gap: calc(var(--tile-padding-effective) * 0.7); padding: calc(var(--tile-padding-effective) * 0.44) calc(var(--tile-padding-effective) * 0.35); border-radius: var(--radius-sm);
     cursor: pointer; transition: background var(--transition); width: 100%; box-sizing: border-box;
     min-height: calc(var(--action-icon-size) * 0.86);
   }
@@ -191,7 +193,7 @@
   .todo-item.done { opacity: 0.5; }
 
   .checkbox {
-    flex-shrink: 0; width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid var(--border-strong);
+    flex-shrink: 0; width: var(--todo-check-size); height: var(--todo-check-size); border-radius: calc(var(--radius-sm) * 0.55); border: 1.5px solid var(--border-strong);
     display: flex; align-items: center; justify-content: center; transition: all var(--transition); color: var(--accent-fg);
   }
   .checkbox.checked { background: var(--accent); border-color: var(--accent); }
@@ -199,13 +201,13 @@
   .summary { flex: 1; font-size: var(--secondary-label-size); color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .done .summary { text-decoration: line-through; color: var(--fg-muted); }
 
-  .add-row { display: flex; gap: 6px; flex-shrink: 0; }
+  .add-row { display: flex; gap: calc(var(--tile-padding-effective) * 0.53); flex-shrink: 0; }
   .add-input {
-    flex: 1; height: 32px; padding: 0 10px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    flex: 1; height: var(--todo-input-height); padding: 0 calc(var(--tile-padding-effective) * 0.88); border-radius: var(--radius-sm); border: 1px solid var(--border);
     background: var(--hover); color: var(--fg); font-size: var(--secondary-label-size); outline: none;
   }
   .add-btn {
-    all: unset; width: 32px; height: 32px; border-radius: var(--radius-sm);
+    all: unset; width: var(--todo-input-height); height: var(--todo-input-height); border-radius: var(--radius-sm);
     background: color-mix(in srgb, var(--accent) 18%, var(--hover));
     color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
     display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;

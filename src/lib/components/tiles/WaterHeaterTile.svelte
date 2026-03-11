@@ -161,7 +161,7 @@
     background: color-mix(in srgb, var(--hc) 15%, transparent);
     border: 1px solid color-mix(in srgb, var(--hc) 30%, var(--border));
     border-radius: 99px;
-    padding: 2px 8px;
+    padding: calc(var(--button-card-font-size) * 0.16) calc(var(--button-card-font-size) * 0.6);
     font-variant-numeric: tabular-nums;
     transition: all var(--transition);
   }
@@ -174,9 +174,11 @@
   }
 
   .slim-track {
+    --heater-track-height: calc(var(--action-icon-size) * 0.28);
+    --heater-track-radius: calc(var(--heater-track-height) / 2);
     position: relative;
-    height: 6px;
-    border-radius: 3px;
+    height: var(--heater-track-height);
+    border-radius: var(--heater-track-radius);
     background: color-mix(in srgb, var(--fg) 10%, transparent);
     overflow: visible;
   }
@@ -184,7 +186,7 @@
   .slim-fill {
     position: absolute;
     left: 0; top: 0; bottom: 0;
-    border-radius: 3px;
+    border-radius: var(--heater-track-radius);
     background: var(--hc);
     pointer-events: none;
     transition: width 0.08s, background var(--transition);
@@ -192,9 +194,9 @@
 
   .slim-track input[type=range] {
     position: absolute;
-    inset: -8px 0;
+    inset: calc(var(--action-icon-size) * -0.38) 0;
     width: 100%;
-    height: calc(100% + 16px);
+    height: calc(100% + var(--action-icon-size) * 0.76);
     opacity: 0;
     cursor: pointer;
     margin: 0;
@@ -205,7 +207,7 @@
     position: relative;
     z-index: 1;
     display: flex;
-    gap: 4px;
+    gap: calc(var(--button-card-font-size) * 0.3);
     flex-wrap: wrap;
     flex-shrink: 0;
   }
@@ -214,7 +216,7 @@
     all: unset;
     font-size: var(--secondary-label-size);
     font-weight: 500;
-    padding: 3px 8px;
+    padding: calc(var(--button-card-font-size) * 0.22) calc(var(--button-card-font-size) * 0.6);
     border-radius: 99px;
     border: 1px solid var(--border);
     background: color-mix(in srgb, var(--fg) 5%, transparent);

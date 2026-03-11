@@ -136,7 +136,7 @@
     display: flex;
     align-items: flex-start;
     justify-content: flex-end;
-    padding-top: 4px;
+    padding-top: calc(var(--button-card-font-size) * 0.3);
   }
 
   /* ── Preset chips ───────────────────────────────────────────────────── */
@@ -144,7 +144,7 @@
     position: relative;
     z-index: 1;
     display: flex;
-    gap: 4px;
+    gap: calc(var(--button-card-font-size) * 0.3);
     flex-wrap: wrap;
     flex-shrink: 0;
   }
@@ -153,7 +153,7 @@
     all: unset;
     font-size: var(--secondary-label-size);
     font-weight: 500;
-    padding: 3px 8px;
+    padding: calc(var(--button-card-font-size) * 0.22) calc(var(--button-card-font-size) * 0.6);
     border-radius: 99px;
     border: 1px solid var(--border);
     background: color-mix(in srgb, var(--fg) 5%, transparent);

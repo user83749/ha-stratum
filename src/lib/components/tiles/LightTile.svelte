@@ -215,26 +215,29 @@
 
   /* ── Sliders panel ─────────────────────────────────────────────────────── */
   .sliders-panel {
+    --inline-track-height: calc(var(--action-icon-size) * 0.28);
+    --inline-track-radius: calc(var(--inline-track-height) / 2);
+    --inline-hit-pad: calc(var(--action-icon-size) * 0.38);
     position: relative;
     z-index: 1;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: calc(var(--button-card-font-size) * 0.45);
     flex-shrink: 0;
   }
 
   .slider-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: calc(var(--button-card-font-size) * 0.6);
     color: var(--fg-subtle);
   }
 
   .slim-track {
     flex: 1;
     position: relative;
-    height: 6px;
-    border-radius: 3px;
+    height: var(--inline-track-height);
+    border-radius: var(--inline-track-radius);
     background: color-mix(in srgb, var(--fg) 12%, transparent);
     overflow: visible;
   }
@@ -244,7 +247,7 @@
     left: 0;
     top: 0;
     bottom: 0;
-    border-radius: 3px;
+    border-radius: var(--inline-track-radius);
     background: var(--lc);
     pointer-events: none;
     transition: width 0.08s;
@@ -256,9 +259,9 @@
 
   .slim-track input[type=range] {
     position: absolute;
-    inset: -8px 0;
+    inset: calc(var(--inline-hit-pad) * -1) 0;
     width: 100%;
-    height: calc(100% + 16px);
+    height: calc(100% + var(--inline-hit-pad) * 2);
     opacity: 0;
     cursor: pointer;
     margin: 0;

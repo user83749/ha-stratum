@@ -64,9 +64,9 @@
 </div>
 
 <style>
-  .logbook-tile { display: flex; flex-direction: column; width: 100%; height: 100%; gap: 8px; overflow: hidden; }
+  .logbook-tile { display: flex; flex-direction: column; width: 100%; height: 100%; gap: calc(var(--tile-padding-effective) * 0.7); overflow: hidden; }
 
-  .top { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .top { display: flex; align-items: center; gap: calc(var(--tile-padding-effective) * 0.88); flex-shrink: 0; }
   .icon-sq {
     width: var(--control-chip-size); height: var(--control-chip-size); border-radius: var(--control-chip-radius);
     display: flex; align-items: center; justify-content: center;
@@ -90,13 +90,13 @@
   .empty { flex: 1; display: flex; align-items: center; justify-content: center; font-size: var(--secondary-label-size); color: var(--fg-subtle); }
 
   .entry-card {
-    display: flex; align-items: center; gap: 10px; flex: 1;
+    display: flex; align-items: center; gap: calc(var(--tile-padding-effective) * 0.88); flex: 1;
     background: color-mix(in srgb, var(--fg) 4%, transparent);
     border: 1px solid var(--border); border-radius: var(--radius-sm);
-    padding: 10px 12px; overflow: hidden;
+    padding: calc(var(--tile-padding-effective) * 0.88) calc(var(--tile-padding-effective) * 1.05); overflow: hidden;
   }
-  .entry-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
-  .entry-body { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+  .entry-dot { width: calc(var(--button-card-font-size) * 0.5); height: calc(var(--button-card-font-size) * 0.5); border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .entry-body { display: flex; flex-direction: column; gap: calc(var(--tile-padding-effective) * 0.08); flex: 1; min-width: 0; }
   .entry-state { font-size: var(--secondary-label-size); font-weight: 500; text-transform: capitalize; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entry-name { font-size: var(--secondary-label-size); color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.8; }
   .entry-time { font-size: var(--secondary-label-size); color: var(--fg-subtle); flex-shrink: 0; font-variant-numeric: tabular-nums; opacity: 0.7; }

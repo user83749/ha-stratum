@@ -182,11 +182,11 @@
 		justify-content: center;
 		width: 100%;
 		height: 100%;
-		gap: 4px;
+		gap: calc(var(--tile-padding-effective) * 0.36);
 	}
 
 	.gauge-svg {
-		width: min(160px, 12.0vw);
+		width: min(calc(var(--hero-icon-size) * 6), 100%);
 		height: auto;
 	}
 
@@ -204,14 +204,14 @@
 	}
 
 	.gauge-val {
-		font-size: var(--gauge-val-size, 16px);
+		font-size: var(--gauge-val-size);
 		font-weight: 500;
 		fill: var(--fg);
 		text-anchor: middle;
 	}
 
 	.gauge-unit {
-		font-size: var(--gauge-unit-size, 8px);
+		font-size: var(--gauge-unit-size);
 		fill: var(--fg-muted);
 		text-anchor: middle;
 	}
@@ -222,13 +222,13 @@
 		flex-direction: column;
 		width: 100%;
 		height: 100%;
-		gap: 6px;
+		gap: calc(var(--tile-padding-effective) * 0.55);
 	}
 
 	.history-header {
 		display: flex;
 		align-items: baseline;
-		gap: 6px;
+		gap: calc(var(--tile-padding-effective) * 0.55);
 		flex-shrink: 0;
 	}
 
@@ -290,7 +290,7 @@
 
 	.history-meta {
 		display: flex;
-		gap: 6px;
+		gap: calc(var(--tile-padding-effective) * 0.55);
 		flex-wrap: wrap;
 	}
 
@@ -309,7 +309,7 @@
 		justify-content: center;
 		width: 100%;
 		height: 100%;
-		gap: 6px;
+		gap: calc(var(--tile-padding-effective) * 0.55);
 	}
 
 	.stat-value {
@@ -323,7 +323,7 @@
 	.stat-unit {
 		font-size: 0.45em;
 		color: var(--fg-muted);
-		margin-left: 3px;
+		margin-left: calc(var(--tile-padding-effective) * 0.27);
 	}
 
 	/* ── Shared label ───────────────────────────────────────── */

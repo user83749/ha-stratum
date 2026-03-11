@@ -113,32 +113,32 @@
 
 	.rec-dot {
 		position: absolute;
-		top: 8px;
-		right: 8px;
-		width: 9px;
-		height: 9px;
+		top: calc(var(--tile-padding-effective) * 0.72);
+		right: calc(var(--tile-padding-effective) * 0.72);
+		width: calc(var(--action-icon-size) * 0.42);
+		height: calc(var(--action-icon-size) * 0.42);
 		border-radius: 50%;
 		background: var(--color-danger);
-		box-shadow: 0 0 0 2px color-mix(in srgb, var(--bg) 40%, transparent);
+		box-shadow: 0 0 0 calc(var(--tile-padding-effective) * 0.18) color-mix(in srgb, var(--bg) 40%, transparent);
 		animation: blink 1.2s ease-in-out infinite;
 		z-index: 2;
 	}
 
 	.motion-badge {
 		position: absolute;
-		bottom: 36px;
-		left: 8px;
+		bottom: calc(var(--tile-padding-effective) * 2.1);
+		left: calc(var(--tile-padding-effective) * 0.72);
 		display: flex;
 		align-items: center;
-		gap: 4px;
+		gap: calc(var(--tile-padding-effective) * 0.36);
 		font-size: var(--secondary-label-size);
 		font-weight: 500;
 		color: var(--fg);
 		background: color-mix(in srgb, var(--bg) 70%, transparent);
-		backdrop-filter: blur(4px);
+		backdrop-filter: blur(calc(var(--tile-padding-effective) * 0.36));
 		border: 1px solid color-mix(in srgb, var(--color-warning) 40%, transparent);
 		border-radius: 99px;
-		padding: 3px 8px;
+		padding: calc(var(--tile-padding-effective) * 0.27) calc(var(--tile-padding-effective) * 0.72);
 		z-index: 2;
 		pointer-events: none;
 	}
@@ -153,7 +153,7 @@
 			color-mix(in srgb, var(--bg) 75%, transparent) 0%,
 			transparent 100%
 		);
-		padding: 20px 10px 8px;
+		padding: calc(var(--tile-padding-effective) * 1.8) calc(var(--tile-padding-effective) * 0.9) calc(var(--tile-padding-effective) * 0.72);
 		display: flex;
 		align-items: flex-end;
 		justify-content: space-between;
@@ -177,7 +177,7 @@
 		letter-spacing: 0.06em;
 		animation: blink 1.2s ease-in-out infinite;
 		flex-shrink: 0;
-		margin-left: 6px;
+		margin-left: calc(var(--tile-padding-effective) * 0.55);
 	}
 
 	/* ── No stream / fallback ────────────────────────────────────────────── */
@@ -188,7 +188,7 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
+		gap: calc(var(--tile-padding-effective) * 0.55);
 	}
 
 	.no-stream-icon {
@@ -224,10 +224,10 @@
 
 	.rec-indicator {
 		position: absolute;
-		top: 2px;
-		right: 2px;
-		width: 8px;
-		height: 8px;
+		top: calc(var(--tile-padding-effective) * 0.18);
+		right: calc(var(--tile-padding-effective) * 0.18);
+		width: calc(var(--action-icon-size) * 0.38);
+		height: calc(var(--action-icon-size) * 0.38);
 		border-radius: 50%;
 		background: var(--color-danger);
 		animation: blink 1.2s ease-in-out infinite;
@@ -257,14 +257,14 @@
 	.motion-pill {
 		display: flex;
 		align-items: center;
-		gap: 4px;
+		gap: calc(var(--tile-padding-effective) * 0.36);
 		font-size: var(--secondary-label-size);
 		font-weight: 500;
 		color: var(--color-warning);
 		background: color-mix(in srgb, var(--color-warning) 12%, transparent);
 		border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
 		border-radius: 99px;
-		padding: 3px 8px;
+		padding: calc(var(--tile-padding-effective) * 0.27) calc(var(--tile-padding-effective) * 0.72);
 	}
 
 	.camera-tile.unavailable { opacity: 0.5; }
@@ -284,7 +284,7 @@
 
 	@container tile (max-width: 170px) {
 		.name-overlay {
-			padding: 14px 8px 6px;
+			padding: calc(var(--tile-padding-effective) * 1.26) calc(var(--tile-padding-effective) * 0.72) calc(var(--tile-padding-effective) * 0.55);
 		}
 
 		.overlay-name {

@@ -198,17 +198,17 @@
 	/* Actions */
 	.ap__actions {
 		display: flex;
-		gap: 5px;
+		gap: calc(var(--button-card-font-size) * 0.4);
 		flex-wrap: wrap;
-		margin-top: 6px;
+		margin-top: calc(var(--button-card-font-size) * 0.5);
 	}
 
 	.ap__btn {
 		display: inline-flex;
 		align-items: center;
-		gap: 5px;
+		gap: calc(var(--button-card-font-size) * 0.4);
 		height: calc(var(--action-icon-size) * 0.95);
-		padding: 0 calc(var(--tile-padding-effective) * 1.1);
+		padding: 0 calc(var(--button-card-font-size) * 1);
 		border-radius: 999px;
 		font-size: var(--secondary-label-size);
 		font-weight: 500;
@@ -228,20 +228,20 @@
 	.ap__keypad {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		margin-top: 12px;
+		gap: calc(var(--button-card-font-size) * 0.7);
+		margin-top: calc(var(--button-card-font-size) * 1);
 	}
 
 	.ap__code-display {
 		display: flex;
-		gap: 7px;
+		gap: calc(var(--button-card-font-size) * 0.6);
 		justify-content: center;
-		padding: 2px 0;
+		padding: calc(var(--button-card-font-size) * 0.16) 0;
 	}
 
 	.ap__dot {
-		width: 10px;
-		height: 10px;
+		width: calc(var(--button-card-font-size) * 0.55);
+		height: calc(var(--button-card-font-size) * 0.55);
 		border-radius: 50%;
 		border: 1.5px solid var(--border-strong);
 	}
@@ -254,7 +254,7 @@
 	.ap__grid {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
-		gap: 5px;
+		gap: calc(var(--button-card-font-size) * 0.4);
 	}
 
 	.ap__key {
@@ -272,14 +272,14 @@
 
 	.ap__key-actions {
 		display: flex;
-		gap: 6px;
+		gap: calc(var(--button-card-font-size) * 0.5);
 		justify-content: center;
 		flex-wrap: wrap;
 	}
 
 	.ap__kbtn {
 		height: var(--action-icon-size);
-		padding: 0 12px;
+		padding: 0 calc(var(--button-card-font-size) * 1);
 		border-radius: 999px;
 		border: 1px solid var(--border);
 		background: transparent;
@@ -314,11 +314,11 @@
 
 	@container tile (max-width: 190px) {
 		.ap__actions {
-			gap: 4px;
+			gap: calc(var(--button-card-font-size) * 0.32);
 		}
 
 		.ap__btn {
-			padding: 0 calc(var(--tile-padding-effective) * 0.9);
+			padding: 0 calc(var(--button-card-font-size) * 0.8);
 		}
 	}
 </style>

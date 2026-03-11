@@ -354,7 +354,7 @@
     grid-area: bottom;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: calc(var(--tile-padding-effective, var(--tile-padding, 10px)) * 0.3);
     padding-bottom: 3.25%;
     min-width: 0;
     overflow: visible;
@@ -387,7 +387,7 @@
   /* ── Progress bar ─────────────────────────────────────────────────────────── */
   .progress-bar {
     width: 100%;
-    height: 3px;
+    height: calc(var(--action-icon-size) * 0.14);
     border-radius: 99px;
     background: rgba(255, 255, 255, 0.22);
     overflow: hidden;

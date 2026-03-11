@@ -74,17 +74,17 @@
   .mp-icon-wrap.isPlaying { color: var(--color-on); }
 
   .mp-details {
-    margin-top: 2px;
+    margin-top: calc(var(--button-card-font-size) * 0.15);
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: calc(var(--button-card-font-size) * 0.08);
     opacity: 0.9;
     min-width: 0;
     max-width: 100%;
   }
 
   .mp-details.wide {
-    margin-top: 1px;
+    margin-top: calc(var(--button-card-font-size) * 0.08);
     gap: 0;
     line-height: 1.15;
   }

@@ -105,6 +105,8 @@
 
 <style>
   .slider-tile {
+    --slider-track-height: calc(var(--action-icon-size) * 0.28);
+    --slider-track-radius: calc(var(--slider-track-height) / 2);
     --fp: 50%;
     width: 100%;
     height: 100%;
@@ -112,7 +114,7 @@
     display: flex;
     flex-direction: column;
     border-radius: inherit;
-    gap: 8px;
+    gap: calc(var(--button-card-font-size) * 0.6);
   }
 
   /* ── Content ───────────────────────────────────────────────────────────── */
@@ -123,7 +125,7 @@
     flex-direction: column;
     justify-content: space-between;
     flex: 1;
-    padding-bottom: 4px;
+    padding-bottom: calc(var(--button-card-font-size) * 0.3);
     min-height: 0;
   }
 
@@ -156,8 +158,8 @@
   .bottom {
     display: flex;
     flex-direction: column;
-    gap: 1px;
-    padding-bottom: 1px;
+    gap: calc(var(--button-card-font-size) * 0.08);
+    padding-bottom: calc(var(--button-card-font-size) * 0.08);
   }
 
   .val-hero {
@@ -186,13 +188,13 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: calc(var(--button-card-font-size) * 0.3);
   }
 
   .slim-track {
     position: relative;
-    height: 6px;
-    border-radius: 3px;
+    height: var(--slider-track-height);
+    border-radius: var(--slider-track-radius);
     background: color-mix(in srgb, var(--fg) 10%, transparent);
     overflow: visible;
   }
@@ -202,7 +204,7 @@
     left: 0;
     top: 0;
     bottom: 0;
-    border-radius: 3px;
+    border-radius: var(--slider-track-radius);
     background: var(--accent);
     pointer-events: none;
     transition: width 0.08s;
@@ -222,7 +224,7 @@
     position: relative;
     z-index: 1;
     display: flex;
-    gap: 6px;
+    gap: calc(var(--button-card-font-size) * 0.45);
     flex-shrink: 0;
   }
 
@@ -230,7 +232,7 @@
     all: unset;
     flex: 1;
     height: var(--action-icon-size);
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;

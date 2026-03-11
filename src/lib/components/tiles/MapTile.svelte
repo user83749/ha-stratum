@@ -56,13 +56,13 @@
 
   .overlay-label {
     position: absolute;
-    bottom: 8px;
-    left: 8px;
-    padding: 4px 10px;
+    bottom: calc(var(--tile-padding-effective) * 0.7);
+    left: calc(var(--tile-padding-effective) * 0.7);
+    padding: calc(var(--tile-padding-effective) * 0.35) calc(var(--tile-padding-effective) * 0.9);
     background: color-mix(in srgb, var(--bg) 80%, transparent);
-    border-radius: 20px;
+    border-radius: calc(var(--control-chip-radius-compact) * 0.9);
     pointer-events: none;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(calc(var(--tile-padding-effective) * 0.7));
   }
 
   .overlay-label span {
@@ -75,7 +75,7 @@
     display: block;
     font-size: var(--secondary-label-size);
     color: var(--fg-muted);
-    margin-top: 2px;
+    margin-top: calc(var(--tile-padding-effective) * 0.16);
     opacity: 0.7;
   }
 

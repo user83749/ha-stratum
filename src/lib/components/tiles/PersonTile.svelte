@@ -65,17 +65,17 @@
   }
 
   .status-dot {
-    position: absolute; bottom: 1px; right: 1px;
-    width: 12px; height: 12px; border-radius: 50%;
+    position: absolute; bottom: calc(var(--tile-padding-effective) * 0.08); right: calc(var(--tile-padding-effective) * 0.08);
+    width: calc(var(--button-card-font-size) * 0.88); height: calc(var(--button-card-font-size) * 0.88); border-radius: 50%;
     background: var(--pc);
     border: 2px solid var(--surface);
     transition: background var(--transition);
   }
 
-  .bottom { display: flex; flex-direction: column; gap: 1px; }
+  .bottom { display: flex; flex-direction: column; gap: calc(var(--tile-padding-effective) * 0.08); }
 
   .location-text {
-    display: flex; align-items: center; gap: 4px;
+    display: flex; align-items: center; gap: calc(var(--tile-padding-effective) * 0.35);
     font-size: var(--control-label-size); font-weight: 500;
     color: var(--pc); line-height: 1; letter-spacing: -0.02em;
     text-transform: capitalize; transition: color var(--transition);

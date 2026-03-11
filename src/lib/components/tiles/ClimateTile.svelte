@@ -85,10 +85,10 @@
   };
 
   const modeLabel = $derived(MODE_LABELS[effectiveState] ?? effectiveState.replace(/_/g, ' '));
-  // In 1x2 climate tiles, avoid rendering setpoint text and +/- controls together
-  // to prevent right-side crowding that truncates left-side content.
+  // Keep the setpoint visible on medium (1x2) climate tiles, but render it in a
+  // compact secondary line so the right side does not crowd primary status text.
   const showMdControls = $derived(!isOff && targetTemp !== undefined);
-  const showMdSetpoint = $derived(targetTemp !== undefined && !isOff && !isTallMd && !isWideMd);
+  const showMdSetpoint = $derived(targetTemp !== undefined && !isOff);
   const tempUnit = '°';
 
   function adjustTemp(delta: number): void {
@@ -174,7 +174,7 @@
           <div class="md-temp">
             <span class="val">{Math.round(currentTemp)}{tempUnit}</span>
             {#if showMdSetpoint}
-              <span class="target">Set to {Math.round(targetTemp!)}°</span>
+              <span class="target" style="color: {setpointTextColor}">Target {Math.round(targetTemp!)}°</span>
             {/if}
           </div>
         {/if}
@@ -482,6 +482,13 @@
     letter-spacing: -0.05em;
   }
 
+  .layout-md.is-wide-md .md-temp .target {
+    font-size: calc(var(--secondary-label-size) * 0.94);
+    line-height: 1.05;
+    opacity: 0.9;
+    white-space: nowrap;
+  }
+
   .md-controls {
     display: flex;
     flex-direction: row;
@@ -569,8 +576,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 24px;
-    gap: 20px;
+    padding: calc(var(--tile-padding-effective) * 2.2);
+    gap: calc(var(--tile-padding-effective) * 1.85);
   }
 
   .lg-top {
@@ -582,13 +589,13 @@
   .lg-hero {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: calc(var(--tile-padding-effective) * 1.45);
   }
 
   .lg-icon-box {
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
+    width: calc(var(--hero-icon-size) * 1.85);
+    height: calc(var(--hero-icon-size) * 1.85);
+    border-radius: calc(var(--control-chip-radius) * 1.2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -615,24 +622,24 @@
   .lg-stats {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: calc(var(--tile-padding-effective) * 1.1);
   }
 
   .stat {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: calc(var(--tile-padding-effective) * 0.75);
     font-size: var(--button-card-font-size);
     font-weight: 500;
     color: var(--fg-muted);
     background: color-mix(in srgb, var(--fg) 5%, transparent);
-    padding: 6px 14px;
+    padding: calc(var(--tile-padding-effective) * 0.55) calc(var(--tile-padding-effective) * 1.28);
     border-radius: 99px;
   }
 
   .power-toggle {
-    width: 42px;
-    height: 42px;
+    width: calc(var(--control-chip-size-compact) * 1.16);
+    height: calc(var(--control-chip-size-compact) * 1.16);
     border-radius: 50%;
     background: color-mix(in srgb, var(--fg) 6%, transparent);
     display: flex;
@@ -658,7 +665,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: calc(var(--tile-padding-effective) * 1.45);
   }
 
   .current-hero {
@@ -673,17 +680,17 @@
     font-size: var(--hero-text-size);
     vertical-align: super;
     font-weight: 500;
-    margin-left: 2px;
+    margin-left: calc(var(--tile-padding-effective) * 0.2);
     opacity: 0.4;
   }
 
   .target-control {
     display: flex;
     align-items: center;
-    gap: 40px;
+    gap: calc(var(--control-chip-size) * 0.95);
     background: color-mix(in srgb, var(--fg) 3%, transparent);
-    padding: 12px 32px;
-    border-radius: 24px;
+    padding: calc(var(--tile-padding-effective) * 1.1) calc(var(--tile-padding-effective) * 3);
+    border-radius: calc(var(--control-chip-radius) * 1.8);
     border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
   }
 
@@ -698,7 +705,7 @@
     font-weight: 500;
     color: var(--fg-subtle);
     letter-spacing: 0.12em;
-    margin-bottom: 2px;
+    margin-bottom: calc(var(--tile-padding-effective) * 0.18);
   }
 
   .target-val .num {
@@ -708,9 +715,9 @@
   }
 
   .temp-btn {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
+    width: calc(var(--control-chip-size) * 1.15);
+    height: calc(var(--control-chip-size) * 1.15);
+    border-radius: calc(var(--control-chip-radius) * 1.06);
     background: color-mix(in srgb, var(--fg) 6%, transparent);
     display: flex;
     align-items: center;
@@ -722,15 +729,15 @@
   .temp-btn:hover:not(:disabled) {
     background: color-mix(in srgb, var(--fg) 10%, transparent);
     color: var(--fg);
-    transform: translateY(-2px);
+    transform: translateY(calc(var(--tile-padding-effective) * -0.2));
   }
 
   .mode-switcher {
     display: flex;
-    gap: 8px;
-    padding: 8px;
+    gap: calc(var(--tile-padding-effective) * 0.75);
+    padding: calc(var(--tile-padding-effective) * 0.75);
     background: color-mix(in srgb, var(--fg) 3%, transparent);
-    border-radius: 20px;
+    border-radius: calc(var(--control-chip-radius) * 1.5);
   }
 
   .mode-btn {
@@ -738,9 +745,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 12px;
-    border-radius: 14px;
+    gap: calc(var(--tile-padding-effective) * 0.75);
+    padding: calc(var(--tile-padding-effective) * 1.1);
+    border-radius: calc(var(--control-chip-radius) * 1.06);
     font-size: var(--button-card-font-size);
     font-weight: 500;
     color: var(--fg-muted);
@@ -755,7 +762,7 @@
 
   /* ── XL Overrides ────────────────────────────────────────────── */
   .is-xl .current-hero { font-size: var(--hero-text-size); }
-  .is-xl .lg-icon-box { width: 72px; height: 72px; }
+  .is-xl .lg-icon-box { width: calc(var(--hero-icon-size) * 2.4); height: calc(var(--hero-icon-size) * 2.4); }
 
   /* ── States ────────────────────────────────────────────────────────── */
   .climate-tile.unavailable { opacity: 0.5; pointer-events: none; }

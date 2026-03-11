@@ -128,7 +128,7 @@
     justify-content: space-between;
     flex: 1;
     min-height: 0;
-    padding-bottom: 4px;
+    padding-bottom: calc(var(--tile-padding-effective) * 0.36);
   }
 
   .top {
@@ -180,14 +180,14 @@
   .ctrl-row {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: calc(var(--tile-padding-effective) * 0.27);
   }
 
   .ctrl {
     all: unset;
     width: var(--action-icon-size);
     height: var(--action-icon-size);
-    border-radius: 6px;
+    border-radius: var(--control-chip-radius-compact);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -210,7 +210,7 @@
   .bottom {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: calc(var(--tile-padding-effective) * 0.18);
     margin-top: auto;
   }
 
@@ -262,7 +262,7 @@
   }
 
   .cover-tile[data-size="sm"] .tile-content {
-    padding-bottom: 2px;
+    padding-bottom: calc(var(--tile-padding-effective) * 0.18);
   }
 
   .name-text {

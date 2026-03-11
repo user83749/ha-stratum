@@ -210,7 +210,7 @@
     color: var(--fg-subtle);
     flex-shrink: 0;
     opacity: 0.7;
-    margin-top: 6px;
+    margin-top: calc(var(--button-card-font-size) * 0.5);
     display: block;
     white-space: nowrap;
     overflow: hidden;
@@ -219,15 +219,15 @@
 
   .controls {
     display: flex;
-    gap: calc(var(--tile-padding-effective) * 0.4);
-    margin-top: 10px;
+    gap: calc(var(--button-card-font-size) * 0.36);
+    margin-top: calc(var(--button-card-font-size) * 0.8);
     flex-wrap: wrap;
   }
 
   .ctrl-btn {
     all: unset;
     height: calc(var(--action-icon-size) * 0.95);
-    padding: 0 calc(var(--tile-padding-effective) * 1.1);
+    padding: 0 calc(var(--button-card-font-size) * 1);
     min-width: calc(var(--action-icon-size) * 1.35);
     border-radius: 999px;
     border: 1px solid var(--border);
@@ -260,10 +260,10 @@
   }
 
   .progress-bar {
-    height: 4px;
+    height: calc(var(--action-icon-size) * 0.18);
     border-radius: 99px;
     background: color-mix(in srgb, var(--fg) 10%, transparent);
-    margin-top: 10px;
+    margin-top: calc(var(--button-card-font-size) * 0.8);
     overflow: hidden;
   }
 

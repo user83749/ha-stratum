@@ -407,8 +407,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 24px;
-    gap: 20px;
+    padding: calc(var(--tile-padding-effective) * 2.2);
+    gap: calc(var(--tile-padding-effective) * 1.85);
   }
 
   .lg-top {
@@ -420,13 +420,13 @@
   .lg-hero {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: calc(var(--tile-padding-effective) * 1.45);
   }
 
   .lg-icon-box {
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
+    width: calc(var(--hero-icon-size) * 1.85);
+    height: calc(var(--hero-icon-size) * 1.85);
+    border-radius: calc(var(--control-chip-radius) * 1.2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -452,24 +452,24 @@
   .lg-stats {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: calc(var(--tile-padding-effective) * 1.1);
   }
 
   .stat {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: calc(var(--tile-padding-effective) * 0.75);
     font-size: var(--button-card-font-size);
     font-weight: 500;
     color: var(--fg-muted);
     background: color-mix(in srgb, var(--fg) 5%, transparent);
-    padding: 6px 14px;
+    padding: calc(var(--tile-padding-effective) * 0.55) calc(var(--tile-padding-effective) * 1.28);
     border-radius: 99px;
   }
 
   .power-toggle {
-    width: 42px;
-    height: 42px;
+    width: calc(var(--control-chip-size-compact) * 1.16);
+    height: calc(var(--control-chip-size-compact) * 1.16);
     border-radius: 50%;
     background: color-mix(in srgb, var(--fg) 6%, transparent);
     display: flex;
@@ -495,7 +495,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 32px;
+    gap: calc(var(--tile-padding-effective) * 3);
   }
 
   .slider-container {
@@ -564,10 +564,10 @@
   .target-control {
     display: flex;
     align-items: center;
-    gap: 40px;
+    gap: calc(var(--control-chip-size) * 0.95);
     background: color-mix(in srgb, var(--fg) 4%, transparent);
-    padding: 12px 32px;
-    border-radius: 20px;
+    padding: calc(var(--tile-padding-effective) * 1.1) calc(var(--tile-padding-effective) * 3);
+    border-radius: calc(var(--control-chip-radius) * 1.5);
   }
 
   .val-display {
@@ -590,9 +590,9 @@
   }
 
   .adj-btn-large {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
+    width: calc(var(--control-chip-size) * 1.15);
+    height: calc(var(--control-chip-size) * 1.15);
+    border-radius: calc(var(--control-chip-radius) * 1.06);
     background: color-mix(in srgb, var(--fg) 6%, transparent);
     display: flex;
     align-items: center;
@@ -609,24 +609,24 @@
 
   .mode-switcher {
     display: flex;
-    gap: 8px;
-    padding: 8px;
+    gap: calc(var(--tile-padding-effective) * 0.75);
+    padding: calc(var(--tile-padding-effective) * 0.75);
     background: color-mix(in srgb, var(--fg) 3%, transparent);
-    border-radius: 16px;
+    border-radius: calc(var(--control-chip-radius) * 1.2);
     overflow-x: auto;
   }
 
   .mode-btn {
     flex: 1;
-    padding: 12px;
-    border-radius: 12px;
+    padding: calc(var(--tile-padding-effective) * 1.1);
+    border-radius: calc(var(--control-chip-radius) * 0.9);
     font-size: var(--button-card-font-size);
     font-weight: 500;
     color: var(--fg-muted);
     text-align: center;
     transition: all 0.2s;
     text-transform: capitalize;
-    min-width: 80px;
+    min-width: calc(var(--control-chip-size) * 1.9);
   }
 
   .mode-btn.active {

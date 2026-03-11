@@ -11,6 +11,7 @@
 	import { uiStore } from '$lib/stores/ui';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { getUpdateCount } from '$lib/ha/updateSummary';
+	import { getTileSizePreset } from '$lib/layout/tileSizing';
 
 	// ─── Props ───────────────────────────────────────────────────────────────
 
@@ -51,6 +52,11 @@
 	const isMultiSelected = $derived(
 		editing && $multiSelection.includes(tile.id)
 	);
+	const sizePreset = $derived(getTileSizePreset(tile));
+	const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
+	const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
+	const shapeWide = $derived(layoutW > layoutH);
+	const shapeTall = $derived(layoutH > layoutW);
 
 	const entityActive = $derived.by(() => {
 		if (!entity) return false;
@@ -489,6 +495,12 @@
 	class:preview={preview}
 	class:entity-active={useSharedActiveSurface}
 	class:tile-wrapper--buttoncard={isButtonCardTile}
+	class:size-sm={sizePreset === 'sm'}
+	class:size-md={sizePreset === 'md'}
+	class:size-lg={sizePreset === 'lg'}
+	class:size-xl={sizePreset === 'xl'}
+	class:shape-wide={shapeWide}
+	class:shape-tall={shapeTall}
 	style={buttonCardStyleVars}
 	role={isInteractive ? 'button' : undefined}
 	tabindex={isInteractive ? 0 : undefined}
@@ -626,11 +638,10 @@
 		--control-active-name:            #4b5254;
 		--control-active-state:           var(--control-active-name);
 		--button-card-font-weight:        500;
-		/* Match HA button-card theme tokens (tablet) */
-		--button-card-letter-spacing:     -0.02vw;
-			--button-card-font-size-base:     1.35vw;
-			--button-card-font-size:          var(--button-card-font-size-base);
-			--tile-active-opacity:            0.97;
+			/* Match HA button-card theme tokens (tablet) */
+			--button-card-letter-spacing:     -0.02vw;
+				--button-card-font-size-base:     1.35vw;
+				--tile-active-opacity:            0.97;
 			background: var(--tile-surface-off, rgba(115, 115, 115, 0.25));
 			box-shadow: var(--tile-shadow, none);
 			backdrop-filter: var(--tile-backdrop, none);
@@ -646,14 +657,33 @@
 		--tile-padding-base:              0.85vw;
 		--tile-padding-portrait:          1.4;
 		--tile-padding-phone:             2.271;
+		/* ── Size/shape scaling (no clamp) ─────────────────── */
+		--tile-size-content-scale:        1;
+		--tile-size-hero-scale:           1;
+		--tile-size-control-scale:        1;
+		--tile-size-icon-scale:           1;
+		--tile-size-padding-scale:        1;
+		--tile-size-gap-scale:            1;
+		--tile-shape-content-scale:       1;
+		--tile-shape-hero-scale:          1;
+		--tile-shape-control-scale:       1;
+		--tile-shape-icon-scale:          1;
+		--tile-shape-padding-scale:       1;
+		--tile-shape-gap-scale:           1;
+		--tile-content-scale:             calc(var(--tile-size-content-scale) * var(--tile-shape-content-scale));
+		--tile-hero-scale:                calc(var(--tile-size-hero-scale) * var(--tile-shape-hero-scale));
+		--tile-control-scale:             calc(var(--tile-size-control-scale) * var(--tile-shape-control-scale));
+		--tile-icon-scale:                calc(var(--tile-size-icon-scale) * var(--tile-shape-icon-scale));
+		--tile-padding-scale:             calc(var(--tile-size-padding-scale) * var(--tile-shape-padding-scale));
+		--tile-gap-scale:                 calc(var(--tile-size-gap-scale) * var(--tile-shape-gap-scale));
 		/* HA extra_styles: --card-portrait / --card-phone */
 		--card-portrait:                  var(--tile-padding-portrait);
 		--card-phone:                     var(--tile-padding-phone);
-		--tile-padding-effective:         var(--tile-padding-base);
+		--tile-padding-effective:         calc(var(--tile-padding-base) * var(--tile-padding-scale));
 		--tile-padding:                   var(--tile-padding-effective);
 
 		/* ── Tile gap (matches your HA button-card template) ─────── */
-		--tile-gap:                       1.3%;
+		--tile-gap:                       calc(1.3% * var(--tile-gap-scale));
 
 		/* Aliases — all label vars resolve to the button-card tokens */
 		--control-label-size:             var(--button-card-font-size);
@@ -663,60 +693,119 @@
 		--hero-text-base:                 2.8vw;
 		--hero-text-portrait:             1.4;
 		--hero-text-phone:                2.271;
-		--hero-text-size:                 var(--hero-text-base);
+		--hero-text-size:                 calc(var(--hero-text-base) * var(--tile-hero-scale));
 
 		/* ── Control chip geometry (vw, no clamp) ─────────────────── */
-		--control-chip-size:              3.5vw;
-		--control-chip-radius:            1.1vw;
-		--control-chip-size-compact:      3.0vw;
-		--control-chip-radius-compact:    0.9vw;
-		--control-chip-icon-size:         1.5vw;
-		--control-chip-icon-size-compact: 1.3vw;
-		--action-icon-size:               1.1vw;
-		--action-icon-size-sm:            0.95vw;
-		--action-icon-size-lg:            1.3vw;
-		--hero-icon-size:                 2.5vw;
-		--hero-icon-size-compact:         2.1vw;
+		--button-card-font-size:          calc(var(--button-card-font-size-base) * var(--tile-content-scale));
+		--control-chip-size:              calc(3.5vw * var(--tile-control-scale));
+		--control-chip-radius:            calc(1.1vw * var(--tile-control-scale));
+		--control-chip-size-compact:      calc(3.0vw * var(--tile-control-scale));
+		--control-chip-radius-compact:    calc(0.9vw * var(--tile-control-scale));
+		--control-chip-icon-size:         calc(1.5vw * var(--tile-icon-scale));
+		--control-chip-icon-size-compact: calc(1.3vw * var(--tile-icon-scale));
+		--action-icon-size:               calc(1.1vw * var(--tile-icon-scale));
+		--action-icon-size-sm:            calc(0.95vw * var(--tile-icon-scale));
+		--action-icon-size-lg:            calc(1.3vw * var(--tile-icon-scale));
+		--hero-icon-size:                 calc(2.5vw * var(--tile-icon-scale));
+		--hero-icon-size-compact:         calc(2.1vw * var(--tile-icon-scale));
 	}
 
-	/* ── Breakpoint: portrait / tablet (≤1200px) ────────────────────── */
-	@media (max-width: 1200px) {
+	/* ── Breakpoint: portrait / tablet (≤1160px) ────────────────────── */
+	/* Keep this aligned with PageView section-grid 3→2 column breakpoint so
+	   tile content sizing and outer grid column shifts happen at the same time. */
+	@media (max-width: 1160px) {
 		.tile-wrapper {
-			--button-card-font-size:     calc(var(--button-card-font-size-base) * var(--card-portrait));
-			--tile-padding-effective:    calc(var(--tile-padding-base) * var(--tile-padding-portrait));
-			--hero-text-size:            calc(var(--hero-text-base)    * var(--hero-text-portrait));
-			--control-chip-size:              4.9vw;
-			--control-chip-radius:            1.54vw;
-			--control-chip-size-compact:      4.2vw;
-			--control-chip-radius-compact:    1.26vw;
-			--control-chip-icon-size:         2.1vw;
-			--control-chip-icon-size-compact: 1.82vw;
-			--action-icon-size:               1.54vw;
-			--action-icon-size-sm:            1.33vw;
-			--action-icon-size-lg:            1.82vw;
-			--hero-icon-size:                 3.5vw;
-			--hero-icon-size-compact:         2.94vw;
+			--button-card-font-size:          calc(var(--button-card-font-size-base) * var(--card-portrait) * var(--tile-content-scale));
+			--tile-padding-effective:         calc(var(--tile-padding-base) * var(--tile-padding-portrait) * var(--tile-padding-scale));
+			--hero-text-size:                 calc(var(--hero-text-base) * var(--hero-text-portrait) * var(--tile-hero-scale));
+			--control-chip-size:              calc(4.9vw * var(--tile-control-scale));
+			--control-chip-radius:            calc(1.54vw * var(--tile-control-scale));
+			--control-chip-size-compact:      calc(4.2vw * var(--tile-control-scale));
+			--control-chip-radius-compact:    calc(1.26vw * var(--tile-control-scale));
+			--control-chip-icon-size:         calc(2.1vw * var(--tile-icon-scale));
+			--control-chip-icon-size-compact: calc(1.82vw * var(--tile-icon-scale));
+			--action-icon-size:               calc(1.54vw * var(--tile-icon-scale));
+			--action-icon-size-sm:            calc(1.33vw * var(--tile-icon-scale));
+			--action-icon-size-lg:            calc(1.82vw * var(--tile-icon-scale));
+			--hero-icon-size:                 calc(3.5vw * var(--tile-icon-scale));
+			--hero-icon-size-compact:         calc(2.94vw * var(--tile-icon-scale));
 		}
 	}
 
 	/* ── Breakpoint: phone (≤800px) ────────────────────────────── */
 	@media (max-width: 800px) {
 		.tile-wrapper {
-			--button-card-font-size:     calc(var(--button-card-font-size-base) * var(--card-phone));
-			--tile-padding-effective:    calc(var(--tile-padding-base) * var(--tile-padding-phone));
-			--hero-text-size:            calc(var(--hero-text-base)    * var(--hero-text-phone));
-			--control-chip-size:              7.95vw;
-			--control-chip-radius:            2.5vw;
-			--control-chip-size-compact:      6.8vw;
-			--control-chip-radius-compact:    2.05vw;
-			--control-chip-icon-size:         3.41vw;
-			--control-chip-icon-size-compact: 2.95vw;
-			--action-icon-size:               2.5vw;
-			--action-icon-size-sm:            2.16vw;
-			--action-icon-size-lg:            2.95vw;
-			--hero-icon-size:                 5.68vw;
-			--hero-icon-size-compact:         4.77vw;
+			--button-card-font-size:          calc(var(--button-card-font-size-base) * var(--card-phone) * var(--tile-content-scale));
+			--tile-padding-effective:         calc(var(--tile-padding-base) * var(--tile-padding-phone) * var(--tile-padding-scale));
+			--hero-text-size:                 calc(var(--hero-text-base) * var(--hero-text-phone) * var(--tile-hero-scale));
+			--control-chip-size:              calc(7.95vw * var(--tile-control-scale));
+			--control-chip-radius:            calc(2.5vw * var(--tile-control-scale));
+			--control-chip-size-compact:      calc(6.8vw * var(--tile-control-scale));
+			--control-chip-radius-compact:    calc(2.05vw * var(--tile-control-scale));
+			--control-chip-icon-size:         calc(3.41vw * var(--tile-icon-scale));
+			--control-chip-icon-size-compact: calc(2.95vw * var(--tile-icon-scale));
+			--action-icon-size:               calc(2.5vw * var(--tile-icon-scale));
+			--action-icon-size-sm:            calc(2.16vw * var(--tile-icon-scale));
+			--action-icon-size-lg:            calc(2.95vw * var(--tile-icon-scale));
+			--hero-icon-size:                 calc(5.68vw * var(--tile-icon-scale));
+			--hero-icon-size-compact:         calc(4.77vw * var(--tile-icon-scale));
 		}
+	}
+
+	/* ── Preset-level scaling so all tile variants adapt consistently ───── */
+	.tile-wrapper.size-sm {
+		--tile-size-content-scale: 1;
+		--tile-size-hero-scale: 1;
+		--tile-size-control-scale: 1;
+		--tile-size-icon-scale: 1;
+		--tile-size-padding-scale: 1;
+		--tile-size-gap-scale: 1;
+	}
+
+	.tile-wrapper.size-md {
+		--tile-size-content-scale: 0.96;
+		--tile-size-hero-scale: 0.92;
+		--tile-size-control-scale: 0.94;
+		--tile-size-icon-scale: 0.96;
+		--tile-size-padding-scale: 0.94;
+		--tile-size-gap-scale: 0.92;
+	}
+
+	.tile-wrapper.size-lg {
+		--tile-size-content-scale: 1;
+		--tile-size-hero-scale: 1;
+		--tile-size-control-scale: 1;
+		--tile-size-icon-scale: 1;
+		--tile-size-padding-scale: 1;
+		--tile-size-gap-scale: 1;
+	}
+
+	.tile-wrapper.size-xl {
+		--tile-size-content-scale: 1.06;
+		--tile-size-hero-scale: 1.08;
+		--tile-size-control-scale: 1.04;
+		--tile-size-icon-scale: 1.06;
+		--tile-size-padding-scale: 1.05;
+		--tile-size-gap-scale: 1.04;
+	}
+
+	/* ── Shape-level scaling for non-square tiles ──────────────────────── */
+	.tile-wrapper.shape-wide {
+		--tile-shape-content-scale: 0.96;
+		--tile-shape-hero-scale: 0.94;
+		--tile-shape-control-scale: 0.94;
+		--tile-shape-icon-scale: 0.96;
+		--tile-shape-padding-scale: 0.95;
+		--tile-shape-gap-scale: 0.92;
+	}
+
+	.tile-wrapper.shape-tall {
+		--tile-shape-content-scale: 0.97;
+		--tile-shape-hero-scale: 0.95;
+		--tile-shape-control-scale: 0.95;
+		--tile-shape-icon-scale: 0.97;
+		--tile-shape-padding-scale: 0.96;
+		--tile-shape-gap-scale: 0.95;
 	}
 
 	/* .tile-inner stays display:contents for layout passthrough */

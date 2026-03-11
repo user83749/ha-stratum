@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.46] - 2026-03-10
+
+### Changed
+- Extensive cleanup and refactor for various tile components (Button, Lock, Map, MediaPlayer, Person, Remote, Siren, Slider, TileWrapper, Timer, Todo, Update, Vacuum, WaterHeater, Weather).
+- Improved `SectionEditor` UI and functionality for better dashboard customization.
+- Enhanced core tile handling and component stability.
+
 ## [1.0.45] - 2026-03-10
 
 ### Changed

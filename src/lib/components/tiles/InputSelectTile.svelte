@@ -137,9 +137,9 @@
 
   /* ── Cycle row ──────────────────────────────────────────────────────────── */
   .select-row {
-    margin-top: 8px;
+    margin-top: calc(var(--button-card-font-size) * 0.6);
     display: flex;
-    gap: calc(var(--tile-padding-effective) * 0.28);
+    gap: calc(var(--button-card-font-size) * 0.3);
     flex-shrink: 0;
   }
 
@@ -149,7 +149,7 @@
     letter-spacing: 0.03em;
     text-transform: uppercase;
     color: var(--fg-subtle);
-    margin-top: 4px;
+    margin-top: calc(var(--button-card-font-size) * 0.3);
   }
 
   .arrow-btn {
@@ -199,12 +199,12 @@
   /* ── Dropdown ───────────────────────────────────────────────────────────── */
   .dropdown {
     position: relative;
-    margin-top: 6px;
+    margin-top: calc(var(--button-card-font-size) * 0.45);
     background: var(--bg-elevated);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
     overflow-y: auto;
-    max-height: 150px;
+    max-height: calc(var(--action-icon-size) * 4.8);
     box-shadow: var(--shadow-lg);
     z-index: 10;
   }
@@ -213,7 +213,7 @@
     all: unset;
     display: block;
     width: 100%;
-    padding: 8px 12px;
+    padding: calc(var(--button-card-font-size) * 0.55) calc(var(--button-card-font-size) * 0.85);
     box-sizing: border-box;
     font-size: var(--secondary-label-size);
     font-weight: 500;
@@ -235,11 +235,11 @@
 
   @container tile (max-width: 170px) {
     .dropdown {
-      max-height: 120px;
+      max-height: calc(var(--action-icon-size) * 3.9);
     }
 
     .opt {
-      padding: 7px 10px;
+      padding: calc(var(--button-card-font-size) * 0.5) calc(var(--button-card-font-size) * 0.75);
       font-size: var(--button-card-font-size);
     }
   }

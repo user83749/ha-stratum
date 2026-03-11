@@ -238,22 +238,21 @@
     return preview;
   });
 
-  // Preview canvas uses true square grid cells and a fixed 2-column reference
-  // width so every preset remains legible (especially sm/md) while preserving
-  // exact geometry (1x1, 2x1, 2x2, 2x3).
-  const PREVIEW_PADDING_Y = 36;
+  // Preview canvas uses true square grid cells based on measured shell width.
+  // No fixed pixel clamps: scaling follows available space while preserving
+  // exact preset geometry (1x1, 2x1, 2x2, 2x3).
+  const previewInset = $derived.by(() => Math.max(1, Math.round(previewGridWidth * 0.08)));
+  const previewUsableWidth = $derived.by(() => Math.max(1, Math.round(previewGridWidth - previewInset * 2)));
   const previewCellSize = $derived.by(() => {
-    if (previewGridWidth <= 0) return 160;
-    const usable = Math.max(0, previewGridWidth - 40);
-    const cell = usable / 2;
-    return Math.round(Math.min(320, Math.max(160, cell)));
+    return Math.max(1, Math.round(previewUsableWidth / 2));
   });
+  const previewPadY = $derived.by(() => Math.max(1, Math.round(previewCellSize * 0.22)));
 
   const previewTileWidth = $derived((previewTile?.layout?.w ?? 1) * previewCellSize);
   const previewTileHeight = $derived((previewTile?.layout?.h ?? 1) * previewCellSize);
 
   const previewShellMinHeight = $derived.by(() => {
-    return previewTileHeight + PREVIEW_PADDING_Y;
+    return previewTileHeight + previewPadY * 2;
   });
 
   function createTile() {
@@ -628,12 +627,12 @@
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 0.5rem;
   }
 
   .tp-preset-btn {
-    height: 38px;
-    min-width: 96px;
+    height: 2.35rem;
+    min-width: 6rem;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border);
     background: transparent;
@@ -651,7 +650,7 @@
   .tp-preview-shell {
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 18px;
+    padding: max(0.9rem, 1vw);
     background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
     display: flex;
     overflow: auto;

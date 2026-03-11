@@ -85,7 +85,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 8px 12px;
+    padding: calc(var(--tile-padding-effective) * 0.72) calc(var(--tile-padding-effective) * 1.1);
     background: linear-gradient(to top, color-mix(in srgb, var(--bg) 75%, transparent) 0%, transparent 100%);
     pointer-events: none;
   }

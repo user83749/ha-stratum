@@ -154,7 +154,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: calc(var(--button-card-font-size) * 0.45);
     height: var(--action-icon-size);
     border-radius: 99px;
     font-size: var(--secondary-label-size);

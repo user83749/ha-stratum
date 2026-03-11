@@ -231,7 +231,7 @@
     display: grid;
     grid-column: 1 / -1;
     grid-template-columns: 1fr 1fr;
-    gap: 5px;
+    gap: calc(var(--tile-padding-effective) * 0.45);
     position: relative;
     z-index: 1;
   }
@@ -242,10 +242,10 @@
     background: color-mix(in srgb, var(--fg) 5%, transparent);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 6px 8px;
+    padding: calc(var(--tile-padding-effective) * 0.55) calc(var(--tile-padding-effective) * 0.72);
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: calc(var(--tile-padding-effective) * 0.18);
     min-width: 0;
   }
 

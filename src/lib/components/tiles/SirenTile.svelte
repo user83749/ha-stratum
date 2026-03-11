@@ -106,7 +106,7 @@
     position: relative;
     z-index: 1;
     display: flex;
-    gap: 4px;
+    gap: calc(var(--button-card-font-size) * 0.3);
     flex-wrap: wrap;
     flex-shrink: 0;
   }
@@ -115,7 +115,7 @@
     all: unset;
     font-size: var(--secondary-label-size);
     font-weight: 500;
-    padding: 3px 8px;
+    padding: calc(var(--button-card-font-size) * 0.22) calc(var(--button-card-font-size) * 0.6);
     border-radius: 99px;
     border: 1px solid transparent;
     background: transparent;
