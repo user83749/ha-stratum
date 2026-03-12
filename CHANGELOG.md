@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.47] - 2026-03-12
+
+### Changed
+- Refined `tile-tokens.css` for enhanced styling consistency across the board.
+- Extensive updates to various tile components highlighting improved stability and rendering (Climate, Fan, Light, MediaPlayer, Slider, Update, Vacuum, etc.).
+- Updated theme presets and application logic in `apply.ts`.
+- Improved dashboard type definitions for better state management.
+
 ## [1.0.46] - 2026-03-10
 
 ### Changed

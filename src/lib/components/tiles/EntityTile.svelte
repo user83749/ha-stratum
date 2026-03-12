@@ -38,7 +38,7 @@
   const secondaryEntity = $derived(
     cfg.secondary_entity_id ? ($entities[cfg.secondary_entity_id] ?? null) : null
   );
-  const showExtraMeta = $derived(sizePreset !== 'sm');
+  const showExtraMeta = $derived(sizePreset === 'lg' || sizePreset === 'xl');
   const secondaryValue = $derived.by(() => {
     if (!secondaryEntity) return null;
     if (cfg.secondary_attribute) {

@@ -4,7 +4,7 @@
      Later phases can make these theme-aware (or override per-theme/preset). */
 
   /* Surface (tile background) */
-  --tile-surface-off: rgba(115, 115, 115, 0.25);
+  --tile-surface-off: rgba(115, 115, 115, 0.30);
   --tile-surface-on: rgba(255, 255, 255, 0.85);
 
   /* Primary labels (BaseTile name + state) */

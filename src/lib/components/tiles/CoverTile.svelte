@@ -9,6 +9,9 @@
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
   const sizePreset = $derived(getTileSizePreset(tile));
+  const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
+  const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
+  const isWideMd = $derived(sizePreset === 'md' && layoutW >= 2 && layoutH === 1);
 
   const config = $derived(tile.config);
   const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');
@@ -62,51 +65,134 @@
     if (entityId) coverService.setPosition(entityId, val);
   }
 </script>
+  {#if isWideMd}
+    <div class="cover-wide" class:open={isOpen} style="--cc: {coverColor};">
+      <div class="cover-wide__layout">
+        
+        <div class="cover-wide__icon-wrap">
+          <div class="icon-badge" class:open={isOpen} class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
+            {#if iconOverride}
+              {#if overrideIsCustom}
+                <Icon name={iconOverride} entity={entity} />
+              {:else}
+                <span class="icon-span"><Icon name={iconOverride} entity={entity} size="100%" /></span>
+              {/if}
+            {:else}
+              <Icon name={iconName()} />
+            {/if}
+          </div>
+        </div>
 
-<div class="cover-tile" class:open={isOpen} data-size={sizePreset} style="--cc: {coverColor};">
+        <div class="cover-wide__content">
+          <div class="cover-wide__header">
+            <span class="cover-wide__name">{name}</span>
+            <span class="cover-wide__state">{stateLabel}</span>
+          </div>
 
-    <div class="tile-content">
-    <div class="top">
-      <div class="icon-badge" class:open={isOpen} class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
-        {#if iconOverride}
-          {#if overrideIsCustom}
-            <Icon name={iconOverride} entity={entity} />
+          <div class="cover-wide__controls">
+            {#if pos !== undefined}
+              <div class="cover-wide__slider-wrap">
+                <div class="cover-wide__slider-bg">
+                  <div class="cover-wide__slider-fill" style="width: {displayPos ?? pos}%"></div>
+                </div>
+                
+                <div class="cover-wide__slider-info">
+                  <span class="cover-wide__speed-text">{displayPos ?? pos}%</span>
+                </div>
+                
+                <input
+                  class="cover-wide__slider"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={displayPos ?? pos}
+                  oninput={handleSliderInput}
+                  onchange={handleSliderChange}
+                  aria-label="Cover Position"
+                />
+              </div>
+
+              <button
+                class="cover-wide__action-btn stop"
+                class:active={isMoving}
+                type="button"
+                title="Stop"
+                onclick={(e) => { e.stopPropagation(); coverService.stop(entityId); }}
+              >
+                <Icon name="square" size={14} />
+              </button>
+            {:else}
+              <button
+                class="cover-wide__hero-btn"
+                class:moving={isMoving}
+                class:active={isOpen || isMoving}
+                type="button"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  if (isMoving) { coverService.stop(entityId); }
+                  else { coverService.toggle(entityId); }
+                }}
+              >
+                {#if isMoving}
+                  <span>Stop</span>
+                {:else if isOpen}
+                  <span>Close</span>
+                {:else}
+                  <span>Open</span>
+                {/if}
+              </button>
+            {/if}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  {:else}
+    <div class="cover-tile" class:open={isOpen} data-size={sizePreset} style="--cc: {coverColor};">
+      <div class="tile-content">
+      <div class="top">
+        <div class="icon-badge" class:open={isOpen} class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
+          {#if iconOverride}
+            {#if overrideIsCustom}
+              <Icon name={iconOverride} entity={entity} />
+            {:else}
+              <span class="icon-span"><Icon name={iconOverride} entity={entity} size="100%" /></span>
+            {/if}
           {:else}
-            <span class="icon-span"><Icon name={iconOverride} entity={entity} size="100%" /></span>
+            <Icon name={iconName()} />
           {/if}
-        {:else}
-          <Icon name={iconName()} />
+        </div>
+        {#if showDirectControls}
+        <div class="ctrl-row">
+          <button class="ctrl" onclick={() => entityId && coverService.open(entityId)} disabled={isOpen} aria-label="Open">
+            <Icon name="chevron-up" />
+          </button>
+          <button class="ctrl stop" onclick={() => entityId && coverService.stop(entityId)} aria-label="Stop">
+            <Icon name="square" />
+          </button>
+          <button class="ctrl" onclick={() => entityId && coverService.close(entityId)} disabled={isClosed} aria-label="Close">
+            <Icon name="chevron-down" />
+          </button>
+        </div>
         {/if}
       </div>
-      {#if showDirectControls}
-      <div class="ctrl-row">
-        <button class="ctrl" onclick={() => entityId && coverService.open(entityId)} disabled={isOpen} aria-label="Open">
-          <Icon name="chevron-up" />
-        </button>
-        <button class="ctrl stop" onclick={() => entityId && coverService.stop(entityId)} aria-label="Stop">
-          <Icon name="square" />
-        </button>
-        <button class="ctrl" onclick={() => entityId && coverService.close(entityId)} disabled={isClosed} aria-label="Close">
-          <Icon name="chevron-down" />
-        </button>
+
+      <div class="bottom">
+        <span class="name-text">{name}</span>
+        <span class="state-text">{stateLabel}</span>
       </div>
-      {/if}
     </div>
 
-    <div class="bottom">
-      <span class="name-text">{name}</span>
-      <span class="state-text">{stateLabel}</span>
-    </div>
+    <!-- Position slider overlay -->
+    {#if showSliderOverlay}
+      <div class="pos-slider">
+        <input type="range" min="0" max="100" value={displayPos ?? pos}
+          oninput={handleSliderInput} onchange={handleSliderChange} aria-label="Position" />
+      </div>
+    {/if}
   </div>
-
-  <!-- Position slider overlay -->
-  {#if showSliderOverlay}
-    <div class="pos-slider">
-      <input type="range" min="0" max="100" value={displayPos ?? pos}
-        oninput={handleSliderInput} onchange={handleSliderChange} aria-label="Position" />
-    </div>
-  {/if}
-</div>
+{/if}
 
 <style>
   .cover-tile {
@@ -117,6 +203,196 @@
     display: flex;
     flex-direction: column;
     border-radius: inherit;
+  }
+
+  /* ── Wide 1x2 Layout ───────────────────────── */
+  .cover-wide {
+    flex: 1;
+    margin: calc(var(--tile-padding) * -1);
+    padding:
+      calc(10.9% * var(--tile-padding-scale, 1))
+      calc(10.9% * var(--tile-padding-scale, 1))
+      calc(8.9% * var(--tile-padding-scale, 1))
+      calc(10.9% * var(--tile-padding-scale, 1));
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+
+  .cover-wide__layout {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: calc(var(--button-card-font-size) * 0.48);
+  }
+
+  .cover-wide__icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(var(--control-chip-size) * 1.08); /* Uniform 1x2 anchor */
+  }
+
+  .cover-wide__content {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: calc(var(--button-card-font-size) * 0.18);
+  }
+
+  .cover-wide__header {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--button-card-font-size) * 0.08);
+    min-width: 0;
+  }
+
+  .cover-wide__name {
+    font-size: var(--button-card-font-size);
+    font-weight: 500;
+    letter-spacing: var(--button-card-letter-spacing);
+    line-height: 1.21;
+    color: var(--tile-label-off, #97989c);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cover-wide__state {
+    font-size: var(--button-card-font-size);
+    font-weight: 500;
+    letter-spacing: var(--button-card-letter-spacing);
+    line-height: 1.15;
+    color: var(--tile-label-off, #97989c);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cover-wide.open .cover-wide__name,
+  .cover-wide.open .cover-wide__state {
+    color: var(--tile-label-on, var(--control-active-name));
+  }
+
+  .cover-wide__controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    width: 100%;
+    gap: calc(var(--button-card-font-size) * 0.4);
+    min-width: 0;
+  }
+
+  .cover-wide__hero-btn {
+    all: unset;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    height: calc(var(--button-card-font-size) * 1.8);
+    border-radius: 99px;
+    color: var(--fg);
+    background: color-mix(in srgb, currentColor 6%, transparent);
+    font-size: calc(var(--button-card-font-size) * 0.9);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+
+  .cover-wide__hero-btn.moving {
+    background: color-mix(in srgb, var(--color-warning) 16%, transparent);
+    color: var(--color-warning);
+    border-color: color-mix(in srgb, var(--color-warning) 30%, var(--border));
+  }
+
+  .cover-wide__slider-wrap {
+    flex: 1;
+    position: relative;
+    height: calc(var(--button-card-font-size) * 1.8);
+    border-radius: 99px;
+    background: color-mix(in srgb, currentColor 8%, transparent);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+
+  .cover-wide.open .cover-wide__slider-wrap {
+    background: color-mix(in srgb, var(--cc) 12%, transparent);
+  }
+
+  .cover-wide__slider-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .cover-wide__slider-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--cc) 90%, #fff);
+    transition: width 140ms ease;
+  }
+
+  .cover-wide__slider-info {
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 calc(var(--button-card-font-size) * 0.6);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .cover-wide__speed-text {
+    font-size: calc(var(--button-card-font-size) * 0.88);
+    font-weight: 600;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cover-wide:not(.open) .cover-wide__speed-text {
+    color: var(--tile-label-off, #97989c);
+  }
+
+  .cover-wide__slider {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+  }
+
+  .cover-wide__action-btn {
+    all: unset;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(var(--button-card-font-size) * 1.8);
+    height: calc(var(--button-card-font-size) * 1.8);
+    border-radius: 50%;
+    color: var(--tile-label-off, #97989c);
+    background: color-mix(in srgb, currentColor 6%, transparent);
+    cursor: pointer;
+    transition: all var(--transition);
+    flex-shrink: 0;
+  }
+
+  .cover-wide__action-btn.stop {
+    background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+    color: var(--color-warning);
+  }
+
+  .cover-wide__action-btn.stop.active {
+    background: var(--color-warning);
+    color: #fff;
   }
 
   /* ── Content ─────────────────────────────────────────────────────────── */

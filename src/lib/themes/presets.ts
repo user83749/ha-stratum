@@ -146,20 +146,20 @@ export const THEME_OCEANIC = THEME_NEON_TOKYO;
 export const THEME_STUDIO_MINIMAL = THEME_NEON_TOKYO;
 
 
-export const THEME_DAWN: ThemeDefinition = {
-	id: 'dawn', name: 'Draftwork',
-	description: 'Draft-paper canvas with cerulean accents. Bright, technical, and distinctly non-sunrise.',
-	colorScheme: 'light', visualStyle: 'liquid', radius: 'lg', font: { family: 'Geist', size: 'md' },
+export const THEME_CRIMSON_FORGE: ThemeDefinition = {
+	id: 'crimson-forge', name: 'Crimson Forge',
+	description: 'Forged in darkness. Pitch-black architectural surfaces resting on a glowing deep crimson and magma backdrop.',
+	colorScheme: 'dark', visualStyle: 'sculpted', radius: 'md', font: { family: 'Inter', size: 'md' },
 	dense: false, animations: true,
-	preview: { canvas: 'radial-gradient(circle at 12% 20%, #c7f9ff 0%, transparent 46%), radial-gradient(circle at 82% 70%, #dbeafe 0%, transparent 52%), linear-gradient(160deg, #fff8f1 0%, #f7fbff 60%, #f2ffff 100%)', card: 'rgba(255, 255, 255, 0.92)', accent: '#0284c7', text: '#0b1220' },
+	preview: { canvas: 'radial-gradient(ellipse at 30% 40%, #250505 0%, #100202 45%, #050101 75%, #000000 100%)', card: '#0a0a0a', accent: '#ef4444', text: '#f8fafc' },
 	tokens: {
-		'--theme-bg-css': 'radial-gradient(circle at 12% 20%, #c7f9ff 0%, transparent 46%), radial-gradient(circle at 82% 70%, #dbeafe 0%, transparent 52%), linear-gradient(160deg, #fff8f1 0%, #f7fbff 60%, #f2ffff 100%)',
-		'--bg': '#fff8f1', '--bg-elevated': '#ffffff', '--surface': '#ffffff', '--surface-rgb': '255 255 255',
-		'--fg': '#0b1220', '--fg-muted': '#334155', '--fg-subtle': '#7a8797', '--border': 'rgba(11, 18, 32, 0.08)', '--border-strong': 'rgba(11, 18, 32, 0.14)',
-		'--hover': 'rgba(2, 132, 199, 0.06)', '--active': 'rgba(2, 132, 199, 0.12)', '--accent': '#0284c7', '--accent-rgb': '2 132 199', '--accent-fg': '#ffffff',
-		'--shadow': '0 10px 30px rgba(15, 23, 42, 0.08)', '--shadow-lg': '0 24px 60px rgba(15, 23, 42, 0.12)', '--color-on': '#0284c7', '--color-off': '#e5e7eb'
+		'--theme-bg-css': 'radial-gradient(ellipse at 30% 40%, #250505 0%, #100202 45%, #050101 75%, #000000 100%)',
+		'--bg': '#000000', '--bg-elevated': '#0a0a0a', '--surface': '#0a0a0a', '--surface-rgb': '10 10 10',
+		'--fg': '#f8fafc', '--fg-muted': '#94a3b8', '--fg-subtle': '#475569', '--border': 'rgba(239, 68, 68, 0.15)', '--border-strong': 'rgba(239, 68, 68, 0.3)',
+		'--hover': 'rgba(239, 68, 68, 0.08)', '--active': 'rgba(239, 68, 68, 0.2)', '--accent': '#ef4444', '--accent-rgb': '239 68 68', '--accent-fg': '#ffffff',
+		'--shadow': '0 8px 30px rgba(0, 0, 0, 0.8)', '--shadow-lg': '0 20px 50px rgba(0, 0, 0, 0.95)', '--color-on': '#ef4444', '--color-off': '#1e1e1e'
 	},
-	defaultBackground: { type: 'gradient', value: 'radial-gradient(circle at 12% 20%, #c7f9ff 0%, transparent 46%), radial-gradient(circle at 82% 70%, #dbeafe 0%, transparent 52%), linear-gradient(160deg, #fff8f1 0%, #f7fbff 60%, #f2ffff 100%)' }
+	defaultBackground: { type: 'gradient', value: 'radial-gradient(ellipse at 30% 40%, #250505 0%, #100202 45%, #050101 75%, #000000 100%)' }
 };
 
 export const THEME_TITANIUM: ThemeDefinition = {
@@ -335,19 +335,28 @@ export const THEME_POLAR_ICE: ThemeDefinition = {
 	defaultBackground: { type: 'gradient', value: 'linear-gradient(135deg, #f0f7ff 0%, #e0efff 100%)' }
 };
 
-export const THEME_DUSK: ThemeDefinition = {
-	id: 'dusk', name: 'Soft Dusk',
-	description: 'Lavender sky backdrop. Crisp solid white cards offset the soft tones.',
-	colorScheme: 'light', visualStyle: 'liquid', radius: 'xl', font: { family: 'Plus Jakarta Sans', size: 'md' },
+export const THEME_DRAFTWORK: ThemeDefinition = {
+	id: 'draftwork', name: 'Draftwork',
+	description: 'Architectural paper tones with blueprint-blue accents. Crisp, technical, and intentionally unsentimental.',
+	colorScheme: 'light', visualStyle: 'vivid', radius: 'md', font: { family: 'Geist', size: 'md' },
 	dense: false, animations: true,
-	preview: { canvas: 'linear-gradient(145deg, #ede8ff 0%, #f5e6ff 50%, #ffe4f0 100%)', card: 'rgba(255, 255, 255, 0.95)', accent: '#7c3aed', text: '#000000' },
-	tokens: {
-		'--theme-bg-css': 'linear-gradient(145deg, #ede8ff 0%, #f5e6ff 50%, #ffe4f0 100%)', '--bg': '#ffffff', '--bg-elevated': '#f8fafc', '--surface': '#ffffff', '--surface-rgb': '255 255 255',
-		'--fg': '#000000', '--fg-muted': '#52525b', '--fg-subtle': '#a1a1aa', '--border': 'rgba(0, 0, 0, 0.05)', '--border-strong': 'rgba(0, 0, 0, 0.1)',
-		'--hover': 'rgba(0, 0, 0, 0.03)', '--active': 'rgba(0, 0, 0, 0.06)', '--accent': '#7c3aed', '--accent-rgb': '124 58 237', '--accent-fg': '#ffffff',
-		'--shadow': '0 4px 24px rgba(0, 0, 0, 0.05)', '--shadow-lg': '0 16px 48px rgba(0, 0, 0, 0.1)', '--color-on': '#7c3aed', '--color-off': 'rgba(0, 0, 0, 0.05)'
+	preview: {
+		canvas: 'linear-gradient(180deg, rgba(25, 77, 122, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(25, 77, 122, 0.07) 1px, transparent 1px), linear-gradient(160deg, #f6f2ea 0%, #edf2f5 100%)',
+		card: '#fcfbf7',
+		accent: '#1d4ed8',
+		text: '#111827'
 	},
-	defaultBackground: { type: 'gradient', value: 'linear-gradient(145deg, #ede8ff 0%, #f5e6ff 50%, #ffe4f0 100%)' }
+	tokens: {
+		'--theme-bg-css': 'linear-gradient(180deg, rgba(25, 77, 122, 0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(25, 77, 122, 0.06) 1px, transparent 1px), linear-gradient(160deg, #f6f2ea 0%, #eef2f5 52%, #e8eef2 100%)',
+		'--bg': '#f2eee7', '--bg-elevated': '#f8f6f1', '--surface': '#fcfbf7', '--surface-rgb': '252 251 247',
+		'--fg': '#111827', '--fg-muted': '#475569', '--fg-subtle': '#8b98a8', '--border': 'rgba(17, 24, 39, 0.08)', '--border-strong': 'rgba(17, 24, 39, 0.16)',
+		'--hover': 'rgba(29, 78, 216, 0.05)', '--active': 'rgba(29, 78, 216, 0.10)', '--accent': '#1d4ed8', '--accent-rgb': '29 78 216', '--accent-fg': '#ffffff',
+		'--shadow': '0 1px 0 rgba(17, 24, 39, 0.04), 0 10px 24px rgba(17, 24, 39, 0.06)', '--shadow-lg': '0 18px 44px rgba(17, 24, 39, 0.10)', '--color-on': '#1d4ed8', '--color-off': '#d5dbe3'
+	},
+	defaultBackground: {
+		type: 'gradient',
+		value: 'linear-gradient(180deg, rgba(25, 77, 122, 0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(25, 77, 122, 0.06) 1px, transparent 1px), linear-gradient(160deg, #f6f2ea 0%, #eef2f5 52%, #e8eef2 100%)'
+	}
 };
 
 // ─── Registry ─────────────────────────────────────────────────────────────────
@@ -358,7 +367,7 @@ export const SYSTEM_THEMES: ThemeDefinition[] = [
 	THEME_AURORA_BOREALIS,
 	THEME_ACID_GRAPHITE,
 	THEME_NEON_TOKYO,
-	THEME_DAWN,
+	THEME_CRIMSON_FORGE,
 	THEME_TITANIUM,
 
 	// Luxury Collection
@@ -374,7 +383,7 @@ export const SYSTEM_THEMES: ThemeDefinition[] = [
 	THEME_OBSIDIAN,
 	THEME_DEEP_OCEAN,
 	THEME_POLAR_ICE,
-	THEME_DUSK
+	THEME_DRAFTWORK
 ];
 
 export function getSystemTheme(id: string): ThemeDefinition | undefined {

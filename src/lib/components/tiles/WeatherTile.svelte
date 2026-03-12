@@ -35,6 +35,36 @@
   );
 
   const forecastDays = $derived(forecastArray.slice(0, 5));
+  const showMdName = $derived(!isWideMd);
+  const CONDITION_LABELS: Record<string, string> = {
+    'clear-night': 'Clear Night',
+    sunny: 'Sunny',
+    partlycloudy: 'Partly Cloudy',
+    cloudy: 'Cloudy',
+    fog: 'Fog',
+    rainy: 'Rainy',
+    snowy: 'Snowy',
+    'snowy-rainy': 'Snowy Rain',
+    windy: 'Windy',
+    hail: 'Hail',
+    lightning: 'Lightning',
+    'lightning-rainy': 'Lightning Rain',
+    pouring: 'Pouring',
+    exceptional: 'Exceptional'
+  };
+
+  function formatConditionLabel(value: string): string {
+    const key = value.toLowerCase();
+    if (CONDITION_LABELS[key]) return CONDITION_LABELS[key];
+    return value
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[_-]+/g, ' ')
+      .split(' ')
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+  const conditionLabel = $derived(formatConditionLabel(state));
 
   function conditionIcon(c: string): string {
     const map: Record<string,string> = {
@@ -119,8 +149,10 @@
           {/if}
         </div>
         <div class="md-meta">
-          <div class="md-state">{state.replace(/-/g, ' ')}</div>
-          <div class="md-name">{name}</div>
+          <div class="md-state">{conditionLabel}</div>
+          {#if showMdName}
+            <div class="md-name">{name}</div>
+          {/if}
         </div>
       </div>
     </div>
@@ -149,7 +181,7 @@
               </div>
             {/if}
             <div class="lg-status-line">
-              <span class="lg-state">{state.replace(/-/g, ' ')}</span>
+              <span class="lg-state">{conditionLabel}</span>
               <span class="sep">•</span>
               <span class="lg-name">{name}</span>
             </div>
@@ -257,10 +289,15 @@
     flex: 1;
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: calc(var(--tile-padding-effective) * 1.05) calc(var(--tile-padding-effective) * 2.1);
-    gap: var(--weather-gap-xl);
+    justify-content: flex-start;
+    padding: calc(var(--tile-padding-effective) * 0.85) calc(var(--tile-padding-effective) * 1.15);
+    gap: var(--weather-gap-lg);
     transition: all 0.3s ease;
+  }
+  .layout-md.is-wide-md {
+    width: 100%;
+    gap: calc(var(--tile-padding-effective) * 0.95);
+    padding: 0;
   }
   .layout-md.is-tall-md {
     flex-direction: column;
@@ -283,8 +320,10 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: var(--weather-gap-xl);
+    justify-content: space-between;
+    gap: var(--weather-gap-lg);
     min-width: 0;
+    flex: 1;
   }
   .layout-md.is-tall-md .md-content {
     width: 100%;
@@ -307,7 +346,7 @@
   }
 
   .md-temp {
-    font-size: var(--hero-text-size);
+    font-size: calc(var(--hero-text-size) * 0.86);
     font-weight: 500;
     line-height: 1;
     color: var(--fg);
@@ -325,7 +364,7 @@
   .md-hi-lo {
     display: flex;
     gap: var(--weather-gap-sm);
-    font-size: var(--button-card-font-size);
+    font-size: var(--secondary-label-size);
     font-weight: 500;
     line-height: 1;
     color: var(--fg-muted);
@@ -343,7 +382,7 @@
   }
 
   .md-state {
-    font-size: var(--button-card-font-size);
+    font-size: var(--secondary-label-size);
     font-weight: 500;
     color: var(--fg-muted);
     text-transform: capitalize;

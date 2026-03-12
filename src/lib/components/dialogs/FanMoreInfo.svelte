@@ -30,19 +30,34 @@
 	let localPct = $state(50);
 	$effect(() => { if (percentage !== undefined) localPct = percentage; });
 
-	const spinDuration = $derived(isOn ? `${(3 / Math.max((localPct || 50) / 100, 0.1)).toFixed(1)}s` : '8s');
+	const spinDuration = $derived.by(() => {
+		const pct = percentage ?? localPct ?? 50;
+		const norm = Math.max(pct / 100, 0.1);
+		return isOn ? `${(3 / norm).toFixed(2)}s` : '8s';
+	});
 
 	let speedDebounce: ReturnType<typeof setTimeout> | null = null;
+	function commitSpeed(value: number, immediate = false) {
+		if (speedDebounce) clearTimeout(speedDebounce);
+		const run = () => {
+			if (optimisticPreviewEnabled) applyPatch(entityId, { attributes: { percentage: value } });
+			else fanService.setPercentage(entityId, value).catch(() => {});
+		};
+		if (immediate) {
+			run();
+			return;
+		}
+		speedDebounce = setTimeout(run, 120);
+	}
 	function onSpeedInput(e: Event) {
 		const v = parseInt((e.target as HTMLInputElement).value);
 		localPct = v;
+		if (isOn && !isUnavail) commitSpeed(v, false);
 	}
 	function onSpeedCommit(e: Event) {
 		const v = parseInt((e.target as HTMLInputElement).value);
 		localPct = v;
-		if (speedDebounce) clearTimeout(speedDebounce);
-		if (optimisticPreviewEnabled) applyPatch(entityId, { attributes: { percentage: v } });
-		else fanService.setPercentage(entityId, v).catch(() => {});
+		commitSpeed(v, true);
 	}
 
 	// ─── Toggle ───────────────────────────────────────────────────────────────
@@ -82,12 +97,10 @@
 	<!-- ── Hero: spinning fan + speed % + toggle ─────────────────────────── -->
 	<div class="fmi__hero" class:fmi__hero--on={isOn}>
 		<div class="fmi__fan-wrap">
-			<span
-				class="fmi__fan-icon"
-				class:fmi__fan-icon--spinning={isOn}
-				style="animation-duration: {spinDuration};"
-			>
-				<Icon name="fan" size={48} />
+			<span class="fmi__fan-icon">
+				<span class="fmi__fan-blade" class:fmi__fan-blade--spinning={isOn} style="animation-duration: {spinDuration};">
+					<Icon name="fan" size={48} />
+				</span>
 			</span>
 		</div>
 
@@ -123,6 +136,12 @@
 				value={localPct}
 				oninput={onSpeedInput}
 				onchange={onSpeedCommit}
+				onpointerdown={(e) => e.stopPropagation()}
+				onpointermove={(e) => e.stopPropagation()}
+				onpointerup={(e) => { e.stopPropagation(); onSpeedCommit(e); }}
+				ontouchstart={(e) => e.stopPropagation()}
+				ontouchmove={(e) => e.stopPropagation()}
+				ontouchend={(e) => { e.stopPropagation(); onSpeedCommit(e); }}
 				disabled={!isOn || isUnavail}
 				class="fmi__slider"
 				style="--fill: {localPct}%;"
@@ -224,12 +243,32 @@
 
 	@keyframes fan-spin { to { transform: rotate(360deg); } }
 	.fmi__fan-icon {
-		display: flex;
+		display: inline-flex;
 		align-items: center;
 		justify-content: center;
+		width: 48px;
+		height: 48px;
+		line-height: 0;
+		transform-origin: 50% 50%;
 	}
-	.fmi__fan-icon--spinning {
+
+	.fmi__fan-blade {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100%;
+		transform-origin: 50% 50%;
+	}
+	.fmi__fan-blade--spinning {
 		animation: fan-spin var(--spin-duration, 3s) linear infinite;
+	}
+	.fmi__fan-icon :global(svg),
+	.fmi__fan-icon :global(.icon) {
+		width: 100%;
+		height: 100%;
+		display: block;
+		transform-origin: 50% 50%;
 	}
 
 	.fmi__hero-info { flex: 1; min-width: 0; }
@@ -303,6 +342,7 @@
 			var(--accent) var(--fill, 50%),
 			var(--border-strong) var(--fill, 50%)
 		);
+		touch-action: none;
 	}
 	.fmi__slider::-webkit-slider-thumb {
 		-webkit-appearance: none;

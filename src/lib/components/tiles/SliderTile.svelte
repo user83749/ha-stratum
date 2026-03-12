@@ -29,7 +29,7 @@
   let dragging = $state(false);
   const displayVal = $derived(dragging ? localVal : currentVal);
   const fillPct = $derived(Math.max(0, Math.min(100, ((displayVal ?? currentVal) - minVal) / (maxVal - minVal) * 100)));
-  const showRangeLabels = $derived(sizePreset !== 'sm');
+  const showRangeLabels = $derived(sizePreset === 'lg' || sizePreset === 'xl');
   const showQuickSteps = $derived((sizePreset === 'lg' || sizePreset === 'xl') && mode !== 'box');
 
   function setValue(val: number) {

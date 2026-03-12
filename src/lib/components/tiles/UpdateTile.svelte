@@ -5,6 +5,7 @@
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { callService } from '$lib/ha/services';
+  import { getEntityIcon } from '$lib/ha/entities';
   import { isCustomIcon } from '$lib/icons/customIcons';
   import { entities } from '$lib/ha/websocket';
   import { getUpdateCount } from '$lib/ha/updateSummary';
@@ -37,9 +38,15 @@
   const updateColor = $derived(
     hasUpdate ? 'var(--color-info)' : 'var(--tile-label-off, #97989c)'
   );
+  const resolvedEntityIcon = $derived(entity ? getEntityIcon(entity) : null);
+  const statusIcon = $derived(
+    iconOverride ??
+    resolvedEntityIcon ??
+    (hasUpdate ? 'circle-arrow-up' : 'circle-check')
+  );
 
   let installing = $state(false);
-  const showVersionInfo = $derived(sizePreset !== 'sm');
+  const showVersionInfo = $derived(sizePreset === 'lg' || sizePreset === 'xl');
   const showDetailedVersions = $derived(sizePreset === 'lg' || sizePreset === 'xl');
   const showActions = $derived((sizePreset === 'lg' || sizePreset === 'xl') && hasUpdate && !inProgress && !installing);
   const stateText = $derived(
@@ -62,14 +69,12 @@
     <div class="icon-wrap" class:is-custom={overrideIsCustom}>
       {#if inProgress || installing}
         <span class="spinner"><Icon name="loader" size="100%" /></span>
-      {:else if iconOverride}
-        {#if overrideIsCustom}
-          <Icon name={iconOverride} entity={entity} />
-        {:else}
-          <Icon name={iconOverride} entity={entity} size="100%" />
-        {/if}
       {:else}
-        <Icon name={hasUpdate ? 'circle-arrow-up' : 'circle-check'} size="100%" />
+        {#if overrideIsCustom}
+          <Icon name={statusIcon} entity={entity} />
+        {:else}
+          <Icon name={statusIcon} entity={entity} size="100%" />
+        {/if}
       {/if}
     </div>
   {/snippet}

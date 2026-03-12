@@ -43,7 +43,7 @@
   function handleInput(ev: Event) { dragging = true; localTemp = Number((ev.target as HTMLInputElement).value); }
   function handleChange(ev: Event) {
     dragging = false;
-    const val = Number((ev.target as HTMLInputElement).value);
+    const val = Math.max(minTemp, Math.min(maxTemp, Math.round(Number((ev.target as HTMLInputElement).value))));
     if (entityId) waterHeaterService.setTemperature(entityId, val);
   }
 </script>
@@ -82,7 +82,7 @@
       <div class="slider-area">
         <div class="slim-track">
           <div class="slim-fill" style="width:{fillPct}%"></div>
-          <input type="range" min={minTemp} max={maxTemp} step="0.5" value={displayTemp}
+          <input type="range" min={minTemp} max={maxTemp} step="1" value={displayTemp}
             oninput={handleInput} onchange={handleChange} aria-label="Target temperature" />
         </div>
       </div>

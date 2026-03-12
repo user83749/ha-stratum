@@ -49,7 +49,7 @@
 	} as Record<string, string>)[entityState] ?? entityState.replace(/_/g, ' '));
 
 	// NOTE: we still compute these, but CSS controls actual visibility by sizePreset
-	const showActions = $derived(sizePreset !== 'sm');
+	const showActions = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 	const showKeypad = $derived((sizePreset === 'lg' || sizePreset === 'xl') && tile.config.show_keypad !== false);
 
 	let code = $state('');

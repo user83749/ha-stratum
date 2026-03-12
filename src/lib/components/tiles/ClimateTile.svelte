@@ -164,8 +164,8 @@
           {/if}
         </div>
         <div class="md-status">
-          <div class="status-val" style="color: {stateTextColor}">{modeLabel}</div>
           <div class="device-name" style="color: {nameTextColor}">{name}</div>
+          <div class="status-val" style="color: {stateTextColor}">{modeLabel}</div>
         </div>
       </div>
 
@@ -174,7 +174,7 @@
           <div class="md-temp">
             <span class="val">{Math.round(currentTemp)}{tempUnit}</span>
             {#if showMdSetpoint}
-              <span class="target" style="color: {setpointTextColor}">Target {Math.round(targetTemp!)}°</span>
+              <span class="target" style="color: {setpointTextColor}">{Math.round(targetTemp!)}°</span>
             {/if}
           </div>
         {/if}
@@ -449,7 +449,9 @@
   }
 
   .layout-md.is-wide-md .md-right {
-    gap: calc(var(--tile-padding-effective) * 0.62);
+    flex-direction: column;
+    align-items: flex-end;
+    gap: calc(var(--tile-padding-effective) * 0.4);
   }
 
   .md-temp {
@@ -496,7 +498,9 @@
   }
 
   .layout-md.is-wide-md .md-controls {
-    gap: calc(var(--tile-padding-effective) * 0.34);
+    align-self: flex-end;
+    flex-direction: column;
+    gap: calc(var(--tile-padding-effective) * 0.28);
   }
 
   .adj-btn {

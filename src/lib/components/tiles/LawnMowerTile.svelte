@@ -41,6 +41,7 @@
   );
   const showBatteryBadge = $derived(battery !== undefined && sizePreset !== 'sm');
   const showActions = $derived(sizePreset !== 'sm');
+  const showActionLabels = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 </script>
 
 <BaseTile {name} state={stateLabel} isOn={isMowing} style="--lmc: {stateColor};">
@@ -81,19 +82,19 @@
         {#if !isDocked}
           <button class="action-btn" onclick={() => entityId && lawnMowerService.dock(entityId)} aria-label="Dock">
             <Icon name="home" />
-            <span>Dock</span>
+            {#if showActionLabels}<span>Dock</span>{/if}
           </button>
         {/if}
         {#if isPaused}
           <button class="action-btn primary" onclick={() => entityId && lawnMowerService.startMowing(entityId)} aria-label="Resume">
             <Icon name="play" />
-            <span>Resume</span>
+            {#if showActionLabels}<span>Resume</span>{/if}
           </button>
         {/if}
         {#if !isMowing && !isDocked}
           <button class="action-btn primary" onclick={() => entityId && lawnMowerService.startMowing(entityId)} aria-label="Mow">
             <Icon name="scissors" />
-            <span>Mow</span>
+            {#if showActionLabels}<span>Mow</span>{/if}
           </button>
         {/if}
       </div>

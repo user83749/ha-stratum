@@ -238,18 +238,43 @@
     return preview;
   });
 
-  // Preview canvas uses true square grid cells based on measured shell width.
-  // No fixed pixel clamps: scaling follows available space while preserving
-  // exact preset geometry (1x1, 2x1, 2x2, 2x3).
+  // Preview canvas mirrors SectionGrid sizing math so the add-tile preview
+  // reflects the same column density and span proportions as the dashboard.
+  const previewSection = $derived.by(() => {
+    const page = $dashboardStore.pages.find((p) => p.id === pageId);
+    return page?.sections.find((s) => s.id === sectionId) ?? null;
+  });
+  const previewGridGap = $derived.by(() => Number(previewSection?.grid.gap ?? 0));
+  const previewGridPad = $derived.by(() => Number(previewSection?.padding ?? 0));
+  const previewColumns = $derived.by(() => {
+    const explicitColumns = previewSection?.grid.columns;
+    if (explicitColumns && explicitColumns > 0) return explicitColumns;
+
+    const base = Number(previewSection?.grid.baseSize ?? 120);
+    if (!Number.isFinite(base) || base <= 0 || previewGridWidth <= 0) return 3;
+
+    const fit = Math.floor((previewGridWidth + previewGridGap) / (base + previewGridGap));
+    return Math.max(2, Math.min(3, fit));
+  });
   const previewInset = $derived.by(() => Math.max(1, Math.round(previewGridWidth * 0.08)));
   const previewUsableWidth = $derived.by(() => Math.max(1, Math.round(previewGridWidth - previewInset * 2)));
   const previewCellSize = $derived.by(() => {
-    return Math.max(1, Math.round(previewUsableWidth / 2));
+    const innerWidth =
+      previewUsableWidth -
+      previewGridPad * 2 -
+      (previewColumns - 1) * previewGridGap;
+    return Math.max(1, Math.round(innerWidth / Math.max(1, previewColumns)));
   });
   const previewPadY = $derived.by(() => Math.max(1, Math.round(previewCellSize * 0.22)));
 
-  const previewTileWidth = $derived((previewTile?.layout?.w ?? 1) * previewCellSize);
-  const previewTileHeight = $derived((previewTile?.layout?.h ?? 1) * previewCellSize);
+  const previewTileWidth = $derived.by(() => {
+    const w = previewTile?.layout?.w ?? 1;
+    return w * previewCellSize + Math.max(0, w - 1) * previewGridGap;
+  });
+  const previewTileHeight = $derived.by(() => {
+    const h = previewTile?.layout?.h ?? 1;
+    return h * previewCellSize + Math.max(0, h - 1) * previewGridGap;
+  });
 
   const previewShellMinHeight = $derived.by(() => {
     return previewTileHeight + previewPadY * 2;

@@ -43,6 +43,7 @@
   const showBatteryBadge = $derived(battery !== undefined && sizePreset !== 'sm');
   const showActionRow = $derived(sizePreset !== 'sm');
   const showSpeedChips = $derived((sizePreset === 'lg' || sizePreset === 'xl') && fanSpeeds.length > 0);
+  const showActionLabels = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 </script>
 
 <BaseTile {name} state={stateLabel} isOn={isCleaning} style="--vc: {stateColor};">
@@ -83,17 +84,17 @@
         {#if !isDocked}
           <button class="action-btn" onclick={() => entityId && vacuumService.returnToBase(entityId)} aria-label="Return to dock">
             <Icon name="home" />
-            <span>Dock</span>
+            {#if showActionLabels}<span>Dock</span>{/if}
           </button>
         {/if}
         <button class="action-btn" onclick={() => entityId && vacuumService.locate(entityId)} aria-label="Locate">
           <Icon name="map-pin" />
-          <span>Find</span>
+          {#if showActionLabels}<span>Find</span>{/if}
         </button>
         {#if isPaused}
           <button class="action-btn primary" onclick={() => entityId && vacuumService.start(entityId)} aria-label="Resume">
             <Icon name="play" />
-            <span>Resume</span>
+            {#if showActionLabels}<span>Resume</span>{/if}
           </button>
         {/if}
       </div>

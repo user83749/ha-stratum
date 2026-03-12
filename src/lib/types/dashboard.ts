@@ -1083,7 +1083,8 @@ export function migrateConfig(raw: unknown): DashboardConfig {
 				'snow': 'polar-ice',
 				'abyss': 'velvet-noir',
 				'nordic': 'terracotta',
-				'ember': 'deep-ocean'
+				'ember': 'deep-ocean',
+				'neo-brutalism': 'draftwork'
 			};
 			if (migration[theme.themeId]) {
 				theme.themeId = migration[theme.themeId];

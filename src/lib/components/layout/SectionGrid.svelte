@@ -831,8 +831,8 @@
 		padding: 0.2vw 0 2vw 0;
 	}
 
-	/* Portrait */
-	@media screen and (max-width: 1200px) {
+	/* Portrait — keep in sync with PageView 3→2 section breakpoint */
+	@media screen and (max-width: 1160px) {
 		.section__title {
 			font-size: 3.3vw;
 			line-height: 1.1vw;

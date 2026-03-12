@@ -69,11 +69,11 @@ export function applyTheme(cfg: ThemeConfig): void {
 
 	// ── Shape — theme default, user can override ─────────────────────────────
 	const radiusKey = cfg.radius ?? theme.radius;
-	const tileRadiusKey = cfg.tileRadius ?? radiusKey;
-	const popupRadiusKey = cfg.popupRadius ?? radiusKey;
+	const tileRadiusKey = cfg.tileRadius ?? 'md';
+	const popupRadiusKey = cfg.popupRadius ?? 'xl';
 	const radius = RADIUS_MAP[radiusKey] ?? '12px';
-	const tileRadius = TILE_RADIUS_MAP[tileRadiusKey] ?? '10%';
-	const dialogRadius = DIALOG_RADIUS_MAP[popupRadiusKey] ?? '12px';
+	const tileRadius = TILE_RADIUS_MAP[tileRadiusKey] ?? '8%'; // md
+	const dialogRadius = DIALOG_RADIUS_MAP[popupRadiusKey] ?? '16px'; // xl
 	root.style.setProperty('--radius', radius);
 	root.style.setProperty('--radius-sm', `calc(${radius} * 0.6)`);
 	root.style.setProperty('--radius-lg', `calc(${radius} * 1.4)`);

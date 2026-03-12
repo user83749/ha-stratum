@@ -59,7 +59,11 @@
     flex: 1;
     margin: calc(var(--tile-padding) * -1);
     /* YAML #card: padding: 10.9% 9.9% 8.9% 10.9% — percentage of card width */
-    padding: 10.9% 9.9% 8.9% 10.9%;
+    padding:
+      calc(10.9% * var(--tile-padding-scale, 1))
+      calc(9.9% * var(--tile-padding-scale, 1))
+      calc(8.9% * var(--tile-padding-scale, 1))
+      calc(10.9% * var(--tile-padding-scale, 1));
     position: relative;
     display: flex;
     flex-direction: column;
@@ -87,12 +91,36 @@
     align-items: start;
   }
 
+  /* 2x1 / wide tiles need a different content flow than square tiles.
+     Keep all sizing token-driven; only change grid geometry here. */
+  :global(.tile-wrapper.shape-wide) .tile-grid {
+    grid-template-areas:
+      "icon n circle"
+      "icon s circle";
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 2.05fr) minmax(0, 0.95fr);
+    grid-template-rows: min-content min-content;
+    align-content: center;
+    align-items: center;
+    column-gap: calc(1.3% * var(--tile-gap-scale, 1));
+    row-gap: calc(var(--button-card-font-size) * 0.08);
+  }
+
   /* If the name row is hidden, collapse the grid so state sits directly under the icon row. */
   .base-tile.no-name .tile-grid {
     grid-template-areas:
       "icon circle"
       "s    s";
     grid-template-rows: auto min-content;
+  }
+
+  :global(.tile-wrapper.shape-wide) .base-tile.no-name .tile-grid {
+    grid-template-areas: "icon s circle";
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 2.05fr) minmax(0, 0.95fr);
+    grid-template-rows: min-content;
+    align-content: center;
+    align-items: center;
+    column-gap: calc(1.3% * var(--tile-gap-scale, 1));
+    row-gap: 0;
   }
 
   /* icon-area: grid cell */
@@ -103,6 +131,13 @@
     aspect-ratio: 1;
     display: block;
     overflow: visible;
+  }
+
+  :global(.tile-wrapper.shape-wide) .icon-area {
+    width: 84%;
+    justify-self: start;
+    align-self: center;
+    max-width: 84%;
   }
 
   /* icon-inner: centralised icon sizing — every tile's icon lands here */
@@ -124,6 +159,13 @@
     opacity: 1;
   }
 
+  :global(.tile-wrapper.shape-wide) .circle-area {
+    width: 82%;
+    margin: 0;
+    align-self: center;
+    justify-self: end;
+  }
+
   /* ── Name / state text ────────────────────────────────────────────────── */
   .name-text {
     grid-area: n;
@@ -136,6 +178,20 @@
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.21;
+  }
+
+  :global(.tile-wrapper.shape-wide) .name-text,
+  :global(.tile-wrapper.shape-wide) .state-text {
+    align-self: center;
+    min-width: 0;
+  }
+
+  :global(.tile-wrapper.shape-wide) .name-text {
+    line-height: 1.16;
+  }
+
+  :global(.tile-wrapper.shape-wide) .state-text {
+    line-height: 1.12;
   }
 
   .state-text {
