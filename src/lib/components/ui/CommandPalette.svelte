@@ -55,6 +55,8 @@
 	}
 
 	const results = $derived.by(() => {
+		if (!open) return [] as ResultItem[];
+
 		const q = query.toLowerCase().trim();
 		const items: ResultItem[] = [];
 

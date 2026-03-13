@@ -6,7 +6,7 @@
 	import { isUnavailable, isActive } from '$lib/ha/entities';
 	import { entities } from '$lib/ha/websocket';
 	import { handleAction, lockService } from '$lib/ha/services';
-	import { haptic, hapticDouble } from '$lib/utils/haptics';
+	import { haptic } from '$lib/utils/haptics';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore } from '$lib/stores/ui';
 	import Icon from '$lib/components/ui/Icon.svelte';
@@ -389,7 +389,7 @@
 		spawnRipple(e);
 
 		if (!hasDblTap) {
-			haptic('light');
+			haptic('medium');
 			// No double-tap configured — fire tap immediately
 			fireAction('tap');
 			return;
@@ -398,18 +398,18 @@
 		// Manual double-tap handling (pointer-based) so mobile/touch does not
 		// depend on native dblclick synthesis.
 		if (tapTimer !== null) {
-			hapticDouble();
+			haptic('success');
 			clearTapTimer();
 			clickCount = 0;
 			fireAction('double_tap');
 			return;
 		}
 
-		haptic('light');
 		clickCount = 1;
 		tapTimer = setTimeout(() => {
 			tapTimer = null;
 			clickCount = 0;
+			haptic('medium');
 			fireAction('tap');
 		}, DBL_TAP_WINDOW_MS);
 	}

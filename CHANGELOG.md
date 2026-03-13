@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.48] - 2026-03-12
+
+### Changed
+- Extensive updates to `ClimateTile`, `MediaHeroTile`, `MediaPlayerTile`, and `TimerTile` for better rendering and stability.
+- Refined `MoreInfoShell` and `ThemeSettings` components.
+- Improved `CommandPalette` functionality and UI.
+- Enhanced optimistic update handling and websocket stability in core HA logic.
+- Updated `dashboard` store logic for more robust synchronization.
+
 ## [1.0.47] - 2026-03-12
 
 ### Changed

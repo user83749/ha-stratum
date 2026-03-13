@@ -7,6 +7,7 @@
   import Marquee from '$lib/components/ui/Marquee.svelte';
   import { isCustomIcon } from '$lib/icons/customIcons';
   import { mediaService } from '$lib/ha/services';
+  import { clockNow } from '$lib/stores/clock';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -46,15 +47,11 @@
   const mediaPosition = $derived((attrs.media_position as number) ?? 0);
   const positionUpdatedAt = $derived((attrs.media_position_updated_at as string) ?? null);
 
-  let livePosition = $state(0);
-  $effect(() => {
-    livePosition = mediaPosition;
-    if (!isPlaying || !positionUpdatedAt || !mediaDuration) return;
+  const livePosition = $derived.by(() => {
+    if (!isPlaying || !positionUpdatedAt || !mediaDuration) return mediaPosition;
     const updatedMs = new Date(positionUpdatedAt).getTime();
-    const tick = () => { livePosition = Math.min(mediaPosition + (Date.now() - updatedMs) / 1000, mediaDuration); };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+    if (!Number.isFinite(updatedMs)) return mediaPosition;
+    return Math.min(mediaPosition + ($clockNow - updatedMs) / 1000, mediaDuration);
   });
   const progressPct = $derived(mediaDuration > 0 ? Math.min((livePosition / mediaDuration) * 100, 100) : 0);
   const showProgress = $derived(mediaDuration > 0 && isOn);

@@ -6,6 +6,8 @@
   import { clamp } from '$lib/utils/format';
   import { climateService, type HvacMode } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
+  import { haptic } from '$lib/utils/haptics';
+  import { optimisticClimateTemp } from '$lib/ha/optimistic';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -92,8 +94,9 @@
   const tempUnit = '°';
 
   function adjustTemp(delta: number): void {
-    if (targetTemp === undefined) return;
+    if (targetTemp === undefined || !entityId) return;
     const newVal = clamp(targetTemp + delta, minTemp, maxTemp);
+    optimisticClimateTemp(entityId, newVal);
     climateService.setTemperature(entityId, newVal);
   }
 
@@ -153,43 +156,83 @@
 
   {:else if sizePreset === 'md'}
     <!-- 2x1 Horizontal Row -->
-    <div class="layout-md" class:is-wide-md={isWideMd} class:is-tall-md={isTallMd}>
-      <!-- Primary tile action is handled by TileWrapper interaction settings -->
-      <div class="md-left">
-        <div class="md-icon" style="color: {modeColor}">
-          {#if iconOverride && overrideIsCustom}
-            <Icon name={mainIcon} entity={entity} />
-          {:else}
-            <Icon name={mainIcon} />
+    {#if isWideMd}
+      <div class="layout-md layout-md--wide2">
+        <div class="md-topline">
+          <div class="md-left">
+            <div class="md-icon" style="color: {modeColor}">
+              {#if iconOverride && overrideIsCustom}
+                <Icon name={mainIcon} entity={entity} />
+              {:else}
+                <Icon name={mainIcon} />
+              {/if}
+            </div>
+            <div class="md-status">
+              <div class="device-name" style="color: {nameTextColor}">{name}</div>
+              <div class="status-val" style="color: {stateTextColor}">{modeLabel}</div>
+            </div>
+          </div>
+
+          {#if currentTemp !== undefined}
+            <div class="md-temp md-temp--wide">
+              <span class="val">{Math.round(currentTemp)}{tempUnit}</span>
+              {#if showMdSetpoint}
+                <span class="set-inline" style="color: {setpointTextColor}">SET {Math.round(targetTemp!)}°</span>
+              {/if}
+            </div>
           {/if}
         </div>
-        <div class="md-status">
-          <div class="device-name" style="color: {nameTextColor}">{name}</div>
-          <div class="status-val" style="color: {stateTextColor}">{modeLabel}</div>
-        </div>
-      </div>
 
-      <div class="md-right">
-        {#if currentTemp !== undefined}
-          <div class="md-temp">
-            <span class="val">{Math.round(currentTemp)}{tempUnit}</span>
-            {#if showMdSetpoint}
-              <span class="target" style="color: {setpointTextColor}">{Math.round(targetTemp!)}°</span>
-            {/if}
-          </div>
-        {/if}
         {#if showMdControls}
-          <div class="md-controls">
-            <button class="adj-btn" onclick={() => adjustTemp(-1)} aria-label="Lower temp">
+          <div class="md-controls md-controls--wide2">
+            <button class="adj-btn adj-btn--wide2" onclick={() => { haptic('light'); adjustTemp(-1); }} aria-label="Lower temp">
               <Icon name="minus" />
             </button>
-            <button class="adj-btn" onclick={() => adjustTemp(1)} aria-label="Raise temp">
+            <button class="adj-btn adj-btn--wide2" onclick={() => { haptic('light'); adjustTemp(1); }} aria-label="Raise temp">
               <Icon name="plus" />
             </button>
           </div>
         {/if}
       </div>
-    </div>
+    {:else}
+      <div class="layout-md" class:is-tall-md={isTallMd}>
+        <!-- Primary tile action is handled by TileWrapper interaction settings -->
+        <div class="md-left">
+          <div class="md-icon" style="color: {modeColor}">
+            {#if iconOverride && overrideIsCustom}
+              <Icon name={mainIcon} entity={entity} />
+            {:else}
+              <Icon name={mainIcon} />
+            {/if}
+          </div>
+          <div class="md-status">
+            <div class="device-name" style="color: {nameTextColor}">{name}</div>
+            <div class="status-val" style="color: {stateTextColor}">{modeLabel}</div>
+          </div>
+        </div>
+
+        <div class="md-right">
+          {#if currentTemp !== undefined}
+            <div class="md-temp">
+              <span class="val">{Math.round(currentTemp)}{tempUnit}</span>
+              {#if showMdSetpoint}
+                <span class="target" style="color: {setpointTextColor}">{Math.round(targetTemp!)}°</span>
+              {/if}
+            </div>
+          {/if}
+          {#if showMdControls}
+            <div class="md-controls">
+              <button class="adj-btn" onclick={() => { haptic('light'); adjustTemp(-1); }} aria-label="Lower temp">
+                <Icon name="minus" />
+              </button>
+              <button class="adj-btn" onclick={() => { haptic('light'); adjustTemp(1); }} aria-label="Raise temp">
+                <Icon name="plus" />
+              </button>
+            </div>
+          {/if}
+        </div>
+      </div>
+    {/if}
 
   {:else}
     <!-- lg / xl Dashboard View -->
@@ -216,7 +259,7 @@
 	              <span>{humidity}%</span>
 	            </div>
 	          {/if}
-	          <button class="power-toggle" class:active={!isOff} onclick={togglePower}>
+	          <button class="power-toggle" class:active={!isOff} onclick={() => { haptic('light'); togglePower(); }}>
 	            <Icon name="power" size={16} strokeWidth={2.5} />
 	          </button>
 	        </div>
@@ -228,14 +271,14 @@
             <div class="current-hero">{Math.round(currentTemp)}<span class="unit">{tempUnit}</span></div>
           {/if}
           <div class="target-control">
-            <button class="temp-btn" disabled={isOff} onclick={() => adjustTemp(-1)}>
+            <button class="temp-btn" disabled={isOff} onclick={() => { haptic('light'); adjustTemp(-1); }}>
               <Icon name="minus" size={24} />
             </button>
             <div class="target-val">
               <span class="lbl">TARGET</span>
               <span class="num">{targetTemp !== undefined ? Math.round(targetTemp) : '--'}°</span>
             </div>
-            <button class="temp-btn" disabled={isOff} onclick={() => adjustTemp(1)}>
+            <button class="temp-btn" disabled={isOff} onclick={() => { haptic('light'); adjustTemp(1); }}>
               <Icon name="plus" size={24} />
             </button>
           </div>
@@ -248,7 +291,7 @@
             <button 
               class="mode-btn" 
               class:active={hvacMode === mode} 
-              onclick={() => setMode(mode)}
+              onclick={() => { haptic('light'); setMode(mode); }}
             >
               <Icon name={MODE_LABELS[mode]?.toLowerCase().includes('heat') ? 'flame' : MODE_LABELS[mode]?.toLowerCase().includes('cool') ? 'snowflake' : 'thermometer'} size={14} />
               <span>{MODE_LABELS[mode] ?? mode}</span>
@@ -378,6 +421,20 @@
     gap: var(--tile-gap);
   }
 
+  .layout-md--wide2 {
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: calc(var(--tile-padding-effective) * 0.38);
+  }
+
+  .md-topline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    min-width: 0;
+    gap: calc(var(--tile-padding-effective) * 0.75);
+  }
+
   .md-left {
     background: none;
     border: none;
@@ -429,6 +486,16 @@
     text-overflow: ellipsis;
   }
 
+  .status-target {
+    font-size: calc(var(--secondary-label-size) * 0.94);
+    font-weight: 500;
+    line-height: 1.05;
+    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .device-name {
     font-size: var(--button-card-font-size);
     font-weight: 500;
@@ -449,9 +516,9 @@
   }
 
   .layout-md.is-wide-md .md-right {
-    flex-direction: column;
-    align-items: flex-end;
-    gap: calc(var(--tile-padding-effective) * 0.4);
+    flex-direction: row;
+    align-items: center;
+    gap: calc(var(--tile-padding-effective) * 0.6);
   }
 
   .md-temp {
@@ -460,6 +527,12 @@
     align-items: flex-end;
     justify-content: center;
     min-width: 0;
+  }
+
+  .md-temp--wide {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: calc(var(--tile-padding-effective) * 0.42);
   }
 
   .md-temp .val {
@@ -491,6 +564,14 @@
     white-space: nowrap;
   }
 
+  .md-temp--wide .set-inline {
+    font-size: calc(var(--secondary-label-size) * 0.92);
+    font-weight: 500;
+    line-height: 1.05;
+    opacity: 0.9;
+    white-space: nowrap;
+  }
+
   .md-controls {
     display: flex;
     flex-direction: row;
@@ -498,9 +579,15 @@
   }
 
   .layout-md.is-wide-md .md-controls {
-    align-self: flex-end;
+    align-self: center;
     flex-direction: column;
     gap: calc(var(--tile-padding-effective) * 0.28);
+  }
+
+  .md-controls--wide2 {
+    width: 100%;
+    justify-content: flex-end;
+    gap: calc(var(--tile-padding-effective) * 0.4);
   }
 
   .adj-btn {
@@ -517,6 +604,11 @@
 
   .layout-md.is-wide-md .adj-btn {
     width: calc(var(--control-chip-size-compact) * 0.88);
+    height: calc(var(--control-chip-size-compact) * 0.88);
+  }
+
+  .adj-btn--wide2 {
+    width: calc(var(--control-chip-size-compact) * 1.36);
     height: calc(var(--control-chip-size-compact) * 0.88);
   }
 
@@ -572,6 +664,11 @@
 
   .adj-btn:hover {
     background: color-mix(in srgb, var(--fg) 10%, transparent);
+    color: var(--fg);
+  }
+
+  .adj-btn:active {
+    background: color-mix(in srgb, var(--accent) 24%, transparent);
     color: var(--fg);
   }
 

@@ -331,20 +331,20 @@
 		requestClose();
 	}
 
-	function handleBodyInteraction(e: Event) {
+	function handleBodyInteraction(e: PointerEvent) {
 		const t = e.target as Element | null;
 		if (!t) return;
 		const interactive = t.closest('button, a, [role="button"]');
 		if (!interactive) return;
 		if (interactive instanceof HTMLButtonElement && interactive.disabled) return;
-		haptic('selection');
+		haptic('medium');
 	}
 
 	$effect(() => {
 		const el = bodyEl;
 		if (!el) return;
-		el.addEventListener('click', handleBodyInteraction);
-		return () => el.removeEventListener('click', handleBodyInteraction);
+		el.addEventListener('pointerdown', handleBodyInteraction);
+		return () => el.removeEventListener('pointerdown', handleBodyInteraction);
 	});
 
 	function handlePanelKeydown(e: KeyboardEvent) {

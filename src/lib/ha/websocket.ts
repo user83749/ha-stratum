@@ -7,7 +7,7 @@ import {
 	type Auth
 } from 'home-assistant-js-websocket';
 import { writable, derived, get } from 'svelte/store';
-import { clearPatch, syncBaseEntities } from './optimistic';
+import { clearPatchesForSnapshot, syncBaseEntities } from './optimistic';
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -22,12 +22,10 @@ function attachListeners(conn: Connection) {
 	connection.set(conn);
 	connectionStatus.set('connected');
 	unsubscribeEntities = subscribeEntities(conn, (state) => {
-		// Clear optimistic patches for every entity that just arrived from HA,
-		// so real confirmed state replaces the optimistic value immediately
-		// rather than waiting for the 3-second expiry timeout.
-		for (const entityId of Object.keys(state)) {
-			clearPatch(entityId);
-		}
+		// Prune optimistic patches in one pass for entities that arrived from HA,
+		// so confirmed state replaces optimistic values immediately without
+		// per-entity store update churn.
+		clearPatchesForSnapshot(state);
 		entities.set(state);
 		syncBaseEntities(state);
 	});

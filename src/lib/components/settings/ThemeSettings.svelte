@@ -10,14 +10,8 @@
 	const activeId = $derived(cfg.themeId ?? 'onyx');
 
 	function applyTheme(theme: ThemeDefinition) {
-		// Set the theme ID — apply.ts resolves the full definition from this
-		dashboardStore.setTheme({ themeId: theme.id });
-		// Clear per-page wallpapers so the actual theme background is visible.
-		// Previous builds stamped theme backgrounds into pages, which overrides
-		// the shell-level theme wallpaper and makes theme changes appear ignored.
-		for (const page of $dashboardStore.pages) {
-			dashboardStore.updatePage(page.id, { background: { type: 'none' } });
-		}
+		// Set theme + clear page wallpapers in a single store mutation.
+		dashboardStore.applyThemePreset(theme.id);
 	}
 
 	const RADIUS_OPTIONS: { val: RadiusScale; label: string; px: string }[] = [

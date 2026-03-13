@@ -36,6 +36,7 @@
   import Marquee from '$lib/components/ui/Marquee.svelte';
   import { optimisticEntities } from '$lib/ha/optimistic';
   import { isCustomIcon } from '$lib/icons/customIcons';
+  import { clockNow } from '$lib/stores/clock';
 
   export interface PlayerMapEntry {
     state: string;           // select/sensor state to match, e.g. "CoreELEC"
@@ -199,15 +200,11 @@
   const mediaPosition     = $derived((sensorAttrs.media_position as number) ?? (activeAttrs.media_position as number) ?? 0);
   const positionUpdatedAt  = $derived((sensorAttrs.media_position_updated_at as string) ?? (activeAttrs.media_position_updated_at as string) ?? null);
 
-  let livePosition = $state(0);
-  $effect(() => {
-    livePosition = mediaPosition;
-    if (!isPlaying || !positionUpdatedAt || !mediaDuration) return;
+  const livePosition = $derived.by(() => {
+    if (!isPlaying || !positionUpdatedAt || !mediaDuration) return mediaPosition;
     const updatedMs = new Date(positionUpdatedAt).getTime();
-    const tick = () => { livePosition = Math.min(mediaPosition + (Date.now() - updatedMs) / 1000, mediaDuration); };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+    if (!Number.isFinite(updatedMs)) return mediaPosition;
+    return Math.min(mediaPosition + ($clockNow - updatedMs) / 1000, mediaDuration);
   });
 
   const progressPct  = $derived(mediaDuration > 0 ? Math.min((livePosition / mediaDuration) * 100, 100) : 0);

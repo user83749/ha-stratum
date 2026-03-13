@@ -1,4 +1,4 @@
-import { writable, get, derived } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
 import { generateId } from '$lib/utils/uuid';
 import { browser } from '$app/environment';
 import { base } from '$app/paths';
@@ -71,10 +71,12 @@ function createDashboardStore() {
 
 	function mutate(fn: (config: DashboardConfig) => void) {
 		update((config) => {
-			const next = structuredClone(config);
-			fn(next);
-			scheduleSave(next);
-			return next;
+			// Avoid full deep-clone on every mutation; Svelte writable stores
+			// notify subscribers for object updates even when the same reference
+			// is returned, so we can safely mutate in place here.
+			fn(config);
+			scheduleSave(config);
+			return config;
 		});
 	}
 
@@ -114,6 +116,15 @@ function createDashboardStore() {
 
 		setTheme(patch: Partial<ThemeConfig>) {
 			mutate((c) => Object.assign(c.theme, patch));
+		},
+
+		applyThemePreset(themeId: string) {
+			mutate((c) => {
+				c.theme.themeId = themeId;
+				for (const page of c.pages) {
+					page.background = { type: 'none' };
+				}
+			});
 		},
 
 		setNav(patch: Partial<NavConfig>) {

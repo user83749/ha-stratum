@@ -42,13 +42,10 @@
 	let tempDebounce: ReturnType<typeof setTimeout> | null = null;
 	function onTempInput(next: number) {
 		localTemp = next;
+		applyPatch(entityId, { attributes: { temperature: next } });
 		if (tempDebounce) clearTimeout(tempDebounce);
 		tempDebounce = setTimeout(() => {
-			if (optimisticPreviewEnabled) {
-				applyPatch(entityId, { attributes: { temperature: next } });
-			} else {
-				climateService.setTemperature(entityId, next).catch(() => {});
-			}
+			climateService.setTemperature(entityId, next).catch(() => {});
 		}, 150);
 	}
 
@@ -56,15 +53,12 @@
 	function onRangeInput(kind: 'low' | 'high', next: number) {
 		if (kind === 'low') localTempLow = next;
 		else localTempHigh = next;
+		const low = kind === 'low' ? next : localTempLow;
+		const high = kind === 'high' ? next : localTempHigh;
+		applyPatch(entityId, { attributes: { target_temp_low: low, target_temp_high: high } });
 		if (rangeDebounce) clearTimeout(rangeDebounce);
 		rangeDebounce = setTimeout(() => {
-			const low = kind === 'low' ? next : localTempLow;
-			const high = kind === 'high' ? next : localTempHigh;
-			if (optimisticPreviewEnabled) {
-				applyPatch(entityId, { attributes: { target_temp_low: low, target_temp_high: high } });
-			} else {
-				climateService.setTargetTempRange(entityId, low, high).catch(() => {});
-			}
+			climateService.setTargetTempRange(entityId, low, high).catch(() => {});
 		}, 150);
 	}
 

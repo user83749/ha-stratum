@@ -45,17 +45,27 @@ export function applyPatch(entityId: string, patch: StatePatch): void {
 	);
 }
 
-/** Clear a patch — call this when the WS update arrives with confirmed state. */
-export function clearPatch(entityId: string): void {
-	const timer = timers.get(entityId);
-	if (timer) {
-		clearTimeout(timer);
-		timers.delete(entityId);
-	}
+/**
+ * Clear optimistic patches for entities present in an incoming HA snapshot.
+ * This performs at most one store update regardless of snapshot size.
+ */
+export function clearPatchesForSnapshot(state: HassEntities): void {
 	patches.update((p) => {
-		const next = { ...p };
-		delete next[entityId];
-		return next;
+		if (Object.keys(p).length === 0) return p;
+
+		let next: Record<string, StatePatch> | null = null;
+		for (const entityId of Object.keys(p)) {
+			if (!(entityId in state)) continue;
+			const timer = timers.get(entityId);
+			if (timer) {
+				clearTimeout(timer);
+				timers.delete(entityId);
+			}
+			if (!next) next = { ...p };
+			delete next[entityId];
+		}
+
+		return next ?? p;
 	});
 }
 

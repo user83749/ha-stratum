@@ -6,6 +6,7 @@
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
   import { timerService } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
+  import { clockNow } from '$lib/stores/clock';
 
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
@@ -27,13 +28,6 @@
   const duration = $derived((attrs.duration as string | undefined) ?? '0:00:00');
   const remaining = $derived((attrs.remaining as string | undefined) ?? duration);
   const finishesAt = $derived(attrs.finishes_at as string | undefined);
-
-  let now = $state(Date.now());
-  $effect(() => {
-    if (!isActive) return;
-    const ticker = setInterval(() => { now = Date.now(); }, 1000);
-    return () => clearInterval(ticker);
-  });
 
   // Supports "SS", "MM:SS", "HH:MM:SS"
   function parseSeconds(s: string): number {
@@ -67,7 +61,7 @@
     if (isActive && finishesAt) {
       const ms = new Date(finishesAt).getTime();
       if (!Number.isFinite(ms)) return parseSeconds(remaining);
-      return Math.max(0, Math.round((ms - now) / 1000));
+      return Math.max(0, Math.round((ms - $clockNow) / 1000));
     }
     return parseSeconds(remaining);
   });
