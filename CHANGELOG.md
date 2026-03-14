@@ -5,26 +5,33 @@
 ### Changed
 - Refined websocket connection logic and error handling in `websocket.ts`.
 - Improved server-side relay stabilization in `server.js`.
+- Optimized the main layout's reactive resizing logic.
 
 ## [1.0.50] - 2026-03-14
 
 ### Added
-- New `SectionHorizontalChipRow` component for improved section layout flexibility.
+- New **Layout Mode** for sections, supporting both `grid` and the new `horizontal_chip_row` layouts.
+- New **Pin Mode** for sections, allowing them to be pinned to the `top` or `bottom` of the page.
+- New `SectionHorizontalChipRow` component for fluid, scrollable chip-style section layouts.
 
 ### Changed
-- Extensive refactor of layout editing components: `SectionEditor`, `TileEditor`, and `TilePicker`.
-- Improved `SectionGrid` and `PageView` responsiveness and layout logic.
+- Extensive refactor and expansion of editing components: `SectionEditor`, `TileEditor`, and `TilePicker` to support new section properties.
+- Improved `SectionGrid` and `PageView` responsiveness to handle pinned sections and dynamic layout modes.
 - Enhanced Home Assistant websocket stability and connection resilience.
 - Refined `dashboard.ts` store and type definitions for better state synchronization.
 - General UI refinements on the main dashboard page.
 
 ## [1.0.49] - 2026-03-14
 
+### Added
+- New **Authentication Configuration** API endpoints for managed environment setup.
+- Support for `camera` entity streaming in the new `CameraMoreInfo` dialog.
+
 ### Changed
 - Extensive updates to `CameraMoreInfo`, `MoreInfoDialog`, and `MoreInfoShell` dialogs.
 - Improved `CameraTile` and `TileWrapper` rendering logic for better stability.
 - Enhancements to `TileEditor`, `NavSettings`, `ProfilesSettings`, and `NotificationsPanel` UI handling.
-- Optimized websocket stability, `dashboard.ts` store logic, and added new authentication config endpoints.
+- Optimized websocket stability and `dashboard.ts` store logic.
 - Server-side component fixes in `server.js` and layout routines.
 
 ## [1.0.48] - 2026-03-12
