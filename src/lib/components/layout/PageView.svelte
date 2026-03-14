@@ -4,6 +4,7 @@
 	import { isEditing, editMode } from '$lib/stores/editMode';
 	import { clockNow } from '$lib/stores/clock';
 	import SectionGrid from './SectionGrid.svelte';
+	import SectionHorizontalChipRow from './SectionHorizontalChipRow.svelte';
 	import IntegratedNavRail from './IntegratedNavRail.svelte';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import type { Page, PageTransitionType } from '$lib/types/dashboard';
@@ -44,9 +45,19 @@
 		pages.find((p) => p.id === currentPageId) ?? pages[0] ?? null
 	);
 
-	const visibleSections = $derived(
-		activePage ? activePage.sections.filter((section) => section.visibility[breakpoint]) : []
-	);
+	function effectivePinMode(section: Page['sections'][number]): 'top' | 'none' | 'bottom' {
+		if (section.layoutMode !== 'horizontal_chip_row') return 'none';
+		return section.pinMode === 'top' || section.pinMode === 'bottom' ? section.pinMode : 'none';
+	}
+
+	const visibleSections = $derived.by(() => {
+		if (!activePage) return [];
+		const visible = activePage.sections.filter((section) => section.visibility[breakpoint]);
+		const top = visible.filter((section) => effectivePinMode(section) === 'top');
+		const middle = visible.filter((section) => effectivePinMode(section) === 'none');
+		const bottom = visible.filter((section) => effectivePinMode(section) === 'bottom');
+		return [...top, ...middle, ...bottom];
+	});
 	const currentPageTransition = $derived.by(() => ({
 		type: activePage?.transition ?? cfg.display.pageTransition.type,
 		duration: Math.max(0, cfg.display.pageTransition.duration)
@@ -136,13 +147,26 @@
 	// ── Section drag-to-reorder ────────────────────────────────────────────────
 
 	let sectionDragId   = $state<string | null>(null); // section being dragged
-	let sectionDropIdx  = $state<number>(-1);           // where to insert
+	let sectionDragPin  = $state<'top' | 'none' | 'bottom' | null>(null);
+	let sectionDropIdx  = $state<number>(-1);           // nearest visible-section index for UI highlight
 	let sectionDragGrid = $state<HTMLElement | null>(null);
+
+	function canParticipateInSectionDrag(
+		dragged: Page['sections'][number] | undefined,
+		candidate: Page['sections'][number] | undefined
+	): boolean {
+		if (!dragged || !candidate) return false;
+		// Horizontal Chip row position is controlled only by Pin Position, not drag.
+		if (dragged.layoutMode !== 'grid' || candidate.layoutMode !== 'grid') return false;
+		return effectivePinMode(candidate) === sectionDragPin;
+	}
 
 	function startSectionDrag(ev: PointerEvent, sectionId: string) {
 		if (!editing) return;
 		ev.stopPropagation();
 		(ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId);
+		const dragged = visibleSections.find((s) => s.id === sectionId);
+		sectionDragPin = dragged ? effectivePinMode(dragged) : 'none';
 		sectionDragId  = sectionId;
 		sectionDropIdx = visibleSections.findIndex(s => s.id === sectionId);
 	}
@@ -154,7 +178,10 @@
 		const children = Array.from(gridEl.children) as HTMLElement[];
 		let nearest = sectionDropIdx;
 		let minDist = Infinity;
+		const dragged = visibleSections.find((s) => s.id === sectionDragId);
 		children.forEach((el, i) => {
+			const section = visibleSections[i];
+			if (!canParticipateInSectionDrag(dragged, section)) return;
 			const rect = el.getBoundingClientRect();
 			const midX = rect.left + rect.width  / 2;
 			const midY = rect.top  + rect.height / 2;
@@ -165,27 +192,52 @@
 	}
 
 	function endSectionDrag() {
-		if (!sectionDragId || !activePage) { sectionDragId = null; return; }
-		const ids = visibleSections.map(s => s.id);
-		const fromIdx = ids.indexOf(sectionDragId);
-		if (fromIdx !== -1 && sectionDropIdx !== -1 && fromIdx !== sectionDropIdx) {
-			ids.splice(fromIdx, 1);
-			ids.splice(sectionDropIdx > fromIdx ? sectionDropIdx - 1 : sectionDropIdx, 0, sectionDragId);
-			// Merge with invisible sections (preserved at original positions)
-			const allIds = activePage.sections.map(s => s.id);
-			const visibleSet = new Set(ids);
+		if (!sectionDragId || !activePage) {
+			sectionDragId = null;
+			sectionDragPin = null;
+			sectionDropIdx = -1;
+			return;
+		}
+		const dragged = visibleSections.find((s) => s.id === sectionDragId);
+		if (!dragged || dragged.layoutMode !== 'grid') {
+			sectionDragId  = null;
+			sectionDragPin = null;
+			sectionDropIdx = -1;
+			return;
+		}
+
+		const target = sectionDropIdx >= 0 ? visibleSections[sectionDropIdx] : undefined;
+		const draggableGroup = visibleSections
+			.filter((s) => canParticipateInSectionDrag(dragged, s))
+			.map((s) => s.id);
+		const fromIdx = draggableGroup.indexOf(sectionDragId);
+		const toIdx = target ? draggableGroup.indexOf(target.id) : -1;
+		if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx) {
+			const reorderedGroup = [...draggableGroup];
+			reorderedGroup.splice(fromIdx, 1);
+			reorderedGroup.splice(toIdx > fromIdx ? toIdx - 1 : toIdx, 0, sectionDragId);
+
+			// Rebuild visible order: replace only draggable grid slots.
+			const visibleIds = visibleSections.map((s) => s.id);
+			let groupCursor = 0;
+			const reorderedVisible = visibleIds.map((id) =>
+				draggableGroup.includes(id) ? reorderedGroup[groupCursor++] : id
+			);
+
+			// Merge with invisible sections (preserved at original positions).
+			const allIds = activePage.sections.map((s) => s.id);
+			const visibleSet = new Set(reorderedVisible);
 			const merged: string[] = [];
 			let visIdx = 0;
 			for (const id of allIds) {
-				if (visibleSet.has(id)) {
-					merged.push(ids[visIdx++]);
-				} else {
-					merged.push(id);
-				}
+				if (visibleSet.has(id)) merged.push(reorderedVisible[visIdx++]);
+				else merged.push(id);
 			}
 			dashboardStore.reorderSections(activePage.id, merged);
 		}
+
 		sectionDragId  = null;
+		sectionDragPin = null;
 		sectionDropIdx = -1;
 	}
 
@@ -287,20 +339,34 @@
 												class="section-drag-item"
 												class:section-drag-item--dragging={section.id === sectionDragId}
 												class:section-drag-item--drop-target={sectionDragId !== null && si === sectionDropIdx && section.id !== sectionDragId}
+												class:section-drag-item--fullrow={section.layoutMode === 'horizontal_chip_row'}
 											>
-												<SectionGrid
-													{section}
-													pageId={activePage.id}
-													onEditSection={onEditSection
-														? () => onEditSection!(activePage.id, section.id)
-														: undefined}
-													onAddTile={onAddTile
-														? (activeColumns) => onAddTile!(activePage.id, section.id, activeColumns)
-														: undefined}
-													onSectionDragStart={editing
-														? (ev) => startSectionDrag(ev, section.id)
-														: undefined}
-												/>
+												{#if section.layoutMode === 'horizontal_chip_row'}
+													<SectionHorizontalChipRow
+														{section}
+														pageId={activePage.id}
+														onEditSection={onEditSection
+															? () => onEditSection!(activePage.id, section.id)
+															: undefined}
+														onAddTile={onAddTile
+															? () => onAddTile!(activePage.id, section.id, 1)
+															: undefined}
+													/>
+												{:else}
+													<SectionGrid
+														{section}
+														pageId={activePage.id}
+														onEditSection={onEditSection
+															? () => onEditSection!(activePage.id, section.id)
+															: undefined}
+														onAddTile={onAddTile
+															? (activeColumns) => onAddTile!(activePage.id, section.id, activeColumns)
+															: undefined}
+														onSectionDragStart={editing
+															? (ev) => startSectionDrag(ev, section.id)
+															: undefined}
+													/>
+												{/if}
 											</div>
 										{/each}
 									</div>
@@ -360,20 +426,34 @@
 										class="section-drag-item"
 										class:section-drag-item--dragging={section.id === sectionDragId}
 										class:section-drag-item--drop-target={sectionDragId !== null && si === sectionDropIdx && section.id !== sectionDragId}
+										class:section-drag-item--fullrow={section.layoutMode === 'horizontal_chip_row'}
 									>
-										<SectionGrid
-											{section}
-											pageId={activePage.id}
-											onEditSection={onEditSection
-												? () => onEditSection!(activePage.id, section.id)
-												: undefined}
-											onAddTile={onAddTile
-												? (activeColumns) => onAddTile!(activePage.id, section.id, activeColumns)
-												: undefined}
-											onSectionDragStart={editing
-												? (ev) => startSectionDrag(ev, section.id)
-												: undefined}
-										/>
+										{#if section.layoutMode === 'horizontal_chip_row'}
+											<SectionHorizontalChipRow
+												{section}
+												pageId={activePage.id}
+												onEditSection={onEditSection
+													? () => onEditSection!(activePage.id, section.id)
+													: undefined}
+												onAddTile={onAddTile
+													? () => onAddTile!(activePage.id, section.id, 1)
+													: undefined}
+											/>
+										{:else}
+											<SectionGrid
+												{section}
+												pageId={activePage.id}
+												onEditSection={onEditSection
+													? () => onEditSection!(activePage.id, section.id)
+													: undefined}
+												onAddTile={onAddTile
+													? (activeColumns) => onAddTile!(activePage.id, section.id, activeColumns)
+													: undefined}
+												onSectionDragStart={editing
+													? (ev) => startSectionDrag(ev, section.id)
+													: undefined}
+											/>
+										{/if}
 									</div>
 								{/each}
 							</div>
@@ -795,6 +875,10 @@
 	/* ── Section drag preview ─────────────────────────────────────────────── */
 	.section-drag-item {
 		transition: opacity 0.15s ease, transform 0.15s ease;
+	}
+
+	.section-drag-item--fullrow {
+		grid-column: 1 / -1;
 	}
 
 	.section-drag-item--dragging {

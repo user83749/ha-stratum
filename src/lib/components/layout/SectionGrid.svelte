@@ -608,7 +608,13 @@
 				</span>
 			{/if}
 			{#if section.title}
-				<h2 class="section__title">{section.title}</h2>
+				<h2
+					class="section__title"
+					class:section__title--custom={!!section.titleSize}
+					style={section.titleSize ? `--section-title-size:${section.titleSize}px` : undefined}
+				>
+					{section.title}
+				</h2>
 			{/if}
 
 			{#if editing}
@@ -831,9 +837,15 @@
 		padding: 0.2vw 0 2vw 0;
 	}
 
+	.section__title--custom {
+		font-size: var(--section-title-size);
+		line-height: 1.15;
+		padding: 0;
+	}
+
 	/* Portrait — keep in sync with PageView 3→2 section breakpoint */
 	@media screen and (max-width: 1160px) {
-		.section__title {
+		.section__title:not(.section__title--custom) {
 			font-size: 3.3vw;
 			line-height: 1.1vw;
 		}
@@ -841,7 +853,7 @@
 
 	/* Phone */
 	@media screen and (max-width: 800px) {
-		.section__title {
+		.section__title:not(.section__title--custom) {
 			font-size: 5.5vw;
 			line-height: 6vw;
 			margin: 1.2vw 0 0 0;

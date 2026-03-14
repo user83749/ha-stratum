@@ -2,7 +2,7 @@
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { CUSTOM_ICON_NAMES } from '$lib/icons/customIcons';
-	import type { Section } from '$lib/types/dashboard';
+	import type { Section, SectionLayoutMode, SectionPinMode } from '$lib/types/dashboard';
 
 	interface Props {
 		open: boolean;
@@ -20,9 +20,10 @@
 	let icon        = $state('');
 	let builtinOpen = $state(false);
 	let gap         = $state(8);
-	let columns     = $state(0);
 	let collapsible = $state(false);
 	let collapsed   = $state(false);
+	let layoutMode  = $state<SectionLayoutMode>('grid');
+	let pinMode     = $state<SectionPinMode>('none');
 
 	$effect(() => {
 		if (!section) return;
@@ -30,9 +31,10 @@
 		titleSize   = section.titleSize ?? 19;
 		icon        = section.icon      ?? '';
 		gap         = section.grid?.gap       ?? 8;
-		columns     = section.grid?.columns   ?? 0;
 		collapsible = section.collapsible     ?? false;
 		collapsed   = section.collapsed       ?? false;
+		layoutMode  = section.layoutMode      ?? 'grid';
+		pinMode     = section.pinMode         ?? 'none';
 	});
 
 	let _saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -47,9 +49,14 @@
 		save({ grid: { ...(section?.grid ?? { baseSize: 160, gap: 8 }), gap: value } });
 	}
 
-	function setColumns(value: number) {
-		columns = value;
-		save({ grid: { ...(section?.grid ?? { baseSize: 160, gap: 8 }), columns: value || undefined } });
+	function setLayoutMode(nextMode: SectionLayoutMode) {
+		layoutMode = nextMode;
+		if (nextMode === 'horizontal_chip_row') {
+			save({ layoutMode: nextMode });
+			return;
+		}
+		pinMode = 'none';
+		save({ layoutMode: nextMode, pinMode: 'none' });
 	}
 
 	let confirmDelete = $state(false);
@@ -74,6 +81,57 @@
 		</div>
 
 		<div class="se__body">
+			<!-- Layout type first: it controls which section-specific options appear -->
+			<div class="se__group">
+				<div class="se__label-row">
+					<span class="se__label">Section Type</span>
+				</div>
+				<select
+					class="se__input"
+					bind:value={layoutMode}
+					onchange={(e) => setLayoutMode((e.target as HTMLSelectElement).value as SectionLayoutMode)}
+				>
+					<option value="grid">Grid</option>
+					<option value="horizontal_chip_row">Horizontal Chip row</option>
+				</select>
+			</div>
+
+			{#if layoutMode === 'horizontal_chip_row'}
+				<div class="se__group">
+					<div class="se__label-row">
+						<span class="se__label">Pin Position</span>
+					</div>
+					<select
+						class="se__input"
+						bind:value={pinMode}
+						onchange={() => save({ pinMode })}
+					>
+						<option value="none">Not pinned</option>
+						<option value="top">Top</option>
+						<option value="bottom">Bottom</option>
+					</select>
+				</div>
+			{/if}
+
+			{#if layoutMode === 'grid'}
+				<div class="se__group">
+					<div class="se__label-row">
+						<span class="se__label">Section gap</span>
+						<span class="se__val">{gap}px</span>
+					</div>
+					<div class="se__slider-row">
+						<span class="se__slider-min">0</span>
+						<input
+							class="se__slider"
+							type="range"
+							min="0" max="24" step="2"
+							bind:value={gap}
+							oninput={() => setGap(gap)}
+						/>
+						<span class="se__slider-max">24</span>
+					</div>
+				</div>
+			{/if}
 
 			<!-- Title -->
 			<div class="se__group">
@@ -161,26 +219,6 @@
 				{/if}
 			</div>
 
-			<!-- ── TILE GAP ──────────────────────────────────────────────────── -->
-			<div class="se__group">
-				<div class="se__label-row">
-					<span class="se__label">Section gap</span>
-					<span class="se__val">{gap}px</span>
-				</div>
-				<div class="se__slider-row">
-					<span class="se__slider-min">0</span>
-					<input
-						class="se__slider"
-						type="range"
-						min="0" max="24" step="2"
-						bind:value={gap}
-						oninput={() => setGap(gap)}
-					/>
-					<span class="se__slider-max">24</span>
-				</div>
-			</div>
-
-
 			<!-- Collapsible -->
 			<div class="se__group">
 				<label class="se__check">
@@ -207,7 +245,7 @@
 			<div class="se__actions">
 				<button class="se__btn se__btn--add" onclick={onAddTile}>
 					<Icon name="plus" size={14} strokeWidth={2} />
-					Add Tile
+					{layoutMode === 'horizontal_chip_row' ? 'Add Chip' : 'Add Tile'}
 				</button>
 				<button
 					class="se__btn se__btn--del"

@@ -83,6 +83,7 @@
   ]);
 
   function candidateTypes(entityId: string): TileType[] {
+    if (isChipHorizontalRow) return ['entity'];
     const domain = getDomain(entityId);
     switch (domain) {
       case 'light': return ['light', 'entity'];
@@ -160,6 +161,14 @@
   }
 
   function pickSource(type: TileType, entityId?: string) {
+    if (isChipHorizontalRow) {
+      if (!entityId) return;
+      selectedEntityId = entityId;
+      selectedType = 'entity';
+      selectedPreset = 'sm';
+      step = 'size';
+      return;
+    }
     selectedEntityId = entityId;
     const types = entityId ? candidateTypes(entityId) : [type];
 
@@ -244,6 +253,7 @@
     const page = $dashboardStore.pages.find((p) => p.id === pageId);
     return page?.sections.find((s) => s.id === sectionId) ?? null;
   });
+  const isChipHorizontalRow = $derived(previewSection?.layoutMode === 'horizontal_chip_row');
   const previewGridGap = $derived.by(() => Number(previewSection?.grid.gap ?? 0));
   const previewGridPad = $derived.by(() => Number(previewSection?.padding ?? 0));
   const previewColumns = $derived.by(() => {
@@ -282,18 +292,21 @@
 
   function createTile() {
     if (!selectedType) return;
+    if (isChipHorizontalRow && !selectedEntityId) return;
+    const finalType: TileType = isChipHorizontalRow ? 'entity' : selectedType;
+    const finalPreset = isChipHorizontalRow ? 'sm' : selectedPreset;
     // Persist the selected preset span directly; placement logic handles fit.
-    const span = resolvePresetToSpan(selectedType, selectedPreset, resolvePreviewBreakpoint());
+    const span = resolvePresetToSpan(finalType, finalPreset, resolvePreviewBreakpoint());
     const newTile: Tile = {
       id: generateId(),
-      type: selectedType,
+      type: finalType,
       entity_id: selectedEntityId,
       size: span,
-      sizePreset: selectedPreset,
+      sizePreset: finalPreset,
       layout: { x: 0, y: 0, w: span.w, h: span.h },
       visibility: { ...VISIBLE_ALL },
       config: {
-        tap_action: { type: ACTUATOR_TYPES.has(selectedType) ? 'toggle' : 'more-info' },
+        tap_action: { type: isChipHorizontalRow ? 'more-info' : (ACTUATOR_TYPES.has(finalType) ? 'toggle' : 'more-info') },
         hold_action: { type: 'more-info' },
         double_tap_action: { type: 'more-info' }
       }
@@ -356,14 +369,16 @@
 
     {#if step === 'source'}
       <div class="tp-source">
-        <div class="tp-static">
-          {#each STATIC_TILES as item}
-            <button class="tp-static-btn" onclick={() => pickSource(item.type)}>
-              <Icon name={item.icon} size={16} strokeWidth={1.75} />
-              <span>{item.label}</span>
-            </button>
-          {/each}
-        </div>
+        {#if !isChipHorizontalRow}
+          <div class="tp-static">
+            {#each STATIC_TILES as item}
+              <button class="tp-static-btn" onclick={() => pickSource(item.type)}>
+                <Icon name={item.icon} size={16} strokeWidth={1.75} />
+                <span>{item.label}</span>
+              </button>
+            {/each}
+          </div>
+        {/if}
 
         <div class="tp-search-wrap">
           <Icon name="search" size={17} />
@@ -403,22 +418,24 @@
       <div class="tp-size-step">
         <div class="tp-size-meta">
           <div>
-            <div class="tp-chip">{TYPE_META[selectedType]?.label ?? selectedType}</div>
+            <div class="tp-chip">{isChipHorizontalRow ? 'Chip Button' : (TYPE_META[selectedType]?.label ?? selectedType)}</div>
             <div class="tp-entity-label">{displayName(selectedEntityId)}</div>
           </div>
         </div>
 
-        <div class="tp-preset-row">
-          {#each getAllowedPresets(selectedType) as preset}
-            <button
-              class="tp-preset-btn"
-              class:tp-preset-btn--active={selectedPreset === preset}
-              onclick={() => (selectedPreset = preset)}
-            >
-              {preset === 'sm' ? 'Small' : preset === 'md' ? 'Medium' : preset === 'lg' ? 'Large' : 'XL'}
-            </button>
-          {/each}
-        </div>
+        {#if !isChipHorizontalRow}
+          <div class="tp-preset-row">
+            {#each getAllowedPresets(selectedType) as preset}
+              <button
+                class="tp-preset-btn"
+                class:tp-preset-btn--active={selectedPreset === preset}
+                onclick={() => (selectedPreset = preset)}
+              >
+                {preset === 'sm' ? 'Small' : preset === 'md' ? 'Medium' : preset === 'lg' ? 'Large' : 'XL'}
+              </button>
+            {/each}
+          </div>
+        {/if}
 
         <div class="tp-preview-shell" bind:clientWidth={previewGridWidth} style="min-height:{previewShellMinHeight}px;">
           <div class="tp-preview-canvas">
@@ -433,7 +450,7 @@
           </div>
         </div>
 
-        <button class="tp-confirm" onclick={createTile}>Add tile</button>
+        <button class="tp-confirm" onclick={createTile}>{isChipHorizontalRow ? 'Add chip' : 'Add tile'}</button>
       </div>
     {/if}
   </div>

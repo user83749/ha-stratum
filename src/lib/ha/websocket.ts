@@ -20,20 +20,6 @@ let unsubscribeEntities: (() => void) | null = null;
 const FIRST_SNAPSHOT_TIMEOUT_MS = 6000;
 
 function attachListeners(conn: Connection) {
-	// Explicit initial state bootstrap. This guarantees entity availability even
-	// if the subscription stream is slow/late in some standalone local setups.
-	void conn.sendMessagePromise({ type: 'get_states' })
-		.then((statesRaw) => {
-			const states = Array.isArray(statesRaw) ? statesRaw : [];
-			const stateMap = statesToMap(states);
-			clearPatchesForSnapshot(stateMap);
-			entities.set(stateMap);
-			syncBaseEntities(stateMap);
-		})
-		.catch(() => {
-			// subscription path will still drive updates if this fails
-		});
-
 	connection.set(conn);
 	connectionStatus.set('connected');
 	unsubscribeEntities = subscribeEntities(conn, (state) => {
@@ -88,9 +74,7 @@ async function connectViaRelay(): Promise<Connection> {
 		refreshAccessToken: async () => { /* no-op */ }
 	} as unknown as Auth;
 
-	const conn = await createConnection({ auth: fakeAuth });
-	await seedInitialStates(conn);
-	return conn;
+	return createConnection({ auth: fakeAuth });
 }
 
 // ── Addon mode: connect via our server-side WebSocket relay ─────────────────
@@ -102,8 +86,6 @@ export async function connectAddon(): Promise<void> {
 	error.set(null);
 
 	try {
-		// No custom createSocket — the library's default socket.js flow handles
-		// auth_required / auth_ok naturally.
 		const conn = await connectViaRelay();
 
 		attachListeners(conn);
@@ -125,6 +107,8 @@ export async function connect(hassUrl: string, token: string): Promise<void> {
 		// Standalone/manual credentials path: always use exactly what the user
 		// entered. No relay fallback here to avoid any add-on-style ambiguity.
 		const conn = await createConnection({ auth });
+		// Standalone mode needs explicit bootstrap to avoid empty-entity startup
+		// races in local dev where subscription snapshots can be delayed.
 		await seedInitialStates(conn);
 		attachListeners(conn);
 	} catch (err) {

@@ -385,6 +385,8 @@ function createDashboardStore() {
 						title: 'New Section',
 						icon: '',
 						role: 'main',
+						layoutMode: 'grid',
+						pinMode: 'none',
 						visibility: { lg: true, md: true, sm: true },
 						collapsible: false,
 						collapsed: false,
@@ -411,6 +413,17 @@ function createDashboardStore() {
 					},
 					normalizeCols
 				);
+			});
+		},
+
+		reorderTiles(pageId: string, sectionId: string, ids: string[]) {
+			mutate((c) => {
+				const section = c.pages
+					.find((p) => p.id === pageId)
+					?.sections.find((s) => s.id === sectionId);
+				if (!section) return;
+				const map = new Map(section.tiles.map((t) => [t.id, t]));
+				section.tiles = ids.map((id) => map.get(id)!).filter(Boolean);
 			});
 		},
 

@@ -441,6 +441,8 @@ export interface Tile {
 // ─── Section ─────────────────────────────────────────────────────────────────
 
 export type SectionRole = 'main';
+export type SectionLayoutMode = 'grid' | 'horizontal_chip_row';
+export type SectionPinMode = 'none' | 'top' | 'bottom';
 
 export interface Section {
 	id: string;
@@ -448,6 +450,8 @@ export interface Section {
 	titleSize?: number;      // px; default 19
 	icon?: string;
 	role: SectionRole;
+	layoutMode: SectionLayoutMode;
+	pinMode: SectionPinMode;
 	grid: SectionGrid;
 	padding?: number;           // px; overrides theme --tile-padding for this section
 	collapsible: boolean;
@@ -1004,6 +1008,8 @@ export function defaultSection(overrides?: Partial<Section>): Section {
 	return {
 		id: generateId(),
 		role: 'main',
+		layoutMode: 'grid',
+		pinMode: 'none',
 		grid: { ...DEFAULT_SECTION_GRID },
 		collapsible: false,
 		collapsed: false,
@@ -1176,6 +1182,15 @@ function migratePageV5(raw: unknown): Page {
 
 function migrateSectionV5(raw: unknown): Section {
 	const s = raw as any;
+	const rawLayoutMode = typeof s.layoutMode === 'string' ? s.layoutMode : '';
+	const layoutMode =
+		rawLayoutMode === 'horizontal_chip_row'
+			? 'horizontal_chip_row'
+			: rawLayoutMode === 'grid'
+				? 'grid'
+				: rawLayoutMode
+					? 'horizontal_chip_row'
+					: 'grid';
 	const migratedTiles = (s.tiles ?? []).map(migrateTileV5);
 	const tiles = migratedTiles.some((tile: Tile) => tile.layout)
 		? migratedTiles
@@ -1188,6 +1203,8 @@ function migrateSectionV5(raw: unknown): Section {
 		title: s.title,
 		icon: s.icon,
 		role: s.role ?? 'main',
+		layoutMode,
+		pinMode: s.pinMode === 'top' || s.pinMode === 'bottom' ? s.pinMode : 'none',
 		grid: {
 			baseSize: s.grid?.baseSize ?? DEFAULT_SECTION_GRID.baseSize,
 			gap: s.grid?.gap ?? DEFAULT_SECTION_GRID.gap,

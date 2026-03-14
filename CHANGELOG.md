@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.50] - 2026-03-14
+
+### Added
+- New `SectionHorizontalChipRow` component for improved section layout flexibility.
+
+### Changed
+- Extensive refactor of layout editing components: `SectionEditor`, `TileEditor`, and `TilePicker`.
+- Improved `SectionGrid` and `PageView` responsiveness and layout logic.
+- Enhanced Home Assistant websocket stability and connection resilience.
+- Refined `dashboard.ts` store and type definitions for better state synchronization.
+- General UI refinements on the main dashboard page.
+
 ## [1.0.49] - 2026-03-14
 
 ### Changed

@@ -32,6 +32,13 @@
 	const entity = $derived(
 		tile?.entity_id ? ($entities[tile.entity_id] ?? null) : null
 	);
+	const sectionLayoutMode = $derived.by(() => {
+		if (!pageId || !sectionId) return 'grid';
+		const page = $dashboardStore.pages.find((p) => p.id === pageId);
+		const section = page?.sections.find((s) => s.id === sectionId);
+		return section?.layoutMode ?? 'grid';
+	});
+	const isChipRowSection = $derived(sectionLayoutMode === 'horizontal_chip_row');
 	const tvRemoteCandidates = $derived(
 		Object.keys($entities)
 			.filter((id) => id.startsWith('media_player.') || id.startsWith('remote.'))
@@ -270,21 +277,28 @@
 		</div>
 
 		<div class="te__body">
-			<div class="te__group">
-				<span class="te__section-title">Tile type</span>
-				<select
-					class="te__select"
-					value={tile.type}
-					onchange={(e) => changeTileType((e.target as HTMLSelectElement).value)}
-				>
-					{#each TILE_TYPES as t}
-						<option value={t}>{TILE_TYPE_LABELS[t] ?? t}</option>
-					{/each}
-				</select>
-			</div>
+			{#if !isChipRowSection}
+				<div class="te__group">
+					<span class="te__section-title">Tile type</span>
+					<select
+						class="te__select"
+						value={tile.type}
+						onchange={(e) => changeTileType((e.target as HTMLSelectElement).value)}
+					>
+						{#each TILE_TYPES as t}
+							<option value={t}>{TILE_TYPE_LABELS[t] ?? t}</option>
+						{/each}
+					</select>
+				</div>
+			{/if}
 
 			<div class="te__group">
 				<span class="te__section-title">Identity</span>
+				{#if isChipRowSection}
+					<p class="te__hint">
+						Horizontal Chip row renders icon + name only. State and tile-card visuals are ignored here.
+					</p>
+				{/if}
 				<span class="te__label">Name override</span>
 				<input class="te__input" type="text" placeholder="Entity name" bind:value={name} oninput={() => save({ name: name || undefined })} />
 				<span class="te__label">Icon override</span>
@@ -315,22 +329,24 @@
 				{/if}
 			</div>
 
-			<div class="te__group">
-				<span class="te__section-title">Tile size</span>
-				<div class="te__preset-row">
-					{#each allowedPresets as preset}
-						<button
-							class="te__preset"
-							class:te__preset--active={activePreset === preset}
-							onclick={() => setSizePreset(preset)}
-						>
-							{preset === 'sm' ? 'Small' : preset === 'md' ? 'Medium' : preset === 'lg' ? 'Large' : 'XL'}
-						</button>
-					{/each}
+			{#if !isChipRowSection}
+				<div class="te__group">
+					<span class="te__section-title">Tile size</span>
+					<div class="te__preset-row">
+						{#each allowedPresets as preset}
+							<button
+								class="te__preset"
+								class:te__preset--active={activePreset === preset}
+								onclick={() => setSizePreset(preset)}
+							>
+								{preset === 'sm' ? 'Small' : preset === 'md' ? 'Medium' : preset === 'lg' ? 'Large' : 'XL'}
+							</button>
+						{/each}
+					</div>
 				</div>
-			</div>
+			{/if}
 
-			{#if hasTileSpecificSettings}
+			{#if hasTileSpecificSettings && !isChipRowSection}
 			<div class="te__group">
 				<span class="te__section-title">Tile-specific settings</span>
 
@@ -662,15 +678,17 @@
 				</div>
 			{/if}
 
-			<div class="te__group">
-				<span class="te__section-title">Visibility</span>
-				{#each SHOW_TOGGLES as [key, label]}
-					<label class="te__check">
-						<input type="checkbox" checked={tile.config[key] !== false} onchange={(e) => save({ [key]: (e.target as HTMLInputElement).checked })} />
-						{label}
-					</label>
-				{/each}
-			</div>
+			{#if !isChipRowSection}
+				<div class="te__group">
+					<span class="te__section-title">Visibility</span>
+					{#each SHOW_TOGGLES as [key, label]}
+						<label class="te__check">
+							<input type="checkbox" checked={tile.config[key] !== false} onchange={(e) => save({ [key]: (e.target as HTMLInputElement).checked })} />
+							{label}
+						</label>
+					{/each}
+				</div>
+			{/if}
 
 			<div class="te__group">
 				<span class="te__section-title">Interactions</span>

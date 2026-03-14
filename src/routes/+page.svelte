@@ -150,6 +150,8 @@
 			title:       'New Section',
 			icon:        '',
 			role:        'main',
+			layoutMode:  'grid',
+			pinMode:     'none',
 			visibility:  { lg: true, md: true, sm: true },
 			collapsible: false,
 			collapsed:   false,
