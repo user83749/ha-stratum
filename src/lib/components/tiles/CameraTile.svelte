@@ -45,7 +45,7 @@
 <div class="camera-tile" class:unavailable data-size={sizePreset}>
 	{#if snapshotUrl && !unavailable}
 		<div class="stream-container">
-			<img src={snapshotUrl} alt={name} class="stream-img" style="pointer-events: none;" />
+			<img src={snapshotUrl} alt="" class="stream-img" style="pointer-events: none;" />
 
 			{#if isRecording}
 				<span class="rec-dot"></span>
@@ -163,11 +163,11 @@
 		bottom: 0;
 		left: 0;
 		right: 0;
-		background: linear-gradient(
+		/* background: linear-gradient(
 			to top,
 			color-mix(in srgb, var(--bg) 75%, transparent) 0%,
 			transparent 100%
-		);
+		); */
 		padding: calc(var(--tile-padding-effective) * 1.8) calc(var(--tile-padding-effective) * 0.9) calc(var(--tile-padding-effective) * 0.72);
 		display: flex;
 		align-items: flex-end;

@@ -213,7 +213,7 @@
 			<img
 				class="cammi__image"
 				src={activeSrc}
-				alt={`Camera feed ${activeFeed?.label ?? ''}`}
+				alt=""
 				onerror={() => markLiveError(activeFeed?.id ?? '', !!activeCanUseLive)}
 			/>
 			{#if activeCanUseLive && activeLiveSrc}

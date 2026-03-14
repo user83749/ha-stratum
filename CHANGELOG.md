@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.52] - 2026-03-14
+
+### Added
+- New **AlertsSettings** component for managing system-wide notification and alert preferences.
+- Support for **adaptive section layout** transitions between grid and chip modes.
+
+### Changed
+- Extensive UI/UX updates to navigation components: `IntegratedNavRail` and `ShellNav`.
+- Refined `SectionHorizontalChipRow` for better scroll performance and sizing.
+- Improved `CameraMoreInfo` dialog with smoother video scaling.
+- Enhanced `SettingsPanel` layout and `NotificationsPanel` interaction logic.
+- Robust state synchronization in `dashboard.ts` store for complex section migrations.
+- Improved layout rendering in `PageView` and `SectionEditor`.
+
 ## [1.0.51] - 2026-03-14
 
 ### Changed

@@ -210,6 +210,8 @@ export interface TileConfig {
 	// ── Universal display overrides ───────────────────────────────────────────
 	name?: string;                // override entity friendly_name
 	icon?: string;                // override entity icon (mdi:icon-name)
+	chip_notify_entity_id?: string; // Horizontal Chip row badge source entity (optional)
+	chip_notify_attribute?: string; // Horizontal Chip row badge source attribute (optional)
 	unit?: string;                // override unit_of_measurement
 	show_name?: boolean;
 	show_state?: boolean;
@@ -747,7 +749,9 @@ export type NotificationPosition = 'top-right' | 'top-left' | 'bottom-right' | '
 export interface NotificationConfig {
 	enabled: boolean;
 	showPersistent: boolean;     // HA persistent_notification.*
-	showAlerts: boolean;         // entity-based alerts
+	showAlerts: boolean;         // real alerts feed
+	includeAlertDomainEntities: boolean; // include alert.* entities
+	alertEntityIds: string[];    // explicit entity IDs to monitor as alerts
 	sound: boolean;
 	position: NotificationPosition;
 	duration: number;            // ms; 0 = stay until dismissed
@@ -969,6 +973,8 @@ export const DEFAULT_NOTIFICATIONS: NotificationConfig = {
 	enabled: true,
 	showPersistent: true,
 	showAlerts: true,
+	includeAlertDomainEntities: true,
+	alertEntityIds: [],
 	sound: false,
 	position: 'bottom-right',
 	duration: 5000
@@ -1211,8 +1217,8 @@ function migrateSectionV5(raw: unknown): Section {
 			columns: s.grid?.columns
 		},
 		padding: s.padding,
-		collapsible: s.collapsible ?? false,
-		collapsed: s.collapsed ?? false,
+		collapsible: layoutMode === 'horizontal_chip_row' ? false : (s.collapsible ?? false),
+		collapsed: layoutMode === 'horizontal_chip_row' ? false : (s.collapsed ?? false),
 		visibility: s.visibility ?? { ...VISIBLE_ALL },
 		tiles
 	};

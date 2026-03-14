@@ -327,6 +327,33 @@
 						{/each}
 					</div>
 				{/if}
+				{#if isChipRowSection}
+					<span class="te__label te__mt12">Notify badge entity (optional)</span>
+					<input
+						class="te__input"
+						type="text"
+						list="te-chip-notify-entities"
+						placeholder="sensor.hassio_updates_available"
+						value={(tile.config.chip_notify_entity_id as string) ?? ''}
+						oninput={(e) => save({ chip_notify_entity_id: (e.target as HTMLInputElement).value || undefined })}
+					/>
+					<span class="te__label">Notify badge attribute (optional)</span>
+					<input
+						class="te__input"
+						type="text"
+						placeholder="e.g. count"
+						value={(tile.config.chip_notify_attribute as string) ?? ''}
+						oninput={(e) => save({ chip_notify_attribute: (e.target as HTMLInputElement).value || undefined })}
+					/>
+					<p class="te__hint">
+						Badge shows when this value is truthy or greater than 0. If attribute is empty, state is used.
+					</p>
+					<datalist id="te-chip-notify-entities">
+						{#each Object.keys($entities).sort() as candidate}
+							<option value={candidate}></option>
+						{/each}
+					</datalist>
+				{/if}
 			</div>
 
 			{#if !isChipRowSection}

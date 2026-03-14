@@ -8,6 +8,7 @@
 	import ConnectionSettings from './ConnectionSettings.svelte';
 	import ThemeSettings from './ThemeSettings.svelte';
 	import NavSettings from './NavSettings.svelte';
+	import AlertsSettings from './AlertsSettings.svelte';
 	import DialogSettings from './DialogSettings.svelte';
 	import KeyboardShortcuts from './KeyboardShortcuts.svelte';
 	import ProfilesSettings from './ProfilesSettings.svelte';
@@ -29,6 +30,7 @@
 		| 'connection'
 		| 'theme'
 		| 'nav'
+		| 'alerts'
 		| 'dialog'
 		| 'profiles'
 		| 'shortcuts'
@@ -38,6 +40,7 @@
 		{ id: 'connection', icon: 'plug',             label: 'Connection'   },
 		{ id: 'theme',      icon: 'palette',          label: 'Appearance'   },
 		{ id: 'nav',        icon: 'layout-dashboard', label: 'Navigation'   },
+		{ id: 'alerts',     icon: 'triangle-alert',   label: 'Alerts'       },
 		{ id: 'dialog',     icon: 'panel-right',      label: 'Dialog'       },
 		{ id: 'profiles',   icon: 'users',            label: 'Profiles'     },
 		{ id: 'shortcuts',  icon: 'keyboard',         label: 'Shortcuts'    },
@@ -56,6 +59,8 @@
 				activeTab = 'nav';
 			} else if (requested === 'display') {
 				activeTab = 'nav';
+			} else if (requested === 'notifications' || requested === 'alerts') {
+				activeTab = 'alerts';
 			} else if (requested === 'app') {
 				activeTab = 'theme';
 			} else if (requested && validTabIds.has(requested as TabId)) {
@@ -135,18 +140,20 @@
 					{TABS.find((t) => t.id === activeTab)?.label ?? 'Settings'}
 				</span>
 			</div>
-			<div class="sp__body" bind:this={bodyEl}>
-				{#if activeTab === 'connection'}
-					<ConnectionSettings />
-				{:else if activeTab === 'theme'}
-					<ThemeSettings />
-				{:else if activeTab === 'nav'}
-					<NavSettings />
-				{:else if activeTab === 'dialog'}
-					<DialogSettings />
-				{:else if activeTab === 'profiles'}
-					<ProfilesSettings />
-				{:else if activeTab === 'shortcuts'}
+				<div class="sp__body" bind:this={bodyEl}>
+					{#if activeTab === 'connection'}
+						<ConnectionSettings />
+					{:else if activeTab === 'theme'}
+						<ThemeSettings />
+					{:else if activeTab === 'nav'}
+						<NavSettings />
+					{:else if activeTab === 'alerts'}
+						<AlertsSettings />
+					{:else if activeTab === 'dialog'}
+						<DialogSettings />
+					{:else if activeTab === 'profiles'}
+						<ProfilesSettings />
+					{:else if activeTab === 'shortcuts'}
 					<KeyboardShortcuts />
 				{:else if activeTab === 'reset'}
 					<ResetSettings />

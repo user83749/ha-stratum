@@ -8,7 +8,7 @@
 	import { undoStore } from '$lib/stores/undoStore';
 	import { get } from 'svelte/store';
 	import Icon from '$lib/components/ui/Icon.svelte';
-	import { getDomain, getEntityName, isActive } from '$lib/ha/entities';
+	import { formatState, getDomain, getEntityName, isActive } from '$lib/ha/entities';
 	import { callService } from '$lib/ha/services';
 	import { haptic } from '$lib/utils/haptics';
 	import type { Page } from '$lib/types/dashboard';
@@ -117,12 +117,8 @@
 		if (!weatherEntity || weatherEntity.state === 'unknown' || weatherEntity.state === 'unavailable') return null;
 		const feelsLike = weatherEntity.attributes?.apparent_temperature ?? weatherEntity.attributes?.temperature;
 		const temp = Math.round(Number(feelsLike || 0));
-		const condition = weatherEntity.state.replace(/-/g, ' ');
-		
-		// Capitalize first letter of condition
-		const capitalizedCondition = condition.charAt(0).toUpperCase() + condition.slice(1);
-		
-		return `Feels like ${temp}° — ${capitalizedCondition}`;
+		const condition = formatState(weatherEntity);
+		return `Feels like ${temp}° — ${condition}`;
 	});
 
 </script>

@@ -273,6 +273,10 @@ function createDashboardStore() {
 					?.sections.find((s) => s.id === sectionId);
 				if (!s) return;
 				Object.assign(s, patch);
+				if (s.layoutMode === 'horizontal_chip_row') {
+					s.collapsible = false;
+					s.collapsed = false;
+				}
 				if (patch.grid) {
 					s.tiles = normalizeTilesForStorage(s.tiles, getSectionMaxColumns(s));
 				}
@@ -300,7 +304,8 @@ function createDashboardStore() {
 				const s = c.pages
 					.find((p) => p.id === pageId)
 					?.sections.find((s) => s.id === sectionId);
-				if (s) s.collapsed = !s.collapsed;
+				if (!s || s.layoutMode === 'horizontal_chip_row') return;
+				s.collapsed = !s.collapsed;
 			});
 		},
 

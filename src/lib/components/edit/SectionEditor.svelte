@@ -219,27 +219,29 @@
 				{/if}
 			</div>
 
-			<!-- Collapsible -->
-			<div class="se__group">
-				<label class="se__check">
-					<input
-						type="checkbox"
-						bind:checked={collapsible}
-						onchange={() => save({ collapsible })}
-					/>
-					Collapsible section
-				</label>
-				{#if collapsible}
-					<label class="se__check se__check--sub">
+			{#if layoutMode !== 'horizontal_chip_row'}
+				<!-- Collapsible -->
+				<div class="se__group">
+					<label class="se__check">
 						<input
 							type="checkbox"
-							bind:checked={collapsed}
-							onchange={() => save({ collapsed })}
+							bind:checked={collapsible}
+							onchange={() => save({ collapsible })}
 						/>
-						Start collapsed
+						Collapsible section
 					</label>
-				{/if}
-			</div>
+					{#if collapsible}
+						<label class="se__check se__check--sub">
+							<input
+								type="checkbox"
+								bind:checked={collapsed}
+								onchange={() => save({ collapsed })}
+							/>
+							Start collapsed
+						</label>
+					{/if}
+				</div>
+			{/if}
 
 			<!-- Actions -->
 			<div class="se__actions">

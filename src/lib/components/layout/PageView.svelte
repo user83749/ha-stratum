@@ -8,6 +8,7 @@
 	import IntegratedNavRail from './IntegratedNavRail.svelte';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import type { Page, PageTransitionType } from '$lib/types/dashboard';
+	import { formatState } from '$lib/ha/entities';
 	import { entities } from '$lib/ha/websocket';
 	import { SYSTEM_THEMES } from '$lib/themes/presets';
 	import { fade, fly, scale as scaleTransition } from 'svelte/transition';
@@ -262,9 +263,8 @@
 		if (!weatherEntity || weatherEntity.state === 'unknown' || weatherEntity.state === 'unavailable') return null;
 		const feelsLike = weatherEntity.attributes?.apparent_temperature ?? weatherEntity.attributes?.temperature;
 		const temp = Math.round(Number(feelsLike || 0));
-		const condition = weatherEntity.state.replace(/-/g, ' ');
-		const capitalizedCondition = condition.charAt(0).toUpperCase() + condition.slice(1);
-		return `Feels like ${temp}° — ${capitalizedCondition}`;
+		const condition = formatState(weatherEntity);
+		return `Feels like ${temp}° — ${condition}`;
 	});
 
 	const mobileHeroEntities = $derived(

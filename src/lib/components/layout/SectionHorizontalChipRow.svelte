@@ -19,15 +19,9 @@
 	let { section, pageId, onEditSection, onAddTile }: Props = $props();
 
 	const editing = $derived($isEditing);
-	// svelte-ignore state_referenced_locally
-	let localCollapsed = $state(section.collapsed);
 	let chipListEl: HTMLDivElement | null = $state(null);
 	let tileDragId = $state<string | null>(null);
 	let tileDropIdx = $state<number>(-1);
-
-	$effect(() => {
-		localCollapsed = section.collapsed;
-	});
 
 	$effect(() => {
 		if (!browser) return;
@@ -67,6 +61,35 @@
 				tap_action: { type: 'more-info' }
 			}
 		};
+	}
+
+	function chipNotifyCount(tile: Tile): string | null {
+		const sourceId = String((tile.config.chip_notify_entity_id as string | undefined) ?? '').trim();
+		if (!sourceId) return null;
+		const source = $entities[sourceId];
+		if (!source) return null;
+
+		const attribute = String((tile.config.chip_notify_attribute as string | undefined) ?? '').trim();
+		const raw = attribute ? source.attributes?.[attribute] : source.state;
+		if (raw === null || raw === undefined) return null;
+
+		if (typeof raw === 'number') {
+			if (!Number.isFinite(raw) || raw <= 0) return null;
+			return Number.isInteger(raw) ? String(raw) : String(Math.round(raw));
+		}
+		if (typeof raw === 'boolean') return raw ? '!' : null;
+
+		const text = String(raw).trim();
+		if (!text) return null;
+
+		const numeric = Number(text);
+		if (Number.isFinite(numeric)) {
+			if (numeric <= 0) return null;
+			return Number.isInteger(numeric) ? String(numeric) : String(Math.round(numeric));
+		}
+
+		if (/^(off|false|no|none|idle|unavailable|unknown)$/i.test(text)) return null;
+		return '!';
 	}
 
 	function startTileDrag(tileId: string, event: PointerEvent) {
@@ -131,10 +154,11 @@
 <section
 	class="chiprow"
 	class:chiprow--editing={editing}
+	class:chiprow--pin-bottom={section.pinMode === 'bottom'}
 	data-section-id={section.id}
 	data-active-columns="1"
 >
-	{#if section.title || section.icon || editing}
+	{#if editing}
 		<div class="chiprow__header">
 			<div class="chiprow__left">
 				{#if section.icon}
@@ -161,59 +185,50 @@
 						<Icon name="settings-2" size={13} />
 					</button>
 				{/if}
-				{#if section.collapsible}
-					<button
-						class="chiprow__btn"
-						aria-label={localCollapsed ? 'Expand section' : 'Collapse section'}
-						onclick={() => dashboardStore.toggleSectionCollapsed(pageId, section.id)}
-					>
-						<span class="chiprow__chevron" class:rotated={localCollapsed}>
-							<Icon name="chevron-down" size={14} />
-						</span>
-					</button>
-				{/if}
 			</div>
 		</div>
 	{/if}
 
-	{#if !localCollapsed}
-		<div class="chiprow__list-wrap">
-			<div class="chiprow__list" bind:this={chipListEl}>
-				{#each section.tiles as tile (tile.id)}
-					{@const entity = chipEntity(tile)}
-					<div
-						class="chiprow__item"
-						class:chiprow__item--editing={editing}
-						class:chiprow__item--dragging={tileDragId === tile.id}
-						class:chiprow__item--drop-target={editing && tileDragId !== null && section.tiles[tileDropIdx]?.id === tile.id && tileDragId !== tile.id}
-						data-tile-id={tile.id}
-						data-chip-tile-id={tile.id}
+	<div class="chiprow__list-wrap">
+		<div class="chiprow__list" bind:this={chipListEl}>
+			{#each section.tiles as tile (tile.id)}
+				{@const entity = chipEntity(tile)}
+				{@const notify = chipNotifyCount(tile)}
+				<div
+					class="chiprow__item"
+					class:chiprow__item--editing={editing}
+					class:chiprow__item--dragging={tileDragId === tile.id}
+					class:chiprow__item--drop-target={editing && tileDragId !== null && section.tiles[tileDropIdx]?.id === tile.id && tileDragId !== tile.id}
+					data-tile-id={tile.id}
+					data-chip-tile-id={tile.id}
+				>
+					<TileWrapper
+						tile={chipTile(tile)}
+						{entity}
+						{pageId}
+						sectionId={section.id}
+						onEditDragStart={(event) => startTileDrag(tile.id, event)}
 					>
-						<TileWrapper
-							tile={chipTile(tile)}
-							{entity}
-							{pageId}
-							sectionId={section.id}
-							onEditDragStart={(event) => startTileDrag(tile.id, event)}
-						>
-							<div class="chiprow__btn-face">
-								<span class="chiprow__chip-icon">
-									<Icon name={chipIcon(tile, entity)} entity={entity} size="100%" />
-								</span>
-								<span class="chiprow__chip-label">{chipLabel(tile, entity)}</span>
-							</div>
-						</TileWrapper>
-					</div>
-				{/each}
-					{#if editing && section.tiles.length === 0}
-						<button class="chiprow__empty-drop" type="button" onclick={() => onAddTile?.(1)} disabled={!onAddTile}>
-							<Icon name="plus" size={16} />
-							<span>Add</span>
-						</button>
-					{/if}
-			</div>
+						<div class="chiprow__btn-face">
+							<span class="chiprow__chip-icon">
+								<Icon name={chipIcon(tile, entity)} entity={entity} size="100%" />
+							</span>
+							<span class="chiprow__chip-label">{chipLabel(tile, entity)}</span>
+							{#if notify}
+								<span class="chiprow__notify" aria-label="Notification">{notify}</span>
+							{/if}
+						</div>
+					</TileWrapper>
+				</div>
+			{/each}
+				{#if editing && section.tiles.length === 0}
+					<button class="chiprow__empty-drop" type="button" onclick={() => onAddTile?.(1)} disabled={!onAddTile}>
+						<Icon name="plus" size={16} />
+						<span>Add</span>
+					</button>
+				{/if}
 		</div>
-	{/if}
+	</div>
 </section>
 
 <style>
@@ -226,10 +241,33 @@
 		--chip-row-margin-x: 0vw;
 		--chip-row-scale-portrait: 1.4;
 		--chip-row-scale-phone: 3;
+		--chip-row-border: 0.12vw solid rgba(115, 115, 115, 0.2);
+		--chip-row-bg: rgba(115, 115, 115, 0.1);
+		--chip-row-bg-phone: rgba(115, 115, 115, 0.12);
+		--chip-row-card-pad-bottom: 0.05vw;
+		--chip-row-notify-font-size: 0.9vw;
+		--chip-row-notify-box-size: 1.8vw;
+		--chip-row-notify-top: -0.9vw;
+		--chip-row-notify-right: -1vw;
+		/* Top offset uses margin-top (not padding). */
+		--chip-row-offset-top-base: 0;
+		--chip-row-offset-top-desktop: 0;
+		--chip-row-padding-bottom-base: 0;
+		--chip-row-padding-bottom-desktop: 0;
+		--chip-row-padding-top-phone: 0;
 		display: flex;
 		flex-direction: column;
 		gap: clamp(8px, 0.55vw, 12px);
 		min-width: 0;
+	}
+
+	/* Footer-style rhythm only when row is explicitly pinned to bottom. */
+	.chiprow--pin-bottom {
+		--chip-row-offset-top-base: -1.95vw;
+		--chip-row-offset-top-desktop: -1.6vh;
+		--chip-row-padding-bottom-base: 2.5em;
+		--chip-row-padding-bottom-desktop: 0;
+		--chip-row-padding-top-phone: 3vw;
 	}
 
 	.chiprow--editing .chiprow__list-wrap {
@@ -294,15 +332,10 @@
 		gap: 4px;
 	}
 
-	.chiprow__chevron {
-		display: inline-flex;
-		transform: rotate(-90deg);
-		transition: transform var(--transition);
-	}
-	.chiprow__chevron.rotated { transform: rotate(0deg); }
-
 	.chiprow__list-wrap {
 		min-width: 0;
+		margin-top: var(--chip-row-offset-top-base);
+		padding-bottom: var(--chip-row-padding-bottom-base);
 	}
 
 	.chiprow__list {
@@ -310,14 +343,15 @@
 		align-items: center;
 		justify-content: center;
 		flex-wrap: wrap;
+		overflow: visible;
 		gap: clamp(8px, 0.52vw, 12px);
 		min-width: 0;
 	}
 
 	.chiprow__item {
-		flex: 1 1 auto;
+		flex: 0 0 auto;
 		display: inline-flex;
-		width: auto;
+		width: fit-content;
 		max-width: 100%;
 		min-width: 0;
 	}
@@ -341,8 +375,9 @@
 		gap: clamp(0.3rem, 0.32vw, 0.55rem);
 		padding: var(--chip-row-padding-y) var(--chip-row-padding-x);
 		white-space: nowrap;
-		width: 100%;
-		max-width: 100%;
+		width: auto;
+		max-width: none;
+		position: relative;
 	}
 
 	.chiprow__chip-icon {
@@ -363,20 +398,46 @@
 		font-weight: 500;
 		color: var(--fg);
 		letter-spacing: 0.05vw;
-		flex: 1 1 auto;
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
+		flex: 0 0 auto;
+	}
+
+	.chiprow__notify {
+		position: absolute;
+		top: var(--chip-row-notify-top);
+		right: var(--chip-row-notify-right);
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: var(--chip-row-notify-box-size);
+		height: var(--chip-row-notify-box-size);
+		padding: 0 0.35em;
+		border-radius: 999px;
+		background: #8b3333;
+		color: #d6d6d6;
+		font-weight: 700;
+		font-size: var(--chip-row-notify-font-size);
+		line-height: 1;
+		z-index: 1;
+	}
+
+	.chiprow__notify :global(svg) {
+		width: 0.95em;
+		height: 0.95em;
 	}
 
 	.chiprow__item :global(.tile-wrapper) {
 		padding: 0 !important;
-		width: 100% !important;
+		width: auto !important;
 		height: auto !important;
 		min-height: 0 !important;
 		border-radius: var(--chip-row-radius);
+		border: var(--chip-row-border);
 		margin: 0 var(--chip-row-margin-x);
-		background: rgba(115, 115, 115, 0.1);
+		background: var(--chip-row-bg);
+		max-width: 100%;
+		padding-bottom: var(--chip-row-card-pad-bottom) !important;
+		overflow: visible !important;
+		transition: none !important;
 	}
 
 	.chiprow__item :global(.tile-wrapper:hover) {
@@ -406,15 +467,19 @@
 		background: color-mix(in srgb, var(--accent) 10%, transparent);
 	}
 
-	@media (min-width: 1201px) {
+	@media (min-width: 1161px) {
+		.chiprow__list-wrap {
+			margin-top: var(--chip-row-offset-top-desktop);
+			padding-bottom: var(--chip-row-padding-bottom-desktop);
+		}
 		.chiprow__list {
 			flex-wrap: nowrap;
 			justify-content: space-between;
-			overflow-x: hidden;
+			overflow: visible;
 		}
 	}
 
-	@media (max-width: 1200px) {
+	@media (max-width: 1160px) {
 		.chiprow {
 			--chip-row-margin-x: 0.5vw;
 		}
@@ -433,9 +498,17 @@
 		.chiprow__item :global(.tile-wrapper) {
 			border-radius: calc(var(--chip-row-radius) * var(--chip-row-scale-portrait));
 		}
+		.chiprow__notify {
+			font-size: calc(var(--chip-row-notify-font-size) * var(--chip-row-scale-portrait));
+			min-width: calc(var(--chip-row-notify-box-size) * var(--chip-row-scale-portrait));
+			height: calc(var(--chip-row-notify-box-size) * var(--chip-row-scale-portrait));
+		}
 	}
 
 	@media (max-width: 800px) {
+		.chiprow__list-wrap {
+			padding-top: var(--chip-row-padding-top-phone);
+		}
 		.chiprow__list {
 			justify-content: space-evenly;
 		}
@@ -450,7 +523,7 @@
 		}
 		.chiprow__item :global(.tile-wrapper) {
 			border-radius: calc(var(--chip-row-radius) * var(--chip-row-scale-phone));
-			background: rgba(115, 115, 115, 0.12);
+			background: var(--chip-row-bg-phone);
 		}
 		.chiprow__chip-label {
 			font-size: calc(var(--chip-row-font-size) * var(--chip-row-scale-phone));
@@ -458,6 +531,13 @@
 		.chiprow__chip-icon {
 			width: calc(var(--chip-row-icon-size) * var(--chip-row-scale-phone));
 			height: calc(var(--chip-row-icon-size) * var(--chip-row-scale-phone));
+		}
+		.chiprow__notify {
+			font-size: calc(var(--chip-row-notify-font-size) * var(--chip-row-scale-phone));
+			min-width: calc(var(--chip-row-notify-box-size) * var(--chip-row-scale-phone));
+			height: calc(var(--chip-row-notify-box-size) * var(--chip-row-scale-phone));
+			top: calc(var(--chip-row-notify-top) * var(--chip-row-scale-phone));
+			right: calc(var(--chip-row-notify-right) * var(--chip-row-scale-phone) + 2%);
 		}
 	}
 </style>
