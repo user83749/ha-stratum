@@ -186,7 +186,8 @@
 	.np-header {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		justify-content: flex-start;
+		gap: 10px;
 		padding: 14px 16px;
 		border-bottom: 1px solid var(--border);
 		flex-shrink: 0;

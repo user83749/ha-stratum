@@ -25,6 +25,7 @@
 		style?:    MoreInfoStyle;  // 'modal' | 'drawer' | 'panel'
 		side?:     DrawerSide;     // 'right' | 'left' | 'bottom'  (drawer only)
 		title?:    string;
+		variant?:  'default' | 'camera';
 		children:  Snippet;
 	}
 
@@ -33,11 +34,12 @@
 			onclose,
 			onback,
 			canBack = false,
-			style  = 'drawer',
-			side   = 'right',
-			title  = '',
-			children
-		}: Props = $props();
+				style  = 'drawer',
+				side   = 'right',
+				title  = '',
+				variant = 'default',
+				children
+			}: Props = $props();
 
 	// ── Reference-counted body scroll lock ────────────────────────────────────
 	// Multiple MoreInfoShell instances may be active simultaneously (e.g. nested
@@ -355,9 +357,10 @@
 		if (e.key === 'Enter' || e.key === ' ') requestClose();
 	}
 
-	const isDrawer = $derived(style === 'drawer');
-	const isModal  = $derived(style === 'modal');
-	const isPanel  = $derived(style === 'panel');
+		const isDrawer = $derived(style === 'drawer');
+		const isModal  = $derived(style === 'modal');
+		const isPanel  = $derived(style === 'panel');
+		const isCameraDesktop = $derived(variant === 'camera' && !isSheet && !isPanel);
 </script>
 
 {#if visible}
@@ -376,17 +379,18 @@
 	{/if}
 
 	<!-- Panel -->
-	<div
-		class="moreinfo-panel"
+		<div
+			class="moreinfo-panel"
 		class:moreinfo-panel--modal={isModal}
 		class:moreinfo-panel--drawer={isDrawer}
 		class:moreinfo-panel--right={isDrawer && side === 'right'}
 		class:moreinfo-panel--left={isDrawer && side === 'left'}
 		class:moreinfo-panel--bottom={isDrawer && side === 'bottom'}
 		class:moreinfo-panel--panel={isPanel}
-		class:moreinfo-panel--sheet={isSheet}
-		class:moreinfo-panel--closing={closing}
-		class:moreinfo-panel--dragging={dragging}
+			class:moreinfo-panel--sheet={isSheet}
+			class:moreinfo-panel--camera-desktop={isCameraDesktop}
+			class:moreinfo-panel--closing={closing}
+			class:moreinfo-panel--dragging={dragging}
 		role="dialog"
 		aria-modal={!isPanel}
 		aria-label={title || 'Entity details'}
@@ -647,6 +651,32 @@
 		border-left: 1px solid var(--border);
 		background: var(--bg-elevated);
 		z-index: 100; /* below header (z-index 10) + sidebar (z-index 20) peers */
+	}
+
+	/* ── Camera desktop popup variant (keeps mobile sheet unchanged) ───────── */
+	.moreinfo-panel--camera-desktop {
+		top: 50% !important;
+		left: 50% !important;
+		right: auto !important;
+		bottom: auto !important;
+		transform: translate(-50%, -50%) !important;
+		width: min(980px, 94dvw) !important;
+		height: min(74dvh, 760px) !important;
+		max-height: 88dvh;
+		border: 1px solid var(--border) !important;
+		border-radius: var(--dialog-radius, var(--radius-lg)) !important;
+		box-shadow: var(--shadow-lg) !important;
+	}
+
+	.moreinfo-panel--camera-desktop.moreinfo-panel--closing {
+		transform: translate(-50%, -50%) scale(0.985) !important;
+	}
+
+	@starting-style {
+		.moreinfo-panel--camera-desktop {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.96) !important;
+		}
 	}
 
 	@starting-style {

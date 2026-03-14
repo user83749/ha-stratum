@@ -30,6 +30,36 @@ const CONFIG_PATH = ADDON
 	? '/data/stratum-config.json'
 	: join(__dirname, 'data', 'stratum-config.json');
 
+function sanitizeToken(raw) {
+	return String(raw ?? '').trim().replace(/^Bearer\s+/i, '');
+}
+
+function normalizeBaseUrl(raw) {
+	try {
+		const url = new URL(String(raw ?? '').trim());
+		if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
+		url.pathname = '';
+		url.search = '';
+		url.hash = '';
+		return url.toString().replace(/\/$/, '');
+	} catch {
+		return '';
+	}
+}
+
+function readAuthConfig() {
+	try {
+		if (!existsSync(CONFIG_PATH)) return { hassUrl: '', token: '' };
+		const raw = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
+		return {
+			hassUrl: normalizeBaseUrl(raw.hassUrl),
+			token: sanitizeToken(raw.token)
+		};
+	} catch {
+		return { hassUrl: '', token: '' };
+	}
+}
+
 // ─── Process-level error handlers ───────────────────────────────────────────
 
 process.on('uncaughtException', (err) => {
@@ -136,13 +166,7 @@ app.get('/api-stratum/ha/info', (_req, res) => {
 // Read persisted auth config (hassUrl + token)
 app.get('/api-stratum/auth-config', (_req, res) => {
 	try {
-		if (existsSync(CONFIG_PATH)) {
-			const raw = readFileSync(CONFIG_PATH, 'utf-8');
-			const cfg = JSON.parse(raw);
-			res.json({ hassUrl: cfg.hassUrl ?? '', token: cfg.token ?? '' });
-		} else {
-			res.json({ hassUrl: '', token: '' });
-		}
+		res.json(readAuthConfig());
 	} catch (err) {
 		console.error('[Stratum] Failed to read auth config:', err.message);
 		res.json({ hassUrl: '', token: '' });
@@ -155,7 +179,14 @@ app.post('/api-stratum/auth-config', express.json(), (req, res) => {
 		const { hassUrl = '', token = '' } = req.body ?? {};
 		const dir = join(CONFIG_PATH, '..');
 		if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-		writeFileSync(CONFIG_PATH, JSON.stringify({ hassUrl, token }, null, 2), 'utf-8');
+		writeFileSync(
+			CONFIG_PATH,
+			JSON.stringify({
+				hassUrl: normalizeBaseUrl(hassUrl),
+				token: sanitizeToken(token)
+			}, null, 2),
+			'utf-8'
+		);
 		res.json({ ok: true });
 	} catch (err) {
 		console.error('[Stratum] Failed to write auth config:', err.message);
@@ -166,13 +197,15 @@ app.post('/api-stratum/auth-config', express.json(), (req, res) => {
 // Test a user-supplied HA URL + token by probing /api/ on their instance
 app.post('/api-stratum/ha/test', express.json(), async (req, res) => {
 	const { url, token } = req.body ?? {};
-	if (!url || !token) {
+	const cleanUrl = normalizeBaseUrl(url);
+	const cleanToken = sanitizeToken(token);
+	if (!cleanUrl || !cleanToken) {
 		return res.status(400).json({ error: 'Missing url or token' });
 	}
 	try {
-		const testUrl = url.replace(/\/$/, '') + '/api/';
+		const testUrl = cleanUrl + '/api/';
 		const response = await fetch(testUrl, {
-			headers: { Authorization: `Bearer ${token}` },
+			headers: { Authorization: `Bearer ${cleanToken}` },
 			signal: AbortSignal.timeout(8000)
 		});
 		if (response.ok) {
@@ -214,22 +247,31 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 	console.log(`[Stratum] ========================================`);
 });
 
-// ─── WebSocket Relay (addon mode) ───────────────────────────────────────────
+// ─── WebSocket Relay ─────────────────────────────────────────────────────────
 // Browser connects to ws://our-server/api-stratum/ws
-// Server opens ws://supervisor/core/api/websocket with SUPERVISOR_TOKEN,
-// mirrors HA auth_required/auth_ok frames to the browser, and rewrites the
-// browser auth payload with SUPERVISOR_TOKEN before forwarding to HA. This
-// preserves the normal client handshake order without exposing credentials.
+// Server opens ws://<HA>/api/websocket and rewrites the browser auth payload
+// with either SUPERVISOR_TOKEN (addon mode) or persisted LLAT (standalone).
+// This keeps browser-origin issues out of the HA websocket auth flow.
 
 const wss = new WebSocketServer({ noServer: true });
 
 wss.on('connection', (browserWs) => {
-	const haWsUrl = HASS_URL.replace(/^http/, 'ws') + '/api/websocket';
+	const cfg = ADDON ? { hassUrl: HASS_URL, token: SUPERVISOR_TOKEN } : readAuthConfig();
+	const relayHassUrl = normalizeBaseUrl(cfg.hassUrl);
+	const relayToken = sanitizeToken(cfg.token);
+
+	if (!relayHassUrl || !relayToken) {
+		console.error('[Stratum] WS relay: missing Home Assistant URL or token');
+		browserWs.close(4401, 'Missing Home Assistant credentials');
+		return;
+	}
+
+	const haWsUrl = relayHassUrl.replace(/^http/, 'ws') + '/api/websocket';
 	console.log(`[Stratum] WS relay: new browser connection → opening ${haWsUrl}`);
 
 	const haWs = new WebSocket(haWsUrl, {
-		headers: SUPERVISOR_TOKEN
-			? { Authorization: `Bearer ${SUPERVISOR_TOKEN}` }
+		headers: relayToken
+			? { Authorization: `Bearer ${relayToken}` }
 			: undefined
 	});
 
@@ -295,7 +337,7 @@ wss.on('connection', (browserWs) => {
 
 		// auth_invalid — close browser connection with a clear error
 		if (msg?.type === 'auth_invalid') {
-			console.error('[Stratum] WS relay: HA auth_invalid — SUPERVISOR_TOKEN rejected');
+			console.error('[Stratum] WS relay: HA auth_invalid — relay token rejected');
 			browserWs.close(4401, 'HA auth_invalid');
 			haWs.close();
 			return;
@@ -318,11 +360,11 @@ wss.on('connection', (browserWs) => {
 		try { msg = JSON.parse(data.toString()); } catch { /* non-JSON frames are relayed */ }
 		if (msg?.type === 'auth') {
 			if (haReady) return;
-			if (!SUPERVISOR_TOKEN) {
-				browserWs.close(4401, 'SUPERVISOR_TOKEN missing');
+			if (!relayToken) {
+				browserWs.close(4401, 'Token missing');
 				return;
 			}
-			pendingAuthPayload = JSON.stringify({ type: 'auth', access_token: SUPERVISOR_TOKEN });
+			pendingAuthPayload = JSON.stringify({ type: 'auth', access_token: relayToken });
 			if (haWs.readyState === WebSocket.OPEN && haAuthRequested) {
 				haWs.send(pendingAuthPayload);
 				pendingAuthPayload = null;
@@ -380,10 +422,18 @@ server.on('upgrade', (req, socket, head) => {
 
 	// Our relay endpoint — no token needed from browser
 	if (pathname === '/api-stratum/ws') {
-		if (!ADDON || !SUPERVISOR_TOKEN) {
+		if (ADDON && !SUPERVISOR_TOKEN) {
 			socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
 			socket.destroy();
 			return;
+		}
+		if (!ADDON) {
+			const cfg = readAuthConfig();
+			if (!cfg.hassUrl || !cfg.token) {
+				socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+				socket.destroy();
+				return;
+			}
 		}
 		wss.handleUpgrade(req, socket, head, (ws) => {
 			wss.emit('connection', ws, req);
@@ -391,8 +441,13 @@ server.on('upgrade', (req, socket, head) => {
 		return;
 	}
 
-	// Proxy all other WS paths to HA (e.g. /api/websocket for standalone mode)
+	// Proxy all other WS paths to HA (e.g. /api/websocket)
 	if (shouldProxy(pathname)) {
 		haProxy.upgrade(req, socket, head);
+		return;
 	}
+
+	// Unknown WS path
+	socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
+	socket.destroy();
 });

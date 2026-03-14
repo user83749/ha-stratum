@@ -1,21 +1,16 @@
 import type { LayoutServerLoad } from './$types';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
 
 const ADDON = process.env.ADDON === 'true';
-const CONFIG_PATH = ADDON
-    ? '/data/stratum-config.json'
-    : join(process.cwd(), 'data', 'stratum-config.json');
 
-export const load: LayoutServerLoad = async () => {
+export const load: LayoutServerLoad = async ({ fetch }) => {
     let config = { hassUrl: '', token: '' };
     try {
-        if (existsSync(CONFIG_PATH)) {
-            const raw = readFileSync(CONFIG_PATH, 'utf-8');
-            const parsed = JSON.parse(raw);
+        const res = await fetch('/api-stratum/auth-config');
+        if (res.ok) {
+            const parsed = await res.json();
             config = {
-                hassUrl: parsed.hassUrl ?? '',
-                token: parsed.token ?? ''
+                hassUrl: String(parsed?.hassUrl ?? '').trim(),
+                token: String(parsed?.token ?? '').trim().replace(/^Bearer\s+/i, '')
             };
         }
     } catch (e) {

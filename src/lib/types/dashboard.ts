@@ -198,6 +198,14 @@ export interface ConditionalBranch {
 	config: TileConfig;
 }
 
+export interface CameraFeedConfig {
+	id: string;
+	type: 'entity' | 'url';
+	entity_id?: string;
+	url?: string;
+	label?: string;
+}
+
 export interface TileConfig {
 	// ── Universal display overrides ───────────────────────────────────────────
 	name?: string;                // override entity friendly_name
@@ -297,7 +305,8 @@ export interface TileConfig {
 	// ── Camera ───────────────────────────────────────────────────────────────
 	stream_type?: 'auto' | 'hls' | 'webrtc' | 'mjpeg';
 	ptz?: boolean;                    // show PTZ controls if camera supports it
-	camera_refresh_interval?: number; // seconds; for snapshot mode (0 = stream only)
+	camera_feeds?: CameraFeedConfig[]; // ordered feed list shown in more-info popup
+	camera_primary_feed?: string; // feed id to select first
 
 	// ── Vacuum ───────────────────────────────────────────────────────────────
 	show_vacuum_map?: boolean;
@@ -850,7 +859,7 @@ export const DEFAULT_NAV: NavConfig = {
 	iconSize: 'md',
 	showLabels: true,
 	showLabelsOnMobile: false,
-	showMobileClock: true,
+	showMobileClock: false,
 	showHeader: false,
 	showConnectionStatus: true,
 	mobileBreakpoint: 800,

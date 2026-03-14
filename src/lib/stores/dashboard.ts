@@ -71,12 +71,10 @@ function createDashboardStore() {
 
 	function mutate(fn: (config: DashboardConfig) => void) {
 		update((config) => {
-			// Avoid full deep-clone on every mutation; Svelte writable stores
-			// notify subscribers for object updates even when the same reference
-			// is returned, so we can safely mutate in place here.
-			fn(config);
-			scheduleSave(config);
-			return config;
+			const next = structuredClone(config);
+			fn(next);
+			scheduleSave(next);
+			return next;
 		});
 	}
 
@@ -438,15 +436,15 @@ function createDashboardStore() {
 					?.sections.find((s) => s.id === sectionId);
 				const tile = section?.tiles.find((t) => t.id === tileId);
 				if (!tile || !section || !layout) return;
-				tile.layout = {
-					x: Math.max(0, Math.floor(layout.x)),
-					y: Math.max(0, Math.floor(layout.y)),
-					w: Math.max(1, Math.floor(layout.w)),
-					h: Math.max(1, Math.floor(layout.h))
-				};
-				section.tiles = normalizeTilesForStorage(section.tiles, getSectionMaxColumns(section));
-			});
-		},
+					tile.layout = {
+						x: Math.max(0, Math.floor(layout.x)),
+						y: Math.max(0, Math.floor(layout.y)),
+						w: Math.max(1, Math.floor(layout.w)),
+						h: Math.max(1, Math.floor(layout.h))
+					};
+					section.tiles = normalizeTilesForStorage(section.tiles, getSectionMaxColumns(section));
+				});
+			},
 
 		setTileSizePreset(pageId: string, sectionId: string, tileId: string, sizePreset: NonNullable<Tile['sizePreset']>) {
 			mutate((c) => {

@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.49] - 2026-03-14
+
+### Changed
+- Extensive updates to `CameraMoreInfo`, `MoreInfoDialog`, and `MoreInfoShell` dialogs.
+- Improved `CameraTile` and `TileWrapper` rendering logic for better stability.
+- Enhancements to `TileEditor`, `NavSettings`, `ProfilesSettings`, and `NotificationsPanel` UI handling.
+- Optimized websocket stability, `dashboard.ts` store logic, and added new authentication config endpoints.
+- Server-side component fixes in `server.js` and layout routines.
+
 ## [1.0.48] - 2026-03-12
 
 ### Changed

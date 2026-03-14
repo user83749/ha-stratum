@@ -12,6 +12,7 @@
 	import { THEME_PRESETS } from '$lib/themes/presets';
 	import { entities } from '$lib/ha/websocket';
 	import { getEntityName } from '$lib/ha/entities';
+	import { isSettingsOpen } from '$lib/stores/ui';
 
 	let root = $derived($dashboardStore);
 	let cfg = $derived(root.nav);
@@ -48,21 +49,28 @@ let mobileStyle = $derived(cfg.mobileStyle);
 
 	// ── Favorites (inline) ──────────────────────────────────────────────────
 	let favSearchQuery = $state('');
+	const hasFavSearchQuery = $derived(favSearchQuery.trim().length > 0);
 	const favFiltered = $derived(
-		favSearchQuery.trim()
+		hasFavSearchQuery
 			? allEntities.filter((e) => {
-					const q = favSearchQuery.toLowerCase();
+					const q = favSearchQuery.trim().toLowerCase();
 					return (
 						e.entity_id.toLowerCase().includes(q) ||
 						getEntityName(e).toLowerCase().includes(q)
 					);
 				})
-			: allEntities
+			: []
 	);
 	const favDisplayList = $derived(favFiltered.slice(0, 80));
 	function isFavorite(entityId: string): boolean {
 		return favorites.entityIds.includes(entityId);
 	}
+
+	$effect(() => {
+		if (!$isSettingsOpen && favSearchQuery) {
+			favSearchQuery = '';
+		}
+	});
 </script>
 
 <div class="ns">
@@ -394,7 +402,12 @@ let mobileStyle = $derived(cfg.mobileStyle);
 		</div>
 
 		<div class="fs__list">
-			{#if allEntities.length === 0}
+			{#if !hasFavSearchQuery}
+				<div class="fs__empty">
+					<Icon name="search" size={20} />
+					<span>Type to search entities.</span>
+				</div>
+			{:else if allEntities.length === 0}
 				<div class="fs__empty">
 					<Icon name="wifi-off" size={20} />
 					<span>No entities available. Connect to Home Assistant first.</span>
@@ -405,7 +418,7 @@ let mobileStyle = $derived(cfg.mobileStyle);
 					<span>No entities match your search.</span>
 				</div>
 			{:else}
-				{#each favDisplayList as entity}
+				{#each favDisplayList as entity (entity.entity_id)}
 					{@const fav = isFavorite(entity.entity_id)}
 					<div class="fs__item" class:fs__item--fav={fav}>
 						<div class="fs__item-info">

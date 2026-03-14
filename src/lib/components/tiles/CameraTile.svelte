@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { HassEntity } from 'home-assistant-js-websocket';
 	import type { Tile } from '$lib/types/dashboard';
-  import { getTileSizePreset } from '$lib/layout/tileSizing';
+	import { configStore } from '$lib/stores/config';
+	import { getTileSizePreset } from '$lib/layout/tileSizing';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { isCustomIcon } from '$lib/icons/customIcons';
 
@@ -11,7 +12,19 @@
 	const name           = $derived((tile.config.name as string | undefined) ?? entity?.attributes.friendly_name ?? 'Camera');
 	const iconOverride   = $derived(((tile.config.icon as string | undefined) ?? '').trim() || undefined);
 	const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
-	const streamUrl      = $derived(entity?.attributes.entity_picture as string | undefined);
+	const snapshotUrl = $derived.by(() => {
+		const picture = String(entity?.attributes.entity_picture ?? '').trim();
+		if (!picture) return '';
+		const accessToken = String(entity?.attributes.access_token ?? '').trim();
+		const absolute = /^https?:\/\//i.test(picture)
+			? picture
+			: (() => {
+				const base = String($configStore.hassUrl ?? '').trim().replace(/\/+$/, '');
+				return base ? `${base}${picture.startsWith('/') ? picture : `/${picture}`}` : picture;
+			})();
+		if (!accessToken || /[?&]token=/.test(absolute)) return absolute;
+		return `${absolute}${absolute.includes('?') ? '&' : '?'}token=${accessToken}`;
+	});
 	const motionDetected = $derived(entity?.attributes.motion_detection as boolean | undefined);
 	const isRecording    = $derived(entity?.state === 'recording');
 	const isStreaming    = $derived(entity?.state === 'streaming' || entity?.state === 'idle');
@@ -30,9 +43,9 @@
 </script>
 
 <div class="camera-tile" class:unavailable data-size={sizePreset}>
-	{#if streamUrl && !unavailable}
+	{#if snapshotUrl && !unavailable}
 		<div class="stream-container">
-			<img src={streamUrl} alt={name} class="stream-img" style="pointer-events: none;" />
+			<img src={snapshotUrl} alt={name} class="stream-img" style="pointer-events: none;" />
 
 			{#if isRecording}
 				<span class="rec-dot"></span>
@@ -89,11 +102,13 @@
 
 <style>
 	.camera-tile {
-		width: 100%;
-		height: 100%;
+		width: calc(100% + var(--tile-padding, 10px) * 2);
+		height: calc(100% + var(--tile-padding, 10px) * 2);
+		margin: calc(var(--tile-padding, 10px) * -1);
 		position: relative;
 		overflow: hidden;
 		border-radius: inherit;
+		box-sizing: border-box;
 	}
 
 	/* ── Stream view ─────────────────────────────────────────────────────── */

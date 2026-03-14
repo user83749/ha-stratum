@@ -26,7 +26,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
     }
 
     const baseUrl = normalizeBaseUrl(body.url ?? '');
-    const token = (body.token ?? '').trim();
+    const token = (body.token ?? '').trim().replace(/^Bearer\s+/i, '');
 
     if (!token) {
         error(400, 'Access token is required');

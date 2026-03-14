@@ -92,6 +92,7 @@
 	// ─── Domain routing ───────────────────────────────────────────────────────
 
 	const domain = $derived(entityId ? getDomain(entityId) : '');
+	const shellVariant = $derived(domain === 'camera' ? 'camera' : 'default');
 
 	// TV detection: device_class first, then media_content_type as fallback
 	const TV_CONTENT_TYPES = new Set(['tvshow', 'video', 'movie', 'episode', 'channel']);
@@ -118,6 +119,7 @@
 		{style}
 		{side}
 		{title}
+		variant={shellVariant}
 		onclose={close}
 		canBack={canBack}
 		onback={back}
@@ -135,7 +137,7 @@
 	{:else if domain === 'alarm_control_panel'}
 		<AlarmPanelMoreInfo {entityId} />
 	{:else if domain === 'camera'}
-		<CameraMoreInfo {entityId} />
+		<CameraMoreInfo {entityId} tile={selectedTile} />
 	{:else if domain === 'calendar'}
 		<CalendarMoreInfo {entityId} />
 	{:else if domain === 'climate'}

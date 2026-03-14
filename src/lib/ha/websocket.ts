@@ -17,8 +17,23 @@ export const entities = writable<HassEntities>({});
 export const error = writable<string | null>(null);
 
 let unsubscribeEntities: (() => void) | null = null;
+const FIRST_SNAPSHOT_TIMEOUT_MS = 6000;
 
 function attachListeners(conn: Connection) {
+	// Explicit initial state bootstrap. This guarantees entity availability even
+	// if the subscription stream is slow/late in some standalone local setups.
+	void conn.sendMessagePromise({ type: 'get_states' })
+		.then((statesRaw) => {
+			const states = Array.isArray(statesRaw) ? statesRaw : [];
+			const stateMap = statesToMap(states);
+			clearPatchesForSnapshot(stateMap);
+			entities.set(stateMap);
+			syncBaseEntities(stateMap);
+		})
+		.catch(() => {
+			// subscription path will still drive updates if this fails
+		});
+
 	connection.set(conn);
 	connectionStatus.set('connected');
 	unsubscribeEntities = subscribeEntities(conn, (state) => {
@@ -34,6 +49,50 @@ function attachListeners(conn: Connection) {
 	conn.addEventListener('reconnect-error', () => connectionStatus.set('error'));
 }
 
+function relayWsUrl(): string {
+	const loc = window.location;
+	const proto = loc.protocol === 'https:' ? 'wss' : 'ws';
+	const ingressMatch = loc.pathname.match(/^(\/api\/hassio_ingress\/[^/]+)/);
+	const ingressPrefix = ingressMatch ? ingressMatch[1] : '';
+	return `${proto}://${loc.host}${ingressPrefix}/api-stratum/ws`;
+}
+
+function statesToMap(states: any[]): HassEntities {
+	const map: HassEntities = {};
+	for (const state of states) {
+		if (state?.entity_id) map[state.entity_id] = state;
+	}
+	return map;
+}
+
+async function seedInitialStates(conn: Connection): Promise<void> {
+	const states = await Promise.race([
+		conn.sendMessagePromise({ type: 'get_states' }) as Promise<any[]>,
+		new Promise<never>((_, reject) =>
+			setTimeout(() => reject(new Error('No entity snapshot received')), FIRST_SNAPSHOT_TIMEOUT_MS)
+		)
+	]);
+	const stateMap = statesToMap(states);
+	clearPatchesForSnapshot(stateMap);
+	entities.set(stateMap);
+	syncBaseEntities(stateMap);
+}
+
+async function connectViaRelay(): Promise<Connection> {
+	const loc = window.location;
+	const fakeAuth = {
+		data: { hassUrl: loc.origin, access_token: '', expires: 0, expires_in: 0, refresh_token: '', token_type: 'Bearer' },
+		wsUrl: relayWsUrl(),
+		accessToken: '',
+		expired: false,
+		refreshAccessToken: async () => { /* no-op */ }
+	} as unknown as Auth;
+
+	const conn = await createConnection({ auth: fakeAuth });
+	await seedInitialStates(conn);
+	return conn;
+}
+
 // ── Addon mode: connect via our server-side WebSocket relay ─────────────────
 // The relay at /api-stratum/ws handles HA auth with SUPERVISOR_TOKEN
 // automatically — no token needed from the browser.
@@ -43,38 +102,9 @@ export async function connectAddon(): Promise<void> {
 	error.set(null);
 
 	try {
-		// Build an absolute ws(s):// URL to our relay.
-		// When accessed via HA Ingress (iPhone app or external HTTPS), the page is
-		// served at /api/hassio_ingress/{token}/... and the reverse proxy only
-		// routes requests that carry the Ingress token in the path.  We must
-		// therefore preserve the /api/hassio_ingress/{token}/ prefix when building
-		// the WebSocket URL, otherwise the HA proxy rejects the upgrade before it
-		// reaches our server.
-		const loc = window.location;
-		const proto = loc.protocol === 'https:' ? 'wss' : 'ws';
-
-		// Extract Ingress prefix: /api/hassio_ingress/{token}  (no trailing slash)
-		const ingressMatch = loc.pathname.match(/^(\/api\/hassio_ingress\/[^/]+)/);
-		const ingressPrefix = ingressMatch ? ingressMatch[1] : '';
-
-		const relayUrl = `${proto}://${loc.host}${ingressPrefix}/api-stratum/ws`;
-
-		// Minimal Auth-like object — hassUrl is only used by the library to
-		// build the WS URL when createSocket is NOT overridden, so with our
-		// custom createSocket it is ignored.  We still need it non-empty.
-		const fakeAuth = {
-			data: { hassUrl: loc.origin, access_token: '', expires: 0, expires_in: 0, refresh_token: '', token_type: 'Bearer' },
-			wsUrl: relayUrl,
-			accessToken: '',
-			expired: false,
-			refreshAccessToken: async () => { /* no-op */ }
-		} as unknown as Auth;
-
 		// No custom createSocket — the library's default socket.js flow handles
-		// auth_required / auth_ok naturally.  The relay sends both to the browser
-		// after completing the HA auth server-side, and also discards the browser's
-		// own auth message so no real token is ever needed from the client.
-		const conn = await createConnection({ auth: fakeAuth });
+		// auth_required / auth_ok naturally.
+		const conn = await connectViaRelay();
 
 		attachListeners(conn);
 	} catch (err) {
@@ -90,8 +120,12 @@ export async function connect(hassUrl: string, token: string): Promise<void> {
 	error.set(null);
 
 	try {
-		const auth = createLongLivedTokenAuth(hassUrl, token);
+		const cleanToken = token.trim().replace(/^Bearer\s+/i, '');
+		const auth = createLongLivedTokenAuth(hassUrl.trim(), cleanToken);
+		// Standalone/manual credentials path: always use exactly what the user
+		// entered. No relay fallback here to avoid any add-on-style ambiguity.
 		const conn = await createConnection({ auth });
+		await seedInitialStates(conn);
 		attachListeners(conn);
 	} catch (err) {
 		connectionStatus.set('error');

@@ -6,7 +6,8 @@
 	import { getAllowedPresets, getTileSizePreset } from '$lib/layout/tileSizing';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { CUSTOM_ICON_NAMES } from '$lib/icons/customIcons';
-	import type { Tile, Action } from '$lib/types/dashboard';
+	import { generateId } from '$lib/utils/uuid';
+	import type { Tile, Action, CameraFeedConfig } from '$lib/types/dashboard';
 
 	interface Props {
 		open: boolean;
@@ -23,6 +24,7 @@
 	let name = $state('');
 	let icon = $state('');
 	let builtinOpen = $state(false);
+	let draggedCameraFeedIndex = $state<number | null>(null);
 
 	const domain = $derived(
 		tile?.entity_id ? getDomain(tile.entity_id) : (tile?.type ?? '')
@@ -33,6 +35,11 @@
 	const tvRemoteCandidates = $derived(
 		Object.keys($entities)
 			.filter((id) => id.startsWith('media_player.') || id.startsWith('remote.'))
+			.sort()
+	);
+	const cameraEntityCandidates = $derived(
+		Object.keys($entities)
+			.filter((id) => id.startsWith('camera.'))
 			.sort()
 	);
 	const isTvMediaTile = $derived(
@@ -53,6 +60,7 @@
 		if (tile.type === 'media_hero') return true;
 		if (tile.type === 'gauge') return true;
 		if (tile.type === 'alarm_panel') return true;
+		if (tile.type === 'camera' || domain === 'camera') return true;
 		if (tile.type === 'markdown') return true;
 		if (tile.type === 'iframe') return true;
 		if (tile.type === 'image') return true;
@@ -172,6 +180,70 @@
 		save({
 			tv_remote_entities: Object.keys(current).length > 0 ? current : undefined
 		});
+	}
+
+	function getCameraFeeds(): CameraFeedConfig[] {
+		if (!tile) return [];
+		const feeds = (tile.config.camera_feeds as CameraFeedConfig[] | undefined) ?? [];
+		return feeds.filter((f) => !!f && typeof f.id === 'string' && f.id.length > 0);
+	}
+
+	function saveCameraFeeds(feeds: CameraFeedConfig[]) {
+		if (!tile) return;
+		const normalized = feeds.map((feed) => ({
+			id: feed.id || generateId(),
+			type: feed.type === 'url' ? 'url' : 'entity',
+			entity_id: feed.type === 'entity' ? (feed.entity_id?.trim() || '') : undefined,
+			url: feed.type === 'url' ? (feed.url?.trim() || '') : undefined,
+			label: feed.label?.trim() || undefined
+		}));
+		const primary = (tile.config.camera_primary_feed as string | undefined) ?? '';
+		const nextPrimary = normalized.some((f) => f.id === primary) ? primary : (normalized[0]?.id ?? undefined);
+		save({
+			camera_feeds: normalized.length > 0 ? normalized : undefined,
+			camera_primary_feed: nextPrimary
+		});
+	}
+
+	function addCameraEntityFeed() {
+		const feeds = getCameraFeeds();
+		feeds.push({
+			id: generateId(),
+			type: 'entity',
+			entity_id: tile?.entity_id ?? '',
+			label: ''
+		});
+		saveCameraFeeds(feeds);
+	}
+
+	function addCameraUrlFeed() {
+		const feeds = getCameraFeeds();
+		feeds.push({
+			id: generateId(),
+			type: 'url',
+			url: '',
+			label: ''
+		});
+		saveCameraFeeds(feeds);
+	}
+
+	function removeCameraFeed(feedId: string) {
+		const feeds = getCameraFeeds().filter((f) => f.id !== feedId);
+		saveCameraFeeds(feeds);
+	}
+
+	function updateCameraFeed(feedId: string, patch: Partial<CameraFeedConfig>) {
+		const feeds = getCameraFeeds().map((feed) => (feed.id === feedId ? { ...feed, ...patch } : feed));
+		saveCameraFeeds(feeds);
+	}
+
+	function reorderCameraFeed(fromIndex: number, toIndex: number) {
+		const feeds = getCameraFeeds();
+		if (fromIndex < 0 || toIndex < 0 || fromIndex >= feeds.length || toIndex >= feeds.length || fromIndex === toIndex) return;
+		const next = [...feeds];
+		const [moved] = next.splice(fromIndex, 1);
+		next.splice(toIndex, 0, moved);
+		saveCameraFeeds(next);
 	}
 </script>
 
@@ -462,6 +534,114 @@
 						onchange={(e) => save({ show_keypad: (e.target as HTMLInputElement).checked })} />
 					Show keypad
 				</label>
+			{/if}
+
+			{#if tile.type === 'camera' || domain === 'camera'}
+				<span class="te__label te__mt12">Feeds</span>
+				<p class="te__hint">
+					Add camera entities or URLs for this popup. Non-primary feeds are loaded only when selected.
+				</p>
+				<div class="te__row te__row--gap">
+					<button class="te__add-btn te__add-btn--large" type="button" onclick={addCameraEntityFeed}>
+						<Icon name="plus" size={14} /> <span>Add camera entity</span>
+					</button>
+					<button class="te__add-btn te__add-btn--large" type="button" onclick={addCameraUrlFeed}>
+						<Icon name="plus" size={14} /> <span>Add custom URL</span>
+					</button>
+				</div>
+				{@const cameraFeeds = getCameraFeeds()}
+				{#if cameraFeeds.length === 0}
+					<p class="te__hint">
+						No extra feeds configured. The tile entity feed is used by default.
+					</p>
+				{:else}
+					<div class="te__player-map">
+						{#each cameraFeeds as feed, i (feed.id)}
+							<div
+								class="te__pm-row te__feed-row"
+								role="listitem"
+								draggable="true"
+								ondragstart={() => { draggedCameraFeedIndex = i; }}
+								ondragover={(e) => e.preventDefault()}
+								ondrop={(e) => {
+									e.preventDefault();
+									if (draggedCameraFeedIndex !== null) reorderCameraFeed(draggedCameraFeedIndex, i);
+									draggedCameraFeedIndex = null;
+								}}
+								ondragend={() => { draggedCameraFeedIndex = null; }}
+							>
+								<div class="te__pm-header">
+									<span class="te__pm-index">#{i + 1}</span>
+									<span class="te__feed-drag" title="Drag to reorder">
+										<Icon name="grip-vertical" size={12} />
+									</span>
+									<label class="te__feed-primary">
+										<input
+											type="radio"
+											name="camera-primary-feed"
+											checked={(tile.config.camera_primary_feed as string | undefined) === feed.id}
+											onchange={() => save({ camera_primary_feed: feed.id })}
+										/>
+										Primary
+									</label>
+									<button class="te__icon-btn te__icon-btn--danger te__pm-del" onclick={() => removeCameraFeed(feed.id)} type="button">
+										<Icon name="trash-2" size={13} />
+									</button>
+								</div>
+								<div class="te__pm-grid">
+									<div>
+										<span class="te__label">Source type</span>
+										<select
+											class="te__select te__select--sm"
+											value={feed.type}
+											onchange={(e) => {
+												const nextType = (e.target as HTMLSelectElement).value as 'entity' | 'url';
+												updateCameraFeed(feed.id, nextType === 'entity'
+													? { type: 'entity', entity_id: tile.entity_id ?? '', url: undefined }
+													: { type: 'url', url: '', entity_id: undefined }
+												);
+											}}
+										>
+											<option value="entity">Camera entity</option>
+											<option value="url">Custom URL</option>
+										</select>
+									</div>
+									<div>
+										<span class="te__label">{feed.type === 'url' ? 'Feed URL' : 'Camera entity'}</span>
+										<input
+											class="te__input te__input--sm"
+											type={feed.type === 'url' ? 'url' : 'text'}
+											list={feed.type === 'entity' ? 'te-camera-entity-candidates' : undefined}
+											placeholder={feed.type === 'url' ? 'https://…' : 'camera.front_door'}
+											value={feed.type === 'url' ? (feed.url ?? '') : (feed.entity_id ?? '')}
+											oninput={(e) =>
+												updateCameraFeed(feed.id, feed.type === 'url'
+													? { url: (e.target as HTMLInputElement).value }
+													: { entity_id: (e.target as HTMLInputElement).value }
+												)
+											}
+										/>
+									</div>
+									<div>
+										<span class="te__label">Label (optional)</span>
+										<input
+											class="te__input te__input--sm"
+											type="text"
+											placeholder="Front Door"
+											value={feed.label ?? ''}
+											oninput={(e) => updateCameraFeed(feed.id, { label: (e.target as HTMLInputElement).value })}
+										/>
+									</div>
+								</div>
+							</div>
+						{/each}
+						<datalist id="te-camera-entity-candidates">
+							{#each cameraEntityCandidates as candidate}
+								<option value={candidate}></option>
+							{/each}
+						</datalist>
+					</div>
+				{/if}
 			{/if}
 
 			{#if tile.type === 'markdown'}
@@ -901,9 +1081,30 @@
 	}
 
 	.te__row--gap { gap: 16px; }
+	.te__feed-row { cursor: grab; }
+	.te__feed-row:active { cursor: grabbing; }
+	.te__feed-drag {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 22px;
+		height: 22px;
+		color: var(--fg-subtle);
+	}
+	.te__feed-primary {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 0.72rem;
+		color: var(--fg-subtle);
+		margin-left: auto;
+	}
+	.te__feed-primary input {
+		margin: 0;
+	}
 
 	.te__pm-del {
 		flex-shrink: 0;
-		margin-left: auto;
+		margin-left: 6px;
 	}
 </style>

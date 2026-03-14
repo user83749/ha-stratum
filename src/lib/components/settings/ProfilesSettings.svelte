@@ -68,10 +68,6 @@
 		<div class="ps__empty">
 			<Icon name="user" size={24} />
 			<span>No profiles yet. Create one to get started.</span>
-			<button class="ps__add-btn ps__add-btn--lg" onclick={addProfile}>
-				<Icon name="plus" size={14} />
-				Add profile
-			</button>
 		</div>
 	{:else}
 		<div class="ps__list">
@@ -163,10 +159,6 @@
 
 	.ps__add-btn:hover {
 		background: color-mix(in srgb, var(--accent) 22%, transparent);
-	}
-
-	.ps__add-btn--lg {
-		margin-top: 8px;
 	}
 
 	/* ── Empty ─────────────────────────────────────────────────────────────── */

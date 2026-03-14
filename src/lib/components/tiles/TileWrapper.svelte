@@ -251,54 +251,64 @@
 	}
 
 	async function fireAction(type: 'tap' | 'hold' | 'double_tap') {
-		if (editing) return;
+		try {
+			if (editing) return;
 
-		let action =
-			type === 'tap'        ? (tile.config.tap_action   ?? tileDefaults?.tap_action)   :
-			type === 'hold'       ? (tile.config.hold_action  ?? tileDefaults?.hold_action)  :
-			                        resolvedDblTap;
+			let action =
+				type === 'tap'        ? (tile.config.tap_action   ?? tileDefaults?.tap_action)   :
+				type === 'hold'       ? (tile.config.hold_action  ?? tileDefaults?.hold_action)  :
+				                        resolvedDblTap;
 
-		if (!action || action.type === 'none') return;
+			if (!action || action.type === 'none') return;
 
-		// Prevent "toggle" on non-togglable domains regardless of config
-		if (action.type === 'toggle' && entity) {
-			const domain = entity.entity_id.split('.')[0] ?? '';
-			const togglable = ['light', 'switch', 'input_boolean', 'fan', 'climate', 'cover', 'lock', 'vacuum', 'siren', 'humidifier', 'water_heater', 'media_player', 'alarm_control_panel', 'automation', 'script', 'scene', 'valve', 'button', 'input_button'];
-			if (!togglable.includes(domain)) {
-				action = { ...action, type: 'more-info' };
+			// Prevent "toggle" on non-togglable domains regardless of config
+			if (action.type === 'toggle' && entity) {
+				const domain = entity.entity_id.split('.')[0] ?? '';
+				const togglable = ['light', 'switch', 'input_boolean', 'fan', 'climate', 'cover', 'lock', 'vacuum', 'siren', 'humidifier', 'water_heater', 'media_player', 'alarm_control_panel', 'automation', 'script', 'scene', 'valve', 'button', 'input_button'];
+				if (!togglable.includes(domain)) {
+					action = { ...action, type: 'more-info' };
+				}
 			}
+
+			if (tile.config.confirm_action) {
+				const entityName = entity
+					? (entity.attributes.friendly_name as string | undefined) ?? entity.entity_id
+					: tile.config.name ?? 'this tile';
+				const confirmed = window.confirm(`Confirm action on "${entityName}"?`);
+				if (!confirmed) return;
+			}
+
+			if (type === 'tap' && onTap) { onTap(); return; }
+			if (type === 'hold' && onHold) { onHold(); return; }
+
+			if (action.type === 'more-info') {
+				uiStore.openDialog(tile.entity_id ?? entity?.entity_id ?? '', undefined, tile.type, tile.id);
+				return;
+			}
+
+			// Home Assistant has no generic "toggle" for locks via homeassistant.toggle.
+			// If the user configured tap=toggle (or defaults), map it to lock/unlock.
+			if (action.type === 'toggle' && tile.type === 'lock') {
+				const id = tile.entity_id ?? entity?.entity_id ?? '';
+				const s = entity?.state ?? 'unknown';
+				if (!id) return;
+				if (s === 'locked') { lockService.unlock(id).catch(() => {}); return; }
+				if (s === 'unlocked') { lockService.lock(id).catch(() => {}); return; }
+				// Fallback: open more-info if state is nonstandard.
+				uiStore.openDialog(id, undefined, tile.type, tile.id);
+				return;
+			}
+
+			await handleAction(action, tile.entity_id ?? entity?.entity_id);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			// Only suppress the known disconnected case; other failures should surface.
+			if (message.includes('Not connected to Home Assistant')) {
+				console.warn('[TileWrapper] Action skipped: Home Assistant is not connected');
+				return;
+			}
+			throw err;
 		}
-
-		if (tile.config.confirm_action) {
-			const entityName = entity
-				? (entity.attributes.friendly_name as string | undefined) ?? entity.entity_id
-				: tile.config.name ?? 'this tile';
-			const confirmed = window.confirm(`Confirm action on "${entityName}"?`);
-			if (!confirmed) return;
-		}
-
-		if (type === 'tap' && onTap) { onTap(); return; }
-		if (type === 'hold' && onHold) { onHold(); return; }
-
-		if (action.type === 'more-info') {
-			uiStore.openDialog(tile.entity_id ?? entity?.entity_id ?? '', undefined, tile.type, tile.id);
-			return;
-		}
-
-		// Home Assistant has no generic "toggle" for locks via homeassistant.toggle.
-		// If the user configured tap=toggle (or defaults), map it to lock/unlock.
-		if (action.type === 'toggle' && tile.type === 'lock') {
-			const id = tile.entity_id ?? entity?.entity_id ?? '';
-			const s = entity?.state ?? 'unknown';
-			if (!id) return;
-			if (s === 'locked') { lockService.unlock(id).catch(() => {}); return; }
-			if (s === 'unlocked') { lockService.lock(id).catch(() => {}); return; }
-			// Fallback: open more-info if state is nonstandard.
-			uiStore.openDialog(id, undefined, tile.type, tile.id);
-			return;
-		}
-
-		await handleAction(action, tile.entity_id ?? entity?.entity_id);
 	}
 
 	/** Returns true if the event originated from an interactive child element (button, input, etc). */
