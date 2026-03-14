@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.51] - 2026-03-14
+
+### Changed
+- Refined websocket connection logic and error handling in `websocket.ts`.
+- Improved server-side relay stabilization in `server.js`.
+
 ## [1.0.50] - 2026-03-14
 
 ### Added

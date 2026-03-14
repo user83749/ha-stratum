@@ -74,12 +74,14 @@ async function connectViaRelay(): Promise<Connection> {
 		refreshAccessToken: async () => { /* no-op */ }
 	} as unknown as Auth;
 
+	// Do not block add-on connect on an explicit get_states bootstrap; the
+	// relay/subscription path should establish connection immediately.
 	return createConnection({ auth: fakeAuth });
 }
 
 // ── Addon mode: connect via our server-side WebSocket relay ─────────────────
-// The relay at /api-stratum/ws handles HA auth with SUPERVISOR_TOKEN
-// automatically — no token needed from the browser.
+// The relay at /api-stratum/ws handles add-on HA auth server-side — no token
+// needed from the browser.
 export async function connectAddon(): Promise<void> {
 	if (get(connection)) disconnect();
 	connectionStatus.set('connecting');

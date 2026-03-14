@@ -81,10 +81,13 @@ const HASS_URL = process.env.HASS_URL
 const INTERNAL_API_PREFIXES = ['/api-stratum'];
 
 function resolveTarget(_req) {
-	// Always proxy to HASS_URL — in addon mode this is http://supervisor/core,
-	// in standalone mode it is the user-configured HA instance URL.
-	// SUPERVISOR_TOKEN is injected as Authorization by haProxy's headers config.
-	return HASS_URL;
+	// Add-on mode always proxies to supervisor/core.
+	if (ADDON) return HASS_URL;
+
+	// Standalone mode proxies to the configured HA URL when present, otherwise
+	// falls back to the env/default HASS_URL.
+	const cfg = readAuthConfig();
+	return cfg.hassUrl || HASS_URL;
 }
 
 const haProxy = createProxyMiddleware({
@@ -121,12 +124,6 @@ app.use((req, _res, next) => {
 			req.url = '/' + parts.slice(4).join('/');
 		}
 	}
-	next();
-});
-
-// Add X-Proxy-Target for SvelteKit +page.server.ts load function
-app.use((req, _res, next) => {
-	req.headers['X-Proxy-Target'] = resolveTarget(req);
 	next();
 });
 
@@ -256,9 +253,15 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 const wss = new WebSocketServer({ noServer: true });
 
 wss.on('connection', (browserWs) => {
-	const cfg = ADDON ? { hassUrl: HASS_URL, token: SUPERVISOR_TOKEN } : readAuthConfig();
-	const relayHassUrl = normalizeBaseUrl(cfg.hassUrl);
-	const relayToken = sanitizeToken(cfg.token);
+	const standaloneAuth = ADDON ? null : readAuthConfig();
+	// Add-on mode must preserve the /core path in HASS_URL (e.g. http://supervisor/core).
+	// Standalone mode should continue using normalized user-supplied base URL.
+	const relayHassUrl = ADDON
+		? String(HASS_URL ?? '').trim().replace(/\/$/, '')
+		: normalizeBaseUrl(standaloneAuth?.hassUrl);
+	const relayToken = ADDON
+		? sanitizeToken(SUPERVISOR_TOKEN)
+		: sanitizeToken(standaloneAuth?.token);
 
 	if (!relayHassUrl || !relayToken) {
 		console.error('[Stratum] WS relay: missing Home Assistant URL or token');
