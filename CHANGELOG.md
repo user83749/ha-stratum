@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.54] - 2026-03-15
+
+### Changed
+- **Major Architecture Upgrade**: Migrated to latest SvelteKit/Vite ecosystem with a refined dependency tree.
+- **Dependency Cleanup**: Removed legacy packages including `svelte-sonner`, `tailwind-variants`, `vanilla-tilt`, and `svelte-dnd-action`.
+- Updated `lucide-svelte` to `^0.577.0`.
+- Refined Docker publishing workflow for `aarch64` optimization and image verification.
+- Updated `docker-publish` action to `v6`.
+
 ## [1.0.53] - 2026-03-15
 
 ### Added
