@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.56] - 2026-03-15
+
+### Changed
+- **Camera Dialog Refinements**: Significantly improved reactivity and state management for camera feeds using Svelte 5 `$derived.by` patterns.
+- Optimized stream state transitions for smoother feed switching.
+- Fixed minor accessibility lint warnings in the camera overlay.
+
 ## [1.0.55] - 2026-03-15
 
 ### Added

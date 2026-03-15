@@ -65,13 +65,13 @@
 			: (feeds[0]?.id ?? '');
 	});
 
-	let activeFeedId = $state('');
+	let userSelectedFeedId = $state('');
 
-	$effect(() => {
-		if (!feeds.length) { activeFeedId = ''; return; }
-		if (!activeFeedId || !feeds.some((f) => f.id === activeFeedId)) {
-			activeFeedId = primaryFeedId;
+	const activeFeedId = $derived.by(() => {
+		if (userSelectedFeedId && feeds.some((f) => f.id === userSelectedFeedId)) {
+			return userSelectedFeedId;
 		}
+		return primaryFeedId || feeds[0]?.id || '';
 	});
 
 	const activeFeed = $derived(feeds.find((f) => f.id === activeFeedId) ?? null);
@@ -96,6 +96,18 @@
 	let peerConnection: RTCPeerConnection | null = null;
 	let videoEl = $state<HTMLVideoElement | null>(null);
 
+	function setFeedStreamState(feedId: string, next: StreamState) {
+		const prev = streamStateByFeed[feedId];
+		if (
+			prev &&
+			prev.status === next.status &&
+			(prev.status !== 'error' || (next.status === 'error' && prev.message === next.message))
+		) {
+			return;
+		}
+		streamStateByFeed = { ...streamStateByFeed, [feedId]: next };
+	}
+
 	function teardown() {
 		if (peerConnection) {
 			peerConnection.close();
@@ -108,25 +120,20 @@
 
 	async function startWebRtc(feed: ResolvedCameraFeed, el: HTMLVideoElement) {
 		if (!feed.entityId) {
-			streamStateByFeed = {
-				...streamStateByFeed,
-				[feed.id]: { status: 'error', message: 'URL-type feeds do not support streaming.' }
-			};
+			setFeedStreamState(feed.id, { status: 'error', message: 'URL-type feeds do not support streaming.' });
 			return;
 		}
 
 		teardown();
-		streamStateByFeed = { ...streamStateByFeed, [feed.id]: { status: 'loading' } };
+		setFeedStreamState(feed.id, { status: 'loading' });
 
 		try {
 			const pc = new RTCPeerConnection();
 			peerConnection = pc;
 
-			// We only want to receive video (and audio if available)
 			pc.addTransceiver('video', { direction: 'recvonly' });
 			pc.addTransceiver('audio', { direction: 'recvonly' });
 
-			// Pipe incoming tracks straight to the video element
 			pc.ontrack = (event) => {
 				if (event.streams[0]) {
 					el.srcObject = event.streams[0];
@@ -147,18 +154,14 @@
 			);
 
 			el.play().catch(() => {});
-			streamStateByFeed = { ...streamStateByFeed, [feed.id]: { status: 'ready' } };
+			setFeedStreamState(feed.id, { status: 'ready' });
 
 		} catch (e) {
 			teardown();
-			streamStateByFeed = {
-				...streamStateByFeed,
-				[feed.id]: { status: 'error', message: 'Stream unavailable.' }
-			};
+			setFeedStreamState(feed.id, { status: 'error', message: 'Stream unavailable.' });
 		}
 	}
 
-	// Start/restart stream whenever active feed or video element changes
 	$effect(() => {
 		const feed = activeFeed;
 		const el = videoEl;
@@ -176,7 +179,7 @@
 	// ── Feed Selection ─────────────────────────────────────────────────────
 	function selectFeed(feedId: string) {
 		haptic('medium');
-		activeFeedId = feedId;
+		userSelectedFeedId = feedId;
 	}
 </script>
 
@@ -209,7 +212,7 @@
 
 	<!-- ── Video ────────────────────────────────────────────────────────────── -->
 	<div class="cammi__media">
-		<!-- svelte-ignore a11y-media-has-caption -->
+		<!-- svelte-ignore a11y_media_has_caption -->
 		<video
 			bind:this={videoEl}
 			class="cammi__video"
