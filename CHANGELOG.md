@@ -10,7 +10,7 @@
 - **Mobile Layout Refinements**: Improved bottom-bar insets and navigation behavior on mobile devices.
 - **Pinned Sections**: Refined handling of bottom-pinned chip rows for better visual integration.
 - **Component Consistency**: Updated `AppHeader`, `PageView`, `SectionHorizontalChipRow`, and `SectionList` for improved layout predictability.
-- **Dialogs**: Refined `CameraMoreInfo` dialog behavior.
+- **Dialogs**: Refined `CameraMoreInfo` dialog behavior and migrated camera streaming to **WebRTC** for significantly lower latency.
 - **Settings**: Enhanced `AlertsSettings` and `NavSettings` panels.
 
 ## [1.0.54] - 2026-03-15

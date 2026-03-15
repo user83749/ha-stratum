@@ -2,12 +2,10 @@
 	// ── CameraMoreInfo ────────────────────────────────────────────────────────
 
 	import { optimisticEntities } from '$lib/ha/optimistic';
-	import { connection } from '$lib/ha/websocket'; // adjust to your actual export
-	import { configStore } from '$lib/stores/config';
+	import { connection } from '$lib/ha/websocket';
 	import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 	import { haptic } from '$lib/utils/haptics';
 	import Icon from '$lib/components/ui/Icon.svelte';
-	import Hls from 'hls.js';
 
 	// ── Props ─────────────────────────────────────────────────────────────
 	interface Props {
@@ -23,7 +21,7 @@
 		id: string;
 		label: string;
 		sourceType: 'entity' | 'url';
-		entityId: string | null; // null for url-type feeds
+		entityId: string | null;
 	}
 
 	// ── Feed Resolution ────────────────────────────────────────────────────
@@ -88,106 +86,92 @@
 		return next;
 	});
 
-	// ── HLS Stream ────────────────────────────────────────────────────────
-	type FeedStreamState =
+	// ── WebRTC Stream ──────────────────────────────────────────────────────
+	type StreamState =
 		| { status: 'loading' }
-		| { status: 'ready'; url: string }
+		| { status: 'ready' }
 		| { status: 'error'; message: string };
 
-	let streamStateByFeed = $state<Record<string, FeedStreamState>>({});
+	let streamStateByFeed = $state<Record<string, StreamState>>({});
+	let peerConnection: RTCPeerConnection | null = null;
+	let videoEl = $state<HTMLVideoElement | null>(null);
 
-	async function requestHlsUrl(camEntityId: string): Promise<string | null> {
-		try {
-			const result = await (connection as any).sendMessagePromise({
-				type: 'camera/stream',
-				entity_id: camEntityId,
-				format: 'hls',
-			});
-			return (result as { url: string }).url ?? null;
-		} catch {
-			return null;
+	function teardown() {
+		if (peerConnection) {
+			peerConnection.close();
+			peerConnection = null;
+		}
+		if (videoEl) {
+			videoEl.srcObject = null;
 		}
 	}
 
-	// Fetch HLS URL whenever active feed changes, skip url-type feeds
-	$effect(() => {
-		const feed = activeFeed;
-		if (!feed) return;
-
-		const existing = streamStateByFeed[feed.id];
-		if (existing) return; // already fetched or in-flight
-
-		if (feed.sourceType === 'url' || !feed.entityId) {
+	async function startWebRtc(feed: ResolvedCameraFeed, el: HTMLVideoElement) {
+		if (!feed.entityId) {
 			streamStateByFeed = {
 				...streamStateByFeed,
-				[feed.id]: { status: 'error', message: 'URL-type feeds do not support HLS streaming.' }
+				[feed.id]: { status: 'error', message: 'URL-type feeds do not support streaming.' }
 			};
 			return;
 		}
 
+		teardown();
 		streamStateByFeed = { ...streamStateByFeed, [feed.id]: { status: 'loading' } };
 
-		requestHlsUrl(feed.entityId).then((url) => {
+		try {
+			const pc = new RTCPeerConnection();
+			peerConnection = pc;
+
+			// We only want to receive video (and audio if available)
+			pc.addTransceiver('video', { direction: 'recvonly' });
+			pc.addTransceiver('audio', { direction: 'recvonly' });
+
+			// Pipe incoming tracks straight to the video element
+			pc.ontrack = (event) => {
+				if (event.streams[0]) {
+					el.srcObject = event.streams[0];
+				}
+			};
+
+			const offer = await pc.createOffer();
+			await pc.setLocalDescription(offer);
+
+			const result = await (connection as any).sendMessagePromise({
+				type: 'camera/web_rtc_offer',
+				entity_id: feed.entityId,
+				offer: offer.sdp,
+			});
+
+			await pc.setRemoteDescription(
+				new RTCSessionDescription({ type: 'answer', sdp: result.answer })
+			);
+
+			el.play().catch(() => {});
+			streamStateByFeed = { ...streamStateByFeed, [feed.id]: { status: 'ready' } };
+
+		} catch (e) {
+			teardown();
 			streamStateByFeed = {
 				...streamStateByFeed,
-				[feed.id]: url
-					? { status: 'ready', url }
-					: { status: 'error', message: 'Stream unavailable.' }
+				[feed.id]: { status: 'error', message: 'Stream unavailable.' }
 			};
-		});
+		}
+	}
+
+	// Start/restart stream whenever active feed or video element changes
+	$effect(() => {
+		const feed = activeFeed;
+		const el = videoEl;
+		if (!feed || !el) return;
+
+		startWebRtc(feed, el);
+
+		return () => teardown();
 	});
 
 	const activeStreamState = $derived(
 		activeFeed ? (streamStateByFeed[activeFeed.id] ?? { status: 'loading' }) : null
 	);
-
-	// ── Video Element + HLS.js ────────────────────────────────────────────
-	let videoEl = $state<HTMLVideoElement | null>(null);
-	let hlsInstance: Hls | null = null;
-
-	function teardownHls() {
-		if (hlsInstance) {
-			hlsInstance.destroy();
-			hlsInstance = null;
-		}
-		if (videoEl) {
-			videoEl.pause();
-			videoEl.src = '';
-			videoEl.load(); // forces browser to release the network connection
-		}
-	}
-
-	// Attach HLS whenever the video element exists and a stream URL is ready
-	$effect(() => {
-		const el = videoEl;
-		const state = activeStreamState;
-
-		if (!el || !state || state.status !== 'ready') return;
-
-		const { url } = state;
-		teardownHls(); // clean up any prior session first
-
-		if (el.canPlayType('application/vnd.apple.mpegurl')) {
-			// Safari — native HLS support
-			el.src = url;
-			el.play().catch(() => {});
-		} else if (Hls.isSupported()) {
-			hlsInstance = new Hls({ enableWorker: true });
-			hlsInstance.loadSource(url);
-			hlsInstance.attachMedia(el);
-			hlsInstance.once(Hls.Events.MANIFEST_PARSED, () => {
-				el.play().catch(() => {});
-			});
-		} else {
-			streamStateByFeed = {
-				...streamStateByFeed,
-				[activeFeed!.id]: { status: 'error', message: 'HLS not supported in this browser.' }
-			};
-		}
-
-		// Teardown when this effect re-runs (feed change) or component unmounts
-		return () => teardownHls();
-	});
 
 	// ── Feed Selection ─────────────────────────────────────────────────────
 	function selectFeed(feedId: string) {
@@ -292,11 +276,7 @@
 		object-fit: cover;
 		display: block;
 	}
-	.cammi__video--hidden {
-		/* keep the element mounted so bind:this is always valid,
-		   but hide it until the stream is actually playing */
-		visibility: hidden;
-	}
+	.cammi__video--hidden { visibility: hidden; }
 	.cammi__live-badge {
 		position: absolute;
 		top: 10px; right: 10px;
@@ -315,7 +295,7 @@
 		pointer-events: none;
 	}
 
-	/* ── Overlay (loading / error) ────────────────────────────────────────── */
+	/* ── Overlay ──────────────────────────────────────────────────────────── */
 	.cammi__overlay {
 		position: absolute;
 		inset: 0;
@@ -327,7 +307,6 @@
 		color: var(--fg-subtle);
 		font-size: 0.84rem;
 	}
-	/* spinner rotation — target the svg inside the icon */
 	.cammi__overlay :global(.cammi__spinner) {
 		animation: spin 1s linear infinite;
 	}
