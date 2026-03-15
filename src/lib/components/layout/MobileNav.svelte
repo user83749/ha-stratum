@@ -1,9 +1,13 @@
 <script lang="ts">
+	// ── MobileNav ─────────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore, activePageId, isMobileNavOpen } from '$lib/stores/ui';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { haptic } from '$lib/utils/haptics';
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const nav   = $derived($dashboardStore.nav);
 	const pages = $derived($dashboardStore.pages);
 
@@ -18,6 +22,7 @@
 	const tabPages    = $derived(visiblePages.slice(0, MAX_TABS));
 	const hasOverflow = $derived(visiblePages.length > MAX_TABS);
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function navigate(pageId: string) {
 		haptic('selection');
 		uiStore.navigateTo(pageId);

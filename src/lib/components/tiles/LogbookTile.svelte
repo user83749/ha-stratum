@@ -1,13 +1,18 @@
 <script lang="ts">
+  // ── LogbookTile ───────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const sizePreset = $derived(getTileSizePreset(tile));
   const name = $derived(config.name ?? entity?.attributes?.friendly_name ?? 'Logbook');
@@ -19,6 +24,7 @@
   const showEntryTime = $derived(sizePreset !== 'sm');
   const showEntryName = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
   function relTime(ts: string): string {
     if (!ts) return '';
     const diff = Date.now() - new Date(ts).getTime();

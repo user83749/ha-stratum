@@ -1,4 +1,7 @@
 <script lang="ts">
+	// ── Dashboard Page ─────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { generateId } from '$lib/utils/uuid';
 	import { browser } from '$app/environment';
 
@@ -29,6 +32,7 @@
 	import { getAdaptiveColumns, getSectionMaxColumns, MOBILE_SECTION_COLS } from '$lib/layout/sectionLayout';
 	import { getAllowedPresets } from '$lib/layout/tileSizing';
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const cfg    = $derived($dashboardStore);
 	const navCfg = $derived(cfg.nav);
 	const editing = $derived($isEditing);
@@ -51,8 +55,7 @@
 		uiStore.setBreakpoint(bp);
 	});
 
-	// Match YAML-style breakpoint behavior exactly: mobile starts at and below
-	// the configured breakpoint (e.g. <= 800).
+	// Mobile starts at and below the configured breakpoint (e.g. <= 800).
 	const mobileNavBreakpoint = $derived(navCfg.mobileBreakpoint);
 	const isMobile = $derived(windowWidth <= mobileNavBreakpoint);
 	const showMobileNav = $derived(isMobile && navCfg.mobileStyle !== 'hidden');
@@ -75,8 +78,7 @@
 		uiStore.initPage(display.defaultPageId, firstId);
 	});
 
-	// Keep UI page selection valid after config loads/migrates.
-	// If the stored active page no longer exists, select default/first page.
+	// Keep active page selection valid after config loads or migration.
 	$effect(() => {
 		if (cfg.pages.length === 0) return;
 		const current = $activePageId;
@@ -85,12 +87,12 @@
 		uiStore.navigateTo(cfg.display.defaultPageId ?? cfg.pages[0].id);
 	});
 
-	// ── Edit state ─────────────────────────────────────────────────────────────
+	// ── Edit State ─────────────────────────────────────────────────────────────
 
 	const editorState  = $derived($editorOpen);
 	const selection    = $derived($editSelection);
 
-	// Computed objects for the open editors
+	// Computed objects for the currently open editors.
 	const editingTile = $derived.by(() => {
 		if (editorState !== 'tile' || !selection.pageId || !selection.sectionId || !selection.tileId) return null;
 		const page    = cfg.pages.find((p) => p.id === selection.pageId);
@@ -109,7 +111,7 @@
 		return cfg.pages.find((p) => p.id === selection.pageId) ?? null;
 	});
 
-	// ── TilePicker state ───────────────────────────────────────────────────────
+	// ── TilePicker State ───────────────────────────────────────────────────────
 
 	let tilePickerOpen    = $state(false);
 	let tilePickerPageId  = $state('');
@@ -121,8 +123,8 @@
 		const breakpoint = windowWidth < 640 ? 'sm' : windowWidth < 1024 ? 'md' : 'lg';
 		if (breakpoint === 'sm') return Math.min(maxCols, MOBILE_SECTION_COLS);
 
-		// Mirror the integrated rail width used by PageView so non-inline add
-		// entry points normalize against the same effective desktop content width.
+		// Mirror the integrated rail width from PageView so add-entry points
+		// use the same effective desktop content width.
 		const railWidth = useIntegratedDesktopNav ? Math.round(Math.min(360, Math.max(244, 104 + windowWidth * 0.17))) : 0;
 		const shellPadding = useIntegratedDesktopNav ? 76 : 48;
 		const estimatedWidth = Math.max(240, windowWidth - railWidth - shellPadding);
@@ -139,7 +141,7 @@
 		tilePickerOpen   = true;
 	}
 
-	// ── Add section ────────────────────────────────────────────────────────────
+	// ── Add Section ────────────────────────────────────────────────────────────
 
 	function addSection(pageId: string) {
 		const current = get(dashboardStore);
@@ -158,11 +160,11 @@
 			grid: { baseSize: 160, gap: 8 },
 			tiles:       []
 		});
-		// Open SectionEditor so user can see it was created
+		// Open SectionEditor after creating the section.
 		editMode.selectSection(pageId, newSectionId);
 	}
 
-	// ── Keyboard navigation ────────────────────────────────────────────────────
+	// ── Keyboard Navigation ────────────────────────────────────────────────────
 
 	function handleKeydown(e: KeyboardEvent) {
 		// Always: Escape closes overlays / deselects
@@ -267,7 +269,7 @@
 		}
 	}
 
-	// ── Tile actions ───────────────────────────────────────────────────────────
+	// ── Tile Actions ───────────────────────────────────────────────────────────
 
 	function duplicateTile(pageId: string, sectionId: string, tileId: string) {
 		const page    = cfg.pages.find((p) => p.id === pageId);
@@ -292,9 +294,8 @@
 		editMode.closeEditor();
 	}
 
-	// ── Top-bar height offset ──────────────────────────────────────────────────
-	// EditToolbar is 52px; AppHeader is typically 56px (set by config).
-	// When editing, we push content down by 52px to avoid the toolbar overlapping.
+	// ── Top-Bar Offset ────────────────────────────────────────────────────────
+	// Offset main content while the edit toolbar is visible.
 	const editingTopOffset = $derived(editing ? '52px' : '0px');
 
 	// ── Swipe gesture navigation ────────────────────────────────────────────────
@@ -405,7 +406,7 @@
 			if (_scheduleTimer) { clearTimeout(_scheduleTimer); _scheduleTimer = null; }
 			return;
 		}
-		// Check immediately, then every minute
+		// Check immediately, then every minute.
 		applyScheduledTheme();
 		function tick() {
 			applyScheduledTheme();
@@ -436,7 +437,7 @@
 	{/snippet}
 
 	{#snippet children()}
-		<!-- EditToolbar — fixed top bar in edit mode -->
+		<!-- ── Edit Toolbar ──────────────────────────────────────────────── -->
 		{#if editing}
 			{@const activePgId = $activePageId ?? cfg.pages[0]?.id}
 			{@const activePg = cfg.pages.find((p) => p.id === activePgId) ?? cfg.pages[0]}
@@ -451,7 +452,7 @@
 			/>
 		{/if}
 
-		<!-- Main page content — offset if edit toolbar is shown -->
+		<!-- ── Main Content ─────────────────────────────────────────────── -->
 		<div
 			style={editing
 				? `padding-top: ${editingTopOffset}; flex: 1; min-height: 0; display: flex; flex-direction: column;`
@@ -485,28 +486,28 @@
 				<MobileNav />
 			{/if}
 
-		<!-- More-info dialog — mounted once, opens on tile tap -->
+		<!-- ── More Info Dialog ─────────────────────────────────────────── -->
 		<MoreInfoDialog />
 
-		<!-- Settings panel -->
+		<!-- ── Settings Panel ───────────────────────────────────────────── -->
 		<SettingsPanel
 			open={$isSettingsOpen}
 			onclose={() => uiStore.closeSettings()}
 		/>
 
-		<!-- Command palette (Cmd+K search) -->
+		<!-- ── Command Palette ──────────────────────────────────────────── -->
 		<CommandPalette
 			open={$isSearchOpen}
 			onclose={() => uiStore.closeSearch()}
 		/>
 
-		<!-- Notifications panel -->
+		<!-- ── Notifications Panel ──────────────────────────────────────── -->
 		<NotificationsPanel
 			open={$isNotificationsOpen}
 			onclose={() => uiStore.closeNotifications()}
 		/>
 
-		<!-- TilePicker dialog -->
+		<!-- ── Tile Picker ──────────────────────────────────────────────── -->
 		<TilePicker
 			open={tilePickerOpen}
 			pageId={tilePickerPageId}
@@ -515,7 +516,7 @@
 			onclose={() => (tilePickerOpen = false)}
 		/>
 
-		<!-- TileEditor right drawer -->
+		<!-- ── Tile Editor ──────────────────────────────────────────────── -->
 		{#if editing}
 			<TileEditor
 				open={editorState === 'tile'}
@@ -535,7 +536,7 @@
 				}}
 			/>
 
-			<!-- SectionEditor right drawer -->
+			<!-- ── Section Editor ───────────────────────────────────────── -->
 			<SectionEditor
 				open={editorState === 'section'}
 				section={editingSection}
@@ -556,7 +557,7 @@
 				}}
 			/>
 
-			<!-- PageEditor right drawer -->
+			<!-- ── Page Editor ──────────────────────────────────────────── -->
 			<PageEditor
 				open={editorState === 'page'}
 				page={editingPage}

@@ -1,16 +1,21 @@
 <script lang="ts">
+	// ── EntityMoreInfo ────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { getDomain, getEntityName, getEntityIcon, getStateColor, formatState } from '$lib/ha/entities';
 	import { callService } from '$lib/ha/services';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		entityId: string;
 	}
 
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity     = $derived($optimisticEntities[entityId] ?? null);
 	const domain     = $derived(getDomain(entityId));
 	const name       = $derived(entity ? getEntityName(entity) : entityId);
@@ -21,7 +26,7 @@
 	const isUnavailable = $derived(!entity || entity.state === 'unavailable' || entity.state === 'unknown');
 	const optimisticPreviewEnabled = false;
 
-	// ─── Attributes ──────────────────────────────────────────────────────────
+	// ── Attributes ────────────────────────────────────────────────────────────
 
 	const HIDDEN_ATTRS = new Set([
 		'friendly_name', 'icon', 'entity_picture',
@@ -46,7 +51,7 @@
 			: []
 	);
 
-	// ─── Quick Actions ────────────────────────────────────────────────────────
+	// ── Quick Actions ─────────────────────────────────────────────────────────
 
 	interface QuickAction {
 		label:    string;

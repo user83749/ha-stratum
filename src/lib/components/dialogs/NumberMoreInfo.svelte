@@ -1,11 +1,18 @@
 <script lang="ts">
+	// ── NumberMoreInfo ────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { getDomain } from '$lib/ha/entities';
 	import { inputNumberService, numberService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
+
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
+
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const domain = $derived(getDomain(entityId));
 	const optimisticPreviewEnabled = false;
@@ -14,9 +21,13 @@
 	const max = $derived((entity?.attributes.max as number | undefined) ?? 100);
 	const step = $derived((entity?.attributes.step as number | undefined) ?? 1);
 	const unit = $derived((entity?.attributes.unit_of_measurement as string | undefined) ?? '');
+
+	// ── Local State ───────────────────────────────────────────────────────────
 	let localValue = $state(0);
 	$effect(() => { localValue = Number(entity?.state ?? 0); });
 	let debounce: ReturnType<typeof setTimeout> | null = null;
+
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function onInput(e: Event) {
 		const next = Number((e.target as HTMLInputElement).value);
 		localValue = next;

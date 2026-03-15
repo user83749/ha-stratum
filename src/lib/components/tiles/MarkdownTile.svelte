@@ -1,14 +1,20 @@
 <script lang="ts">
+  // ── MarkdownTile ──────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   let { tile }: { tile: Tile } = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config ?? {});
   const sizePreset = $derived(getTileSizePreset(tile));
   const content = $derived(config.content as string ?? '');
   const visibleContent = $derived(sizePreset === 'sm' ? content.slice(0, 180) : content);
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
   function renderMarkdown(md: string): string {
     return md
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')

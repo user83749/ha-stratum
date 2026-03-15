@@ -1,4 +1,7 @@
 <script lang="ts">
+	// ── TileEditor ────────────────────────────────────────────────────────────
+
+	// ── Imports ─────────────────────────────────────────────────────────────
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { entities } from '$lib/ha/websocket';
 	import { getDomain, getEntityName } from '$lib/ha/entities';
@@ -9,6 +12,7 @@
 	import { generateId } from '$lib/utils/uuid';
 	import type { Tile, Action, CameraFeedConfig } from '$lib/types/dashboard';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		open: boolean;
 		tile: Tile | null;
@@ -19,6 +23,7 @@
 		onDuplicate: () => void;
 	}
 
+	// ── Props / Local State ──────────────────────────────────────────────────
 	const { open, tile, pageId, sectionId, onclose, onDelete, onDuplicate }: Props = $props();
 
 	let name = $state('');
@@ -26,6 +31,7 @@
 	let builtinOpen = $state(false);
 	let draggedCameraFeedIndex = $state<number | null>(null);
 
+	// ── Derived State ─────────────────────────────────────────────────────────────
 	const domain = $derived(
 		tile?.entity_id ? getDomain(tile.entity_id) : (tile?.type ?? '')
 	);
@@ -74,12 +80,14 @@
 		return false;
 	});
 
+	// ── Input Sync ────────────────────────────────────────────────────────────
 	$effect(() => {
 		if (!tile) return;
 		name = (tile.config.name as string | undefined) ?? '';
 		icon = (tile.config.icon as string | undefined) ?? '';
 	});
 
+	// ── Core Mutations ────────────────────────────────────────────────────────
 	function save(patch: Record<string, unknown>) {
 		if (!tile) return;
 		dashboardStore.updateTile(pageId, sectionId, tile.id, {
@@ -95,6 +103,7 @@
 	const ACTION_TYPES = ['none', 'more-info', 'toggle', 'navigate', 'call-service'];
 	const tileDefaults = $derived($dashboardStore.tileDefaults);
 
+	// ── Interaction Actions ───────────────────────────────────────────────────
 	function actionType(key: string): string {
 		const a = tile?.config[key] as Action | undefined;
 		if (a?.type) return a.type;
@@ -113,9 +122,7 @@
 		save({ [key]: action });
 	}
 
-	// Note: only keep tile-specific controls here when they are actively wired
-	// into runtime tile/dialog rendering. Unwired toggles are intentionally omitted.
-	// ── Player map helpers (media_hero) ──────────────────────────────────────
+	// ── Media Hero Player Map ────────────────────────────────────────────────
 
 	interface PlayerMapEntry { state: string; entity_id: string; picture_entity: string; name: string; icon: string; }
 
@@ -171,6 +178,7 @@
 		dashboardStore.updateTile(pageId, sectionId, tile.id, { type: newType as Tile['type'] });
 	}
 
+	// ── TV Remote Mapping ─────────────────────────────────────────────────────
 	function tvButtonEntityValue(command: TvRemoteCommand): string {
 		if (!tile) return '';
 		const overrides = (tile.config.tv_remote_entities as Record<string, string> | undefined) ?? {};
@@ -189,6 +197,7 @@
 		});
 	}
 
+	// ── Camera Feed Configuration ────────────────────────────────────────────
 	function getCameraFeeds(): CameraFeedConfig[] {
 		if (!tile) return [];
 		const feeds = (tile.config.camera_feeds as CameraFeedConfig[] | undefined) ?? [];
@@ -255,9 +264,12 @@
 </script>
 
 {#if open && tile}
+	<!-- ── Backdrop ───────────────────────────────────────────────────────────── -->
 	<div class="te__backdrop" onclick={onclose} aria-hidden="true"></div>
 
+	<!-- ── Editor Panel ───────────────────────────────────────────────────────────── -->
 	<aside class="te" aria-label="Tile editor">
+		<!-- ── Header ───────────────────────────────────────────────────────────── -->
 		<div class="te__header">
 			<button class="te__hbtn" onclick={onclose} title="Close" aria-label="Close tile editor">
 				<Icon name="x" size={17} />
@@ -276,7 +288,9 @@
 			</div>
 		</div>
 
+		<!-- ── Body ───────────────────────────────────────────────────────────── -->
 		<div class="te__body">
+			<!-- ── Type & Identity ───────────────────────────────────────────────────────────── -->
 			{#if !isChipRowSection}
 				<div class="te__group">
 					<span class="te__section-title">Tile type</span>
@@ -356,9 +370,10 @@
 				{/if}
 			</div>
 
-			{#if !isChipRowSection}
-				<div class="te__group">
-					<span class="te__section-title">Tile size</span>
+				{#if !isChipRowSection}
+					<div class="te__group">
+						<!-- ── Size ───────────────────────────────────────────────────────────── -->
+						<span class="te__section-title">Tile size</span>
 					<div class="te__preset-row">
 						{#each allowedPresets as preset}
 							<button
@@ -373,9 +388,10 @@
 				</div>
 			{/if}
 
-			{#if hasTileSpecificSettings && !isChipRowSection}
-			<div class="te__group">
-				<span class="te__section-title">Tile-specific settings</span>
+				{#if hasTileSpecificSettings && !isChipRowSection}
+				<div class="te__group">
+					<!-- ── Tile-specific Settings ───────────────────────────────────────────────────────────── -->
+					<span class="te__section-title">Tile-specific settings</span>
 
 				{#if domain === 'media_player' || tile.type === 'media_player'}
 					{#if showTvRemoteMapping}
@@ -705,9 +721,10 @@
 				</div>
 			{/if}
 
-			{#if !isChipRowSection}
-				<div class="te__group">
-					<span class="te__section-title">Visibility</span>
+				{#if !isChipRowSection}
+					<div class="te__group">
+						<!-- ── Visibility ───────────────────────────────────────────────────────────── -->
+						<span class="te__section-title">Visibility</span>
 					{#each SHOW_TOGGLES as [key, label]}
 						<label class="te__check">
 							<input type="checkbox" checked={tile.config[key] !== false} onchange={(e) => save({ [key]: (e.target as HTMLInputElement).checked })} />
@@ -717,8 +734,9 @@
 				</div>
 			{/if}
 
-			<div class="te__group">
-				<span class="te__section-title">Interactions</span>
+				<div class="te__group">
+					<!-- ── Interactions ───────────────────────────────────────────────────────────── -->
+					<span class="te__section-title">Interactions</span>
 				{#each [['tap_action','Tap'],['hold_action','Hold'],['double_tap_action','Double tap']] as [key, label]}
 					<div class="te__action-row">
 						<span class="te__label">{label} action</span>
@@ -748,6 +766,7 @@
 {/if}
 
 <style>
+	/* ── Shell ───────────────────────────────────────────────────────────── */
 	.te__backdrop {
 		display: none;
 		position: fixed;
@@ -774,6 +793,7 @@
 		overflow: hidden;
 	}
 
+	/* ── Header ───────────────────────────────────────────────────────────── */
 	.te__header {
 		display: flex;
 		align-items: center;
@@ -832,6 +852,7 @@
 	.te__hbtn:hover { background: var(--hover); color: var(--fg); }
 	.te__hbtn--danger { color: var(--color-danger); }
 
+	/* ── Body / Groups ───────────────────────────────────────────────────────────── */
 	.te__body {
 		flex: 1;
 		overflow: auto;
@@ -881,6 +902,7 @@
 
 	.te__input--num { padding-right: 8px; }
 
+	/* ── Icon Picker ───────────────────────────────────────────────────────────── */
 	.te__icon-links {
 		display: flex;
 		align-items: center;
@@ -974,17 +996,18 @@
 		opacity: 0.8;
 	}
 
-		.te__check {
-			display: flex;
-			align-items: center;
-			gap: 8px;
-			font-size: 0.84rem;
-			color: var(--fg);
-			cursor: pointer;
-		}
-		.te__check input { margin: 0; }
+	/* ── Form Helpers ───────────────────────────────────────────────────────────── */
+	.te__check {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 0.84rem;
+		color: var(--fg);
+		cursor: pointer;
+	}
+	.te__check input { margin: 0; }
 
-		.te__row { display: flex; align-items: center; }
+	.te__row { display: flex; align-items: center; }
 
 	.te__preset-row {
 		display: grid;
@@ -1014,11 +1037,11 @@
 		gap: 8px;
 	}
 
-		.te__grid3 {
-			display: grid;
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-			gap: 10px;
-		}
+	.te__grid3 {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 10px;
+	}
 
 	.te__input--sm, .te__select--sm {
 		padding: 6px 8px;
@@ -1055,15 +1078,15 @@
 	}
 	.te__add-btn:hover { opacity: 1; }
 
-		.te__add-btn--large {
-			justify-content: center;
-			padding: 10px;
-			border: 1px dashed var(--border);
-			border-radius: var(--radius-sm);
-			font-size: 0.78rem;
-		}
+	.te__add-btn--large {
+		justify-content: center;
+		padding: 10px;
+		border: 1px dashed var(--border);
+		border-radius: var(--radius-sm);
+		font-size: 0.78rem;
+	}
 
-		/* ── Player map (media_hero) ─────────────────────────────────────────────── */
+	/* ── Player Map & Feeds ───────────────────────────────────────────────────────────── */
 
 	.te__mt12 { margin-top: 12px; }
 

@@ -1,22 +1,30 @@
 <script lang="ts">
+	// ── TextMoreInfo ──────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { inputTextService, textService } from '$lib/ha/services';
 	import { getDomain } from '$lib/ha/entities';
 	import { browser } from '$app/environment';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
+
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const domain = $derived(getDomain(entityId));
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	let draft = $state('');
 
+	// ── Local State Sync ──────────────────────────────────────────────────────
 	$effect(() => {
 		draft = (entity?.state as string | undefined) ?? '';
 	});
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function save() {
 		if (isUnavail) return;
 		const value = draft;

@@ -1,3 +1,5 @@
+// ── App Flags Store ─────────────────────────────────────────────────────────
+
 import { writable } from 'svelte/store';
 
 /** Set once at startup from +layout.svelte based on server-side ADDON env var. */

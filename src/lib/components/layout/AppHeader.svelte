@@ -1,4 +1,7 @@
 <script lang="ts">
+	// ── AppHeader ─────────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { onMount, onDestroy } from 'svelte';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore, activePageId } from '$lib/stores/ui';
@@ -8,10 +11,12 @@
 	import { entities } from '$lib/ha/websocket';
 	import { getDomain, getEntityName, isActive } from '$lib/ha/entities';
 
+	// ── Lifecycle ─────────────────────────────────────────────────────────────
 	onMount(() => {
 		isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 	});
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const cfg       = $derived($dashboardStore);
 	const header    = $derived(cfg.header);
 	const pages     = $derived(cfg.pages);
@@ -43,6 +48,7 @@
 		pages.find((p) => p.id === currentPageId) ?? pages[0] ?? null
 	);
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function handleSearchClick() {
 		uiStore.openSearch();
 	}
@@ -59,7 +65,7 @@
 		uiStore.toggleNotifications();
 	}
 
-	// Keyboard shortcut for search
+	// ── Keyboard Shortcut ─────────────────────────────────────────────────────
 	function handleKeydown(e: KeyboardEvent) {
 		if (!search.enabled) return;
 		if ((e.metaKey || e.ctrlKey) && e.key === search.hotkey) {

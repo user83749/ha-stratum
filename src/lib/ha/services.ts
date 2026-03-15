@@ -1,8 +1,7 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Stratum — Home Assistant Service Calls
+// ── Home Assistant Service Calls ─────────────────────────────────────────────
 // Thin typed wrappers around conn.sendMessagePromise for every HA domain.
-// ─────────────────────────────────────────────────────────────────────────────
 
+// ── Imports ──────────────────────────────────────────────────────────────────
 import { get } from 'svelte/store';
 import { connection } from './websocket';
 import type { Connection } from 'home-assistant-js-websocket';
@@ -531,6 +530,7 @@ export const remoteService = {
 // ─── Action dispatcher ────────────────────────────────────────────────────────
 // Handles TileConfig action types — used by TileWrapper and action hooks.
 
+// ── Action Dispatcher Imports ────────────────────────────────────────────────
 import type { Action } from '$lib/types/dashboard';
 import { uiStore } from '$lib/stores/ui';
 import { goto } from '$app/navigation';

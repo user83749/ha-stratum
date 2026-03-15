@@ -1,23 +1,31 @@
 <script lang="ts">
+	// ── ValveMoreInfo ─────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { valveService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
+
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	let localPosition = $state(0);
 	let dragging = $state(false);
 
+	// ── Local State Sync ──────────────────────────────────────────────────────
 	$effect(() => {
 		if (!dragging) {
 			localPosition = Math.round(Number(entity?.attributes.current_position ?? (entity?.state === 'open' ? 100 : 0)));
 		}
 	});
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function setPosition(next: number) {
 		const clamped = Math.max(0, Math.min(100, Math.round(next)));
 		localPosition = clamped;

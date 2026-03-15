@@ -1,12 +1,17 @@
 <script lang="ts">
+  // ── PersonTile ────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
   import Icon from '$lib/components/ui/Icon.svelte';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const sizePreset = $derived(getTileSizePreset(tile));
   const state = $derived(entity?.state ?? 'unknown');
@@ -43,12 +48,14 @@
 </div>
 
 <style>
+  /* ── Root ─────────────────────────────────────────────────────────────── */
   .person-tile {
     --pc: var(--fg-muted);
     width: 100%; height: 100%; position: relative;
     display: flex; flex-direction: column; justify-content: space-between;
   }
 
+  /* ── Avatar ───────────────────────────────────────────────────────────── */
   .top { display: flex; align-items: flex-start; }
 
   .avatar-wrap { position: relative; width: var(--control-chip-size); height: var(--control-chip-size); flex-shrink: 0; }
@@ -72,6 +79,7 @@
     transition: background var(--transition);
   }
 
+  /* ── Labels ───────────────────────────────────────────────────────────── */
   .bottom { display: flex; flex-direction: column; gap: calc(var(--tile-padding-effective) * 0.08); }
 
   .location-text {

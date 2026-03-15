@@ -1,3 +1,5 @@
+// ── Sanitization Rules ──────────────────────────────────────────────────────
+
 const ALLOWED_TAGS = new Set([
 	'a',
 	'b',
@@ -19,6 +21,8 @@ const ALLOWED_TAGS = new Set([
 const ALLOWED_ATTRS = new Set(['href', 'target', 'rel']);
 const SAFE_URL = /^(https?:|mailto:|\/|#)/i;
 
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
 function escapeHtml(input: string): string {
 	return input
 		.replaceAll('&', '&amp;')
@@ -27,6 +31,8 @@ function escapeHtml(input: string): string {
 		.replaceAll('"', '&quot;')
 		.replaceAll("'", '&#39;');
 }
+
+// ── Public API ──────────────────────────────────────────────────────────────
 
 export function sanitizeHtml(input: string | null | undefined): string {
 	if (!input) return '';

@@ -7,6 +7,7 @@
 // a tile needs in one object — no prop-drilling, no repeated attribute lookups.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Imports ──────────────────────────────────────────────────────────────────
 import type { HassEntity } from 'home-assistant-js-websocket';
 import type { Tile } from '$lib/types/dashboard';
 import {

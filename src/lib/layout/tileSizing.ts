@@ -1,8 +1,13 @@
+// ── Tile Sizing ──────────────────────────────────────────────────────────────
+
+// ── Imports ──────────────────────────────────────────────────────────────────
 import type { TileSize, TileType, TileSizePreset } from '$lib/types/dashboard';
 import type { Tile } from '$lib/types/dashboard';
 
+// ── Preset Constants ─────────────────────────────────────────────────────────
 const ALL_PRESETS: TileSizePreset[] = ['sm', 'md', 'lg', 'xl'];
 
+// ── Preset Helpers ───────────────────────────────────────────────────────────
 export function getAllowedPresets(type: TileType): TileSizePreset[] {
 	void type;
 	return ALL_PRESETS;
@@ -18,7 +23,7 @@ export function resolvePresetToSpan(
 		: getAllowedPresets(type)[0];
 
 	let span: TileSize;
-	// Unified preset semantics across all tile types:
+	// Unified preset semantics across all tile types.
 	// sm = 1x1, md = 2x1, lg = 2x2, xl = 2x3.
 	span =
 		preset === 'sm' ? { w: 1, h: 1 } :
@@ -50,7 +55,7 @@ export function inferPresetFromLegacySize(type: TileType, size?: Partial<TileSiz
 }
 
 export function getTileSizePreset(tile: Tile): TileSizePreset {
-	// Always derive from live dimensions when available so resizing (drag or edit)
+	// Derive from live dimensions when available so resizing (drag or edit)
 	// immediately switches the rendered tile variant (sm/md/lg/xl).
 	const inferred = inferPresetFromLegacySize(tile.type, tile.layout ?? tile.size);
 	const hasLiveSize =

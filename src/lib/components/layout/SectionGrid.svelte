@@ -1,4 +1,7 @@
 <script lang="ts">
+	// ── SectionGrid ───────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { browser } from '$app/environment';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { isEditing, editMode } from '$lib/stores/editMode';
@@ -9,6 +12,7 @@
 	import { normalizeTilesForColumns } from '$lib/layout/sectionLayout';
 	import { getAllowedPresets, getTileSizePreset, resolvePresetToSpan } from '$lib/layout/tileSizing';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		section: Section;
 		pageId: string;
@@ -17,6 +21,7 @@
 		onSectionDragStart?: (event: PointerEvent) => void;
 	}
 
+	// ── Props / Local State ───────────────────────────────────────────────────
 	let { section, pageId, onEditSection, onAddTile, onSectionDragStart }: Props = $props();
 
 	const editing = $derived($isEditing);
@@ -50,7 +55,7 @@
 	let pendingDragPoint = $state<{ x: number; y: number } | null>(null);
 	let pendingResizePoint = $state<{ x: number; y: number } | null>(null);
 
-	// Local transient collapsed state
+	// ── Local Collapse State ──────────────────────────────────────────────────
 	// svelte-ignore state_referenced_locally
 	let localCollapsed = $state(section.collapsed);
 
@@ -58,6 +63,7 @@
 		localCollapsed = section.collapsed;
 	});
 
+	// ── Resize / Lifecycle Effects ────────────────────────────────────────────
 	$effect(() => {
 		if (!gridCtrEl || typeof ResizeObserver === 'undefined') return;
 
@@ -134,6 +140,7 @@
 		};
 	});
 
+	// ── Interaction Helpers ───────────────────────────────────────────────────
 	function cancelScheduledInteractionFrames() {
 		if (dragFrame !== null && browser) {
 			window.cancelAnimationFrame(dragFrame);
@@ -177,6 +184,7 @@
 		pointerCaptureId = null;
 	}
 
+	// ── Layout Derivations ────────────────────────────────────────────────────
 	function resolveColumns(): number {
 		const explicitCols = section.grid.columns && section.grid.columns > 0
 			? section.grid.columns

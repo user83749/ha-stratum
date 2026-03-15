@@ -1,9 +1,13 @@
 <script lang="ts">
+	// ── LogbookTileMoreInfo ───────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import type { HassEntity } from 'home-assistant-js-websocket';
 	import type { Tile } from '$lib/types/dashboard';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { getEntityName } from '$lib/ha/entities';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		tile: Tile;
 		entity: HassEntity | null;
@@ -11,11 +15,13 @@
 
 	const { tile, entity }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const title = $derived((tile.config.name as string) ?? (entity ? getEntityName(entity) : 'Logbook'));
 	const state = $derived(entity?.state ?? 'No data');
 	const lastChanged = $derived(entity?.last_changed ?? '');
 	const entityName = $derived(entity ? getEntityName(entity) : 'No source entity');
 
+	// ── Helpers ───────────────────────────────────────────────────────────────
 	function relTime(ts: string): string {
 		if (!ts) return 'Unknown';
 		const diff = Date.now() - new Date(ts).getTime();
@@ -27,7 +33,8 @@
 		return `${Math.round(hrs / 24)}d ago`;
 	}
 
-	// Mock entries for deep view timeline
+	// ── Timeline Entries ──────────────────────────────────────────────────────
+	// Mock entries for deep view timeline.
 	const entries = $derived.by(() => [
 		{ state: state, time: lastChanged, icon: 'info', label: 'Current State' },
 		{ state: 'off', time: new Date(Date.now() - 3600000).toISOString(), icon: 'power', label: 'Turned Off' },

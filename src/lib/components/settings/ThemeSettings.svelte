@@ -1,16 +1,20 @@
 <script lang="ts">
+	// ── ThemeSettings ─────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { SYSTEM_THEMES, type ThemeDefinition } from '$lib/themes/presets';
 	import Toggle from '$lib/components/ui/Toggle.svelte';
 	import type { RadiusScale } from '$lib/types/dashboard';
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	let cfg = $derived($dashboardStore.theme);
 	let app = $derived($dashboardStore.settings);
 
 	const activeId = $derived(cfg.themeId ?? 'onyx');
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function applyTheme(theme: ThemeDefinition) {
-		// Set theme + clear page wallpapers in a single store mutation.
 		dashboardStore.applyThemePreset(theme.id);
 	}
 
@@ -48,7 +52,7 @@
 
 <div class="ts">
 
-	<!-- ══ Six themes ══════════════════════════════════════════════════════════ -->
+	<!-- Theme -->
 	<div class="ts__section">
 		<header class="ts__head">
 			<span class="ts__label">Theme</span>
@@ -56,7 +60,6 @@
 				{#each [SYSTEM_THEMES.find(t => t.id === activeId)] as theme}
 					{#if theme}
 						<span class="ts__active-name">{theme.name}</span>
-						<!-- Mobile-only header badge -->
 						<span class="ts__scheme-badge ts__scheme-badge--header ts__mobile-only" 
 							style="background: {theme.colorScheme === 'dark' ? '#3b82f620' : '#f59e0b20'}; color: {theme.colorScheme === 'dark' ? '#3b82f6' : '#f59e0b'}">
 							{theme.colorScheme}
@@ -76,12 +79,12 @@
 					aria-pressed={active}
 					title={theme.description}
 				>
-					<!-- Canvas preview (Hidden on Mobile) -->
+					<!-- Preview -->
 					<div
 						class="ts__canvas"
 						style="background: {theme.preview.canvas}"
 					>
-						<!-- Two fake tiles -->
+						<!-- Sample tiles -->
 						<div class="ts__fake-tile ts__fake-tile--a"
 							style="background: {theme.preview.card}; border-color: {theme.preview.card}">
 							<div class="ts__fake-dot" style="background: {theme.preview.accent}"></div>
@@ -94,20 +97,18 @@
 						</div>
 					</div>
 
-					<!-- Label -->
+					<!-- Name + scheme -->
 					<div class="ts__card-foot">
 						<span class="ts__card-name"
 							style:color={active ? theme.preview.accent : undefined}>
 							{theme.name}
 						</span>
 						
-						<!-- Desktop Badge (original) -->
 						<span class="ts__scheme-badge ts__desktop-only"
 							style="background: {theme.preview.accent}20; color: {theme.preview.accent}">
 							{theme.colorScheme}
 						</span>
 
-						<!-- Mobile Badge (fixed colors for list view) -->
 						<span class="ts__scheme-badge ts__mobile-only"
 							style="background: {theme.colorScheme === 'dark' ? '#3b82f620' : '#f59e0b20'}; color: {theme.colorScheme === 'dark' ? '#3b82f6' : '#f59e0b'}">
 							{theme.colorScheme}
@@ -118,7 +119,7 @@
 		</div>
 	</div>
 
-	<!-- ══ Tile corner radius ══════════════════════════════════════════════════ -->
+	<!-- Tile corner radius -->
 	<div class="ts__section">
 		<span class="ts__label">Tile Corner Radius</span>
 		<div class="ts__radius-row">
@@ -136,7 +137,7 @@
 		</div>
 	</div>
 
-	<!-- ══ Popup corner radius ═════════════════════════════════════════════════ -->
+	<!-- Popup corner radius -->
 	<div class="ts__section">
 		<span class="ts__label">Popup Corner Radius</span>
 		<div class="ts__radius-row">
@@ -154,7 +155,7 @@
 		</div>
 	</div>
 
-	<!-- ══ Font ════════════════════════════════════════════════════════════════ -->
+	<!-- Font -->
 	<div class="ts__section">
 		<span class="ts__label">Font</span>
 		<div class="ts__fonts">
@@ -170,7 +171,7 @@
 		</div>
 	</div>
 
-	<!-- ══ Options ═════════════════════════════════════════════════════════════ -->
+	<!-- Options -->
 	<div class="ts__section">
 		<span class="ts__label">Options</span>
 		<div class="ts__toggles">
@@ -199,7 +200,7 @@
 		</div>
 	</div>
 
-	<!-- ══ Locale & time ═════════════════════════════════════════════════════ -->
+	<!-- Locale and time -->
 	<div class="ts__section">
 		<span class="ts__label">Locale &amp; time</span>
 

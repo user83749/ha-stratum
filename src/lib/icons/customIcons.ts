@@ -12,7 +12,7 @@ export interface CustomIconMeta {
 	marginLeft: string;
 	/** Top-margin offset for alignment */
 	marginTop: string;
-	/** Optional positioning overrides (mirrors HA custom_fields.icon styles) */
+	/** Optional positioning overrides for special icon alignment */
 	position?: 'absolute' | 'relative' | 'static';
 	left?: string;
 	right?: string;
@@ -23,16 +23,20 @@ export interface CustomIconMeta {
 	dynamic: boolean;
 }
 
-// Backward-compatible aliases for renamed custom icons.
+// ── Aliases ─────────────────────────────────────────────────────────────────
+
+// Backward-compatible aliases for renamed icons.
 const CUSTOM_ICON_ALIASES: Record<string, string> = {
 	fan2: 'fan',
 	gate: 'customgate'
 };
 
+// ── Registry ────────────────────────────────────────────────────────────────
+
 export const CUSTOM_ICONS: Record<string, CustomIconMeta> = {
 	plex: { width: '77%', marginLeft: '0%', marginTop: '0%', dynamic: false },
 	floorlamp: { width: '87%', marginLeft: '-18%', marginTop: '-.1%', dynamic: true },
-	// Gate icon: HA uses absolute positioning + top offset on the custom field.
+	// Gate icon uses absolute positioning with a top offset.
 	customgate: { width: '80%', marginLeft: '-3%', marginTop: '0%', position: 'absolute', left: '0', top: '-4%', overflow: 'visible', dynamic: true },
 	garage: { width: '77%', marginLeft: '-7%', marginTop: '-15%', dynamic: true },
 	bedroom: { width: '76%', marginLeft: '-1%', marginTop: '0%', dynamic: true },
@@ -64,6 +68,8 @@ export const CUSTOM_ICONS: Record<string, CustomIconMeta> = {
 	home: { width: '72%', marginLeft: '-1%', marginTop: '0%', dynamic: true },
 	sleep: { width: '76%', marginLeft: '-1%', marginTop: '0%', dynamic: true },
 };
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
 
 export const CUSTOM_ICON_NAMES = Object.keys(CUSTOM_ICONS).sort((a, b) => a.localeCompare(b));
 

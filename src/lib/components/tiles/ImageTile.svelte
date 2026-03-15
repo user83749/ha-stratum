@@ -1,11 +1,16 @@
 <script lang="ts">
+  // ── ImageTile ─────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const sizePreset = $derived(getTileSizePreset(tile));
   const name = $derived(config.name ?? entity?.attributes?.friendly_name ?? 'Image');
@@ -19,6 +24,7 @@
     return '';
   });
 
+  // ── Local State ───────────────────────────────────────────────────────────
   let loaded = $state(false);
   let imgError = $state(false);
 

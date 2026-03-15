@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── VacuumTile ────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -7,9 +10,11 @@
   import { vacuumService } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const sizePreset = $derived(getTileSizePreset(tile));
   const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');
@@ -49,7 +54,6 @@
 <BaseTile {name} state={stateLabel} isOn={isCleaning} style="--vc: {stateColor};">
 
   {#snippet icon()}
-    <!-- Visual-only vacuum icon — tile tap handled by TileWrapper -->
     <div
       class="vac-icon"
       class:cleaning={isCleaning}
@@ -132,14 +136,12 @@
     overflow: visible;
   }
 
-  /* Inner control chip only: cleaning state. */
   .vac-icon.cleaning {
     color: var(--color-on);
     background: color-mix(in srgb, var(--color-on) 16%, transparent);
     border-color: color-mix(in srgb, var(--color-on) 40%, transparent);
   }
 
-  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
   .vac-icon.override {
     background: transparent;
     border-color: transparent;
@@ -196,7 +198,6 @@
     color: var(--fg);
   }
 
-  /* Primary action chip only: accent text state, not tile background. */
   .action-btn.primary {
     background: transparent;
     color: var(--color-on);
@@ -227,7 +228,6 @@
     text-transform: capitalize;
   }
 
-  /* Inner speed chip only: active text state, not tile background. */
   .speed-chip.active {
     background: transparent;
     color: var(--accent);

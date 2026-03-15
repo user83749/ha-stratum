@@ -1,9 +1,14 @@
 <script lang="ts">
+  // ── DividerTile ───────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { Tile } from '$lib/types/dashboard';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; }
   const { tile }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const label = $derived(config.label ?? config.name ?? '');
   const style = $derived((config as Record<string, unknown>).style as string ?? 'line');

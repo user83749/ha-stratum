@@ -1,13 +1,10 @@
-<!--
-  BaseTile — shared grid layout for all standard button-card style tiles.
-
-  Grid: "icon circle" / "n n" / "s s"
-  Icon area fills its grid cell at 100% width — custom icons apply their own
-  width/margin via .ci-sizer in Icon.svelte. No hardcoded sizing here.
--->
 <script lang="ts">
+  // ── BaseTile ─────────────────────────────────────────────────────────────
+
+  // ── Imports ─────────────────────────────────────────────────────────────
   import type { Snippet } from 'svelte';
 
+  // ── Props ───────────────────────────────────────────────────────────────
   interface Props {
     name: string;
     state: string;
@@ -20,45 +17,45 @@
     below?: Snippet;
   }
 
+  // ── Props Bindings ──────────────────────────────────────────────────────
   let { name, state, isOn = false, style = '', showName = true, showState = true, icon, circle, below }: Props = $props();
 </script>
 
 <div class="base-tile" class:on={isOn} class:no-name={!showName} {style}>
   <div class="tile-grid">
-
-    <!-- grid-area: icon — icon container (custom icons self-position via width/margins) -->
+    <!-- ── Icon Area ─────────────────────────────────────────────────────── -->
     <div class="icon-area">
       <div class="icon-inner">
         {@render icon()}
       </div>
     </div>
 
-    <!-- grid-area: circle — CircleControl, badge, or empty spacer -->
+    <!-- ── Circle Area ───────────────────────────────────────────────────── -->
     <div class="circle-area">
       {@render circle?.()}
     </div>
 
-    <!-- grid-area: n -->
+    <!-- ── Name Row ──────────────────────────────────────────────────────── -->
     {#if showName}
       <span class="name-text">{name}</span>
     {/if}
 
-    <!-- grid-area: s -->
+    <!-- ── State Row ─────────────────────────────────────────────────────── -->
     {#if showState}
       <span class="state-text">{state}</span>
     {/if}
 
   </div>
 
-  <!-- Below grid: presets, action rows, sliders — rendered at flex level -->
+  <!-- ── Extra Content Slot ─────────────────────────────────────────────── -->
   {@render below?.()}
 </div>
 
 <style>
+  /* ── Tile Root ─────────────────────────────────────────────────────────── */
   .base-tile {
     flex: 1;
     margin: calc(var(--tile-padding) * -1);
-    /* YAML #card: padding: 10.9% 9.9% 8.9% 10.9% — percentage of card width */
     padding:
       calc(10.9% * var(--tile-padding-scale, 1))
       calc(9.9% * var(--tile-padding-scale, 1))
@@ -69,8 +66,6 @@
     flex-direction: column;
     border-radius: inherit;
     gap: var(--tile-gap);
-    /* HA button-card sets `color` on the card — icons that use currentColor
-       should follow the same on/off palette as your YAML. */
     color: var(--tile-label-off, #97989c);
   }
 
@@ -91,8 +86,7 @@
     align-items: start;
   }
 
-  /* 2x1 / wide tiles need a different content flow than square tiles.
-     Keep all sizing token-driven; only change grid geometry here. */
+  /* ── Wide Layout ──────────────────────────────────────────────────────── */
   :global(.tile-wrapper.shape-wide) .tile-grid {
     grid-template-areas:
       "icon n circle"
@@ -105,7 +99,7 @@
     row-gap: calc(var(--button-card-font-size) * 0.08);
   }
 
-  /* If the name row is hidden, collapse the grid so state sits directly under the icon row. */
+  /* ── No-Name Layout ───────────────────────────────────────────────────── */
   .base-tile.no-name .tile-grid {
     grid-template-areas:
       "icon circle"
@@ -123,7 +117,7 @@
     row-gap: 0;
   }
 
-  /* icon-area: grid cell */
+  /* ── Icon Area ────────────────────────────────────────────────────────── */
   .icon-area {
     grid-area: icon;
     position: relative;
@@ -140,7 +134,7 @@
     max-width: 84%;
   }
 
-  /* icon-inner: centralised icon sizing — every tile's icon lands here */
+  /* ── Icon Inner ───────────────────────────────────────────────────────── */
   .icon-inner {
     width: 100%;
     height: 100%;
@@ -149,7 +143,7 @@
     flex-shrink: 0;
   }
 
-  /* circle-area: right cell */
+  /* ── Circle Area ──────────────────────────────────────────────────────── */
   .circle-area {
     grid-area: circle;
     display: initial;

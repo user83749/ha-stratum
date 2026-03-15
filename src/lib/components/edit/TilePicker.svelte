@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── TilePicker ─────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import { generateId } from '$lib/utils/uuid';
   import { entities } from '$lib/ha/websocket';
   import { getDomain, getEntityName } from '$lib/ha/entities';
@@ -10,6 +13,7 @@
   import { VISIBLE_ALL } from '$lib/types/dashboard';
   import { getAllowedPresets, resolvePresetToSpan } from '$lib/layout/tileSizing';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props {
     open: boolean;
     sectionId: string;
@@ -20,6 +24,7 @@
 
   const { open, sectionId, pageId, columnHint = 0, onclose }: Props = $props();
 
+  // ── Local State ───────────────────────────────────────────────────────────
   type Step = 'source' | 'type' | 'size';
 
   let search = $state('');
@@ -34,11 +39,12 @@
     'data:text/html,%3C!doctype%20html%3E%3Chtml%3E%3Chead%3E%3Cmeta%20charset=%22utf-8%22/%3E%3Cmeta%20name=%22viewport%22%20content=%22width=device-width,initial-scale=1%22/%3E%3Cstyle%3Ehtml,body%7Bheight:100%25;margin:0;font-family:system-ui,-apple-system,Segoe%20UI,Roboto,sans-serif;background:linear-gradient(135deg,%231f2d3d,%2333475f);color:%23eef3f8;display:grid;place-items:center%7D.card%7Bpadding:14px%2018px;border-radius:14px;background:rgba(255,255,255,.1);backdrop-filter:blur(6px);font-size:16px%7D%3C/style%3E%3C/head%3E%3Cbody%3E%3Cdiv%20class=%22card%22%3EWebpage%20Preview%3C/div%3E%3C/body%3E%3C/html%3E';
 
   // Preview uses canonical desktop spans so preset dimensions stay stable and
-  // visually distinct regardless of current viewport or section column hint.
+  // visually distinct regardless of viewport or section column hint.
   function resolvePreviewBreakpoint(): 'sm' | 'md' | 'lg' {
     return 'lg';
   }
 
+  // ── Open-State Reset ──────────────────────────────────────────────────────
   $effect(() => {
     if (!open) return;
     search = '';
@@ -48,6 +54,7 @@
     selectedPreset = 'md';
   });
 
+  // ── Entity / Source Derivations ──────────────────────────────────────────
   const entityList = $derived(
     Object.values($entities).sort((a, b) =>
       (a.attributes?.friendly_name ?? a.entity_id)
@@ -191,6 +198,7 @@
     step = 'size';
   }
 
+  // ── Preview Construction ──────────────────────────────────────────────────
   function buildPreviewConfig(type: TileType): Tile['config'] {
     const base: Tile['config'] = {
       tap_action: { type: 'none' },

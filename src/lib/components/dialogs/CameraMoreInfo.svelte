@@ -1,10 +1,15 @@
 <script lang="ts">
+	// ── CameraMoreInfo ────────────────────────────────────────────────────────
+
+	// ── Imports ─────────────────────────────────────────────────────────────
 	import { optimisticEntities } from '$lib/ha/optimistic';
+	import { entities as liveEntities } from '$lib/ha/websocket';
 	import { configStore } from '$lib/stores/config';
 	import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 	import { haptic } from '$lib/utils/haptics';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
+	// ── Props ─────────────────────────────────────────────────────────────
 	interface Props {
 		entityId: string;
 		tile?: Tile | null;
@@ -13,6 +18,7 @@
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const stateLabel = $derived((entity?.state as string | undefined) ?? 'unknown');
 
+	// ── Types ─────────────────────────────────────────────────────────────
 	interface ResolvedCameraFeed {
 		id: string;
 		label: string;
@@ -21,6 +27,7 @@
 		liveUrl: string;
 	}
 
+	// ── URL Helpers ─────────────────────────────────────────────────────────────
 	function absolutizeHaUrl(url: string): string {
 		const raw = String(url ?? '').trim();
 		if (!raw) return '';
@@ -39,8 +46,9 @@
 		return `${cleanUrl}${cleanUrl.includes('?') ? '&' : '?'}token=${cleanToken}`;
 	}
 
+	// ── Feed Resolution ─────────────────────────────────────────────────────────────
 	function resolveEntityUrls(sourceEntityId: string): { snapshotUrl: string; liveUrl: string } {
-		const source = $optimisticEntities[sourceEntityId];
+		const source = $optimisticEntities[sourceEntityId] ?? $liveEntities[sourceEntityId];
 		const imageUrl = (source?.attributes.entity_picture as string | undefined) ?? '';
 		if (!imageUrl) return { snapshotUrl: '', liveUrl: '' };
 		const accessToken = source?.attributes.access_token as string | undefined;
@@ -51,6 +59,7 @@
 		return { snapshotUrl, liveUrl };
 	}
 
+	// ── Feed Derivations ─────────────────────────────────────────────────────────────
 	const feeds = $derived.by<ResolvedCameraFeed[]>(() => {
 		const configured = ((tile?.config.camera_feeds as CameraFeedConfig[] | undefined) ?? [])
 			.filter((feed) => !!feed && typeof feed.id === 'string' && feed.id.length > 0);
@@ -116,11 +125,11 @@
 		return next;
 	});
 
+	// ── Live State ─────────────────────────────────────────────────────────────
 	let liveErrorByFeed = $state<Record<string, true>>({});
 	let liveBaseByFeed = $state<Record<string, string>>({});
 	let liveSessionNonceByFeed = $state<Record<string, string>>({});
 
-	const streamType = $derived((tile?.config.stream_type as string | undefined) ?? 'auto');
 	const activeFeedLiveFailed = $derived(activeFeed ? !!liveErrorByFeed[activeFeed.id] : false);
 	const activeLiveBase = $derived.by(() => {
 		if (!activeFeed) return '';
@@ -128,10 +137,36 @@
 	});
 	const activeCanUseLive = $derived(
 		!!activeLiveBase &&
-		(activeFeed?.sourceType === 'entity' || streamType === 'mjpeg' || streamType === 'auto') &&
+		(activeFeed?.sourceType === 'entity' ||
+			((tile?.config.stream_type as string | undefined) ?? 'auto') === 'mjpeg' ||
+			((tile?.config.stream_type as string | undefined) ?? 'auto') === 'auto') &&
 		!activeFeedLiveFailed
 	);
 
+	// ── Cleanup Stale Feed State ─────────────────────────────────────────────────────────────
+	$effect(() => {
+		const currentIds = new Set(feeds.map((f) => f.id));
+		const staleLive  = Object.keys(liveBaseByFeed).filter((k) => !currentIds.has(k));
+		const staleNonce = Object.keys(liveSessionNonceByFeed).filter((k) => !currentIds.has(k));
+		const staleErr   = Object.keys(liveErrorByFeed).filter((k) => !currentIds.has(k));
+		if (staleLive.length) {
+			const next = { ...liveBaseByFeed };
+			staleLive.forEach((k) => delete next[k]);
+			liveBaseByFeed = next;
+		}
+		if (staleNonce.length) {
+			const next = { ...liveSessionNonceByFeed };
+			staleNonce.forEach((k) => delete next[k]);
+			liveSessionNonceByFeed = next;
+		}
+		if (staleErr.length) {
+			const next = { ...liveErrorByFeed };
+			staleErr.forEach((k) => delete next[k]);
+			liveErrorByFeed = next;
+		}
+	});
+
+	// ── Initialize Active Feed Live Session ─────────────────────────────────────────────────────────────
 	$effect(() => {
 		const feedId = activeFeed?.id ?? '';
 		if (!feedId) return;
@@ -148,18 +183,33 @@
 		};
 	});
 
+	// ── Source Construction ─────────────────────────────────────────────────────────────
 	const thumbSeed = Date.now();
 
 	const activeLiveSrc = $derived.by(() => {
 		const feedId = activeFeed?.id ?? '';
 		if (!feedId || !activeLiveBase || !activeCanUseLive) return '';
 		const nonce = liveSessionNonceByFeed[feedId] ?? 'boot';
-		const bootNonce = `_live=${nonce}`;
-		return `${activeLiveBase}${activeLiveBase.includes('?') ? '&' : '?'}${bootNonce}`;
+		return `${activeLiveBase}${activeLiveBase.includes('?') ? '&' : '?'}_live=${nonce}`;
 	});
 
-	const activeSrc = $derived.by(() => activeLiveSrc);
+	let liveImgEl = $state<HTMLImageElement | null>(null);
 
+	$effect(() => {
+		const img = liveImgEl;
+		if (!img) return;
+		const src = activeLiveSrc;
+		if (src && img.src !== src) {
+			img.src = src;
+		} else if (!src) {
+			img.src = '';
+		}
+		return () => {
+			img.src = '';
+		};
+	});
+
+	// ── UI Helpers ─────────────────────────────────────────────────────────────
 	function thumbnailSrc(feed: ResolvedCameraFeed): string {
 		if (!feed.snapshotUrl) return '';
 		const nonce = `${thumbSeed}_${feed.id}`;
@@ -178,12 +228,15 @@
 	}
 </script>
 
+<!-- ── Camera More-Info ───────────────────────────────────────────────────────────── -->
 <div class="cammi">
+	<!-- ── Header ───────────────────────────────────────────────────────────── -->
 	<div class="cammi__header">
 		<div class="cammi__icon"><Icon name="camera" size={22} /></div>
 		<div class="cammi__state">{stateLabel}</div>
 	</div>
 
+	<!-- ── Feed Tabs ───────────────────────────────────────────────────────────── -->
 	{#if feeds.length > 1}
 		<div class="cammi__feeds" role="tablist" aria-label="Camera feeds">
 			{#each orderedFeeds as feed (feed.id)}
@@ -208,11 +261,12 @@
 		</div>
 	{/if}
 
-	{#if activeSrc}
+	<!-- ── Active Feed Media ───────────────────────────────────────────────────────────── -->
+	{#if activeLiveSrc || (activeFeed?.snapshotUrl)}
 		<div class="cammi__media">
 			<img
+				bind:this={liveImgEl}
 				class="cammi__image"
-				src={activeSrc}
 				alt=""
 				onerror={() => markLiveError(activeFeed?.id ?? '', !!activeCanUseLive)}
 			/>
@@ -229,10 +283,13 @@
 </div>
 
 <style>
+	/* ── Layout ───────────────────────────────────────────────────────────── */
 	.cammi { display:flex; flex-direction:column; gap:12px; padding:18px; }
 	.cammi__header { display:flex; align-items:center; gap:10px; color:var(--fg-subtle); }
 	.cammi__icon { width:40px; height:40px; border-radius:var(--radius); display:flex; align-items:center; justify-content:center; background:var(--hover); }
 	.cammi__state { font-size:0.84rem; text-transform:capitalize; }
+
+	/* ── Feed Tabs ───────────────────────────────────────────────────────────── */
 	.cammi__feeds { display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; }
 	.cammi__feed-btn {
 		flex: 0 0 auto;
@@ -273,6 +330,8 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
+
+	/* ── Media ───────────────────────────────────────────────────────────── */
 	.cammi__media { position: relative; width: 100%; }
 	.cammi__image { width:100%; aspect-ratio:16 / 9; object-fit:cover; border-radius:var(--radius); border:1px solid var(--border); background:var(--hover); }
 	.cammi__live-badge {
@@ -294,5 +353,7 @@
 		line-height: 1;
 		pointer-events: none;
 	}
+
+	/* ── Empty State ───────────────────────────────────────────────────────────── */
 	.cammi__empty { width:100%; aspect-ratio:16 / 9; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; border-radius:var(--radius); border:1px dashed var(--border); color:var(--fg-subtle); }
 </style>

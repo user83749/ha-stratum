@@ -1,6 +1,4 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Stratum — Dashboard Config Schema  v5
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Dashboard Schema ────────────────────────────────────────────────────────
 
 import { generateId } from '$lib/utils/uuid';
 // ─── Actions ─────────────────────────────────────────────────────────────────
@@ -71,12 +69,12 @@ export interface SectionGrid {
 	columns?: number;  // max columns on larger screens; mobile always uses up to 4
 }
 
-// ─── Tile types ──────────────────────────────────────────────────────────────
+// ─── Tile Types ──────────────────────────────────────────────────────────────
 //
 // Purpose-built tiles give a domain-specific UI beyond what the generic
 // 'entity' tile renders. 'entity' is the universal fallback for any domain.
 //
-// HA domain → recommended tile type:
+// Domain → recommended tile type:
 //   alarm_control_panel → alarm_panel
 //   automation           → button (or entity)
 //   binary_sensor        → entity
@@ -321,7 +319,7 @@ export interface TileConfig {
 	show_mower_battery?: boolean;
 
 	// ── Person / device_tracker ──────────────────────────────────────────────
-	show_person_picture?: boolean;    // HA profile picture / entity picture
+	show_person_picture?: boolean;    // profile picture / entity picture
 	show_location_text?: boolean;     // zone name or GPS address
 	show_home_away_badge?: boolean;   // colored home/away status indicator
 	show_person_map?: boolean;        // embedded mini map
@@ -379,7 +377,7 @@ export interface TileConfig {
 	map_entity_ids?: string[];         // person / device_tracker entities to pin
 	map_default_zoom?: number;
 	map_show_names?: boolean;
-	map_show_zones?: boolean;          // overlay HA zone boundaries
+	map_show_zones?: boolean;          // overlay zone boundaries
 	map_dark_mode?: 'auto' | 'dark' | 'light'; // auto follows theme scheme
 
 	// ── Energy tile ──────────────────────────────────────────────────────────
@@ -401,7 +399,7 @@ export interface TileConfig {
 	calendar_show_all_day?: boolean;
 
 	// ── Markdown tile ────────────────────────────────────────────────────────
-	content?: string;                  // Markdown / Jinja2 template string
+	content?: string;                  // markdown template string
 
 	// ── Iframe tile ──────────────────────────────────────────────────────────
 	url?: string;
@@ -409,7 +407,7 @@ export interface TileConfig {
 	iframe_refresh_interval?: number;  // seconds; 0 = no auto-refresh (e.g. for embedded weather widgets)
 
 	// ── Image tile ───────────────────────────────────────────────────────────
-	image_url?: string;                // static image URL (or use entity_id for HA image entities)
+	image_url?: string;                // static image URL (or use entity_id for image entities)
 	image_refresh_interval?: number;   // seconds; 0 = no auto-refresh
 	image_fit?: 'cover' | 'contain' | 'fill';
 
@@ -491,7 +489,7 @@ export interface Page {
 	navVisibility: BreakpointVisibility;
 	adminOnly: boolean;
 
-	// HA area association (optional; for area-based filtering in search/badge)
+	// Optional area association for area-based filtering in search/badges.
 	areaId?: string;
 
 	// Per-page transition override; undefined = use global DisplayConfig.pageTransition
@@ -624,7 +622,7 @@ export interface HeaderConfig {
 export interface AppSettings {
 	locale: string;              // BCP 47 e.g. 'en', 'de', 'fr', 'ar'
 	timeFormat: '12h' | '24h';
-	unitSystem: 'metric' | 'imperial' | 'auto'; // auto = read from HA config
+	unitSystem: 'metric' | 'imperial' | 'auto'; // auto = read from system config
 }
 
 // ─── Tile Defaults ───────────────────────────────────────────────────────────
@@ -714,7 +712,7 @@ export interface ThemeSchedule {
 	dayStart?: string;      // e.g. "07:00" — when day theme activates
 	nightStart?: string;    // e.g. "20:00" — when night theme activates
 
-	// sun mode — driven by HA sun.sun entity
+	// sun mode — driven by a sun entity
 	sunEntityId: string;    // default: 'sun.sun'
 	dayOffset: number;      // minutes relative to sunrise (+after, -before)
 	nightOffset: number;    // minutes relative to sunset  (+after, -before)
@@ -748,7 +746,7 @@ export type NotificationPosition = 'top-right' | 'top-left' | 'bottom-right' | '
 
 export interface NotificationConfig {
 	enabled: boolean;
-	showPersistent: boolean;     // HA persistent_notification.*
+	showPersistent: boolean;     // persistent_notification.*
 	showAlerts: boolean;         // real alerts feed
 	includeAlertDomainEntities: boolean; // include alert.* entities
 	alertEntityIds: string[];    // explicit entity IDs to monitor as alerts
@@ -779,7 +777,7 @@ export interface MediaConfig {
 }
 
 // ─── Energy Config ───────────────────────────────────────────────────────────
-// References to HA energy entities used by energy tiles and the energy tile type.
+// References to energy entities used by energy tiles and the energy tile type.
 
 export interface EnergyConfig {
 	enabled: boolean;
@@ -1228,7 +1226,7 @@ function migrateTileV5(raw: unknown): Tile {
 	const t = raw as any;
 	// Supports old formats:
 	//   { size: { w, h } }               — previous simple version
-	//   { grid: { lg: { colSpan, rowSpan } } } — over-engineered v4 format
+	//   { grid: { lg: { colSpan, rowSpan } } } — legacy v4 format
 	const w = t.size?.w ?? t.grid?.lg?.colSpan ?? 1;
 	const h = t.size?.h ?? t.grid?.lg?.rowSpan ?? 1;
 	const layout = t.layout

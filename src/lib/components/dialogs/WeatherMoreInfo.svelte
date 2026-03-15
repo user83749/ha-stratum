@@ -1,10 +1,15 @@
 <script lang="ts">
+	// ── WeatherMoreInfo ───────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities } from '$lib/ha/optimistic';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const state = $derived((entity?.state as string | undefined) ?? 'unknown');
 	const temp = $derived(entity?.attributes.temperature as number | undefined);
@@ -25,6 +30,7 @@
 		'km'
 	);
 
+	// ── Forecast Mapping ──────────────────────────────────────────────────────
 	interface ForecastDay {
 		datetime?: string;
 		temperature?: number;
@@ -55,6 +61,7 @@
 			.filter((day) => day.temperature !== undefined || day.templow !== undefined || !!day.condition);
 	});
 
+	// ── Helpers ───────────────────────────────────────────────────────────────
 	function condIcon(c: string): string {
 		const map: Record<string, string> = {
 			'clear-night': 'moon',

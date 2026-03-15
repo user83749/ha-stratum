@@ -1,5 +1,9 @@
+// ── TV Remote Helpers ────────────────────────────────────────────────────────
+
+// ── Imports ──────────────────────────────────────────────────────────────────
 import type { HassEntities, HassEntity } from 'home-assistant-js-websocket';
 
+// ── Constants ────────────────────────────────────────────────────────────────
 export const TV_CONTENT_TYPES = new Set(['tvshow', 'video', 'movie', 'episode', 'channel']);
 
 export const TV_REMOTE_BUTTON_DEFS = [
@@ -20,6 +24,7 @@ export const TV_REMOTE_BUTTON_DEFS = [
 
 export type TvRemoteCommand = (typeof TV_REMOTE_BUTTON_DEFS)[number]['key'];
 
+// ── Entity Resolution Helpers ────────────────────────────────────────────────
 function objectId(entityId: string): string {
 	const idx = entityId.indexOf('.');
 	return idx >= 0 ? entityId.slice(idx + 1) : entityId;
@@ -63,6 +68,7 @@ function defaultCommandEntityId(command: TvRemoteCommand, mainEntityId: string, 
 	return mainEntityId;
 }
 
+// ── Public API ───────────────────────────────────────────────────────────────
 export function resolveTvCommandEntityId(
 	command: TvRemoteCommand,
 	mainEntityId: string,
@@ -73,4 +79,3 @@ export function resolveTvCommandEntityId(
 	if (explicit) return explicit;
 	return defaultCommandEntityId(command, mainEntityId, entities);
 }
-

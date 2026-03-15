@@ -1,9 +1,7 @@
 <script lang="ts">
-	// ─────────────────────────────────────────────────────────────────────────
-	// Stratum — ColorPicker.svelte
-	// Simple hex color picker: hue slider + hex input + swatch preview
-	// ─────────────────────────────────────────────────────────────────────────
+	// ── ColorPicker ───────────────────────────────────────────────────────────
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		value: string;
 		onchange: (hex: string) => void;

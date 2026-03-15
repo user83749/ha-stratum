@@ -13,7 +13,7 @@
 	import { getUpdateCount } from '$lib/ha/updateSummary';
 	import { getTileSizePreset } from '$lib/layout/tileSizing';
 
-	// ─── Props ───────────────────────────────────────────────────────────────
+	// ── Props ────────────────────────────────────────────────────────────────
 
 	interface Props {
 		tile:       Tile;
@@ -41,7 +41,7 @@
 		children
 	}: Props = $props();
 
-	// ─── Derived state ───────────────────────────────────────────────────────
+	// ── Derived State ────────────────────────────────────────────────────────
 
 	const editing = $derived($isEditing);
 
@@ -61,7 +61,7 @@
 	const entityActive = $derived.by(() => {
 		if (!entity) return false;
 
-		// Match HA button-card "state_on" semantics for the standard Media Player tile:
+		// Match button-card style "state_on" semantics for the standard Media Player tile:
 		// treat any non-off-ish state as active so the tile "lights up" like the other tiles.
 		if (tile.type === 'media_player') {
 			const s = entity.state;
@@ -83,10 +83,10 @@
 	});
 	const entityDomain = $derived(entity?.entity_id?.split('.')[0] ?? tile.entity_id?.split('.')[0] ?? '');
 
-	// ─── HA button-card compatible light color vars ───────────────────────────
+	// ── Button-Card Compatible Light Color Vars ──────────────────────────────
 	// Many of your custom SVG icons rely on `.light-color { fill: var(--light-color) }`
 	// plus a per-card `--light-color` var. We set `--light-color` + `--lc` here
-	// so the same SVGs behave like they do in HA button-card templates.
+	// so the same SVGs behave like they do in button-card templates.
 	let buttonCardLightTemp = $state('');
 	let buttonCardLightColor = $state('');
 
@@ -120,7 +120,7 @@
 	const buttonCardStyleVars = $derived.by(() => {
 		if (!entity) return '';
 
-		// Mirrors your HA base template `variables.state_on`.
+		// Mirrors base template `variables.state_on`.
 		const stateOn = ['on', 'home', 'cool', 'fan_only', 'playing', 'open', 'opening', 'active', 'unlocked']
 			.includes(entity.state);
 

@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── CoverTile ─────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -6,8 +9,11 @@
   import { coverService } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
+
+  // ── Derived State ─────────────────────────────────────────────────────────
   const sizePreset = $derived(getTileSizePreset(tile));
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
@@ -53,10 +59,12 @@
   const showDirectControls = $derived(sizePreset !== 'sm');
   const showSliderOverlay = $derived((sizePreset === 'lg' || sizePreset === 'xl') && pos !== undefined);
 
+  // ── Local State ───────────────────────────────────────────────────────────
   let localPos = $state<number | null>(null);
   let dragging = $state(false);
   const displayPos = $derived(dragging ? localPos : (pos ?? null));
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   function handleSliderInput(ev: Event) { dragging = true; localPos = Number((ev.target as HTMLInputElement).value); }
   function handleSliderChange(ev: Event) {
     dragging = false;

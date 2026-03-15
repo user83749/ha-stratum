@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── LawnMowerTile ─────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -7,9 +10,11 @@
   import { lawnMowerService } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const sizePreset = $derived(getTileSizePreset(tile));
   const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');

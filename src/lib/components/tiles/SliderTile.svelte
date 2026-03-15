@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── SliderTile ────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -6,9 +9,11 @@
   import { inputNumberService, numberService } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const sizePreset = $derived(getTileSizePreset(tile));
   const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');
@@ -25,6 +30,7 @@
   const mode = $derived(attrs.mode as string ?? 'slider');
 
   const currentVal = $derived(parseFloat(entityState) || 0);
+  // ── Local State ───────────────────────────────────────────────────────────
   let localVal = $state<number | null>(null);
   let dragging = $state(false);
   const displayVal = $derived(dragging ? localVal : currentVal);
@@ -32,6 +38,7 @@
   const showRangeLabels = $derived(sizePreset === 'lg' || sizePreset === 'xl');
   const showQuickSteps = $derived((sizePreset === 'lg' || sizePreset === 'xl') && mode !== 'box');
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   function setValue(val: number) {
     if (!entityId) return;
     if (domain === 'number') numberService.setValue(entityId, val);
@@ -104,6 +111,7 @@
 </div>
 
 <style>
+  /* ── Root ─────────────────────────────────────────────────────────────── */
   .slider-tile {
     --slider-track-height: calc(var(--action-icon-size) * 0.28);
     --slider-track-radius: calc(var(--slider-track-height) / 2);
@@ -149,7 +157,6 @@
     overflow: visible;
   }
 
-  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
   .icon-sq.override {
     background: transparent;
     border-color: transparent;

@@ -1,10 +1,15 @@
 <script lang="ts">
+	// ── ZoneMoreInfo ──────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities } from '$lib/ha/optimistic';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const latitude = $derived((entity?.attributes.latitude as number | undefined) ?? undefined);
 	const longitude = $derived((entity?.attributes.longitude as number | undefined) ?? undefined);

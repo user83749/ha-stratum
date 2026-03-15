@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── WaterHeaterTile ───────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -7,9 +10,11 @@
   import { waterHeaterService } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const sizePreset = $derived(getTileSizePreset(tile));
   const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');
@@ -28,18 +33,19 @@
   const unit = $derived(attrs.temperature_unit as string ?? '°C');
   const isHeating = $derived(attrs.current_operation === 'heating');
 
+  // ── Local State ───────────────────────────────────────────────────────────
   let localTemp = $state(50);
   let dragging = $state(false);
   $effect(() => { if (!dragging) localTemp = targetTemp; });
   const displayTemp = $derived(dragging ? localTemp : targetTemp);
   const fillPct = $derived(Math.max(0, Math.min(100, (displayTemp - minTemp) / (maxTemp - minTemp) * 100)));
 
-  // Color: orange-red when heating, blue when on+idle, muted when off
   const heaterColor = $derived(isHeating ? 'var(--color-warning)' : isOn ? 'var(--color-info)' : 'var(--fg-muted)');
   const showCurrentBadge = $derived(currentTemp !== undefined && sizePreset !== 'sm');
   const showSliderArea = $derived(isOn && sizePreset !== 'sm');
   const showModeChips = $derived((sizePreset === 'lg' || sizePreset === 'xl') && modes.length > 0 && isOn);
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   function handleInput(ev: Event) { dragging = true; localTemp = Number((ev.target as HTMLInputElement).value); }
   function handleChange(ev: Event) {
     dragging = false;
@@ -50,7 +56,6 @@
 
 <BaseTile {name} state={`${displayTemp}${unit}`} {isOn} style="--hc: {heaterColor}; --fp: {fillPct}%;">
   {#snippet icon()}
-    <!-- Flame icon button — pulsing when heating -->
     <div
       class="flame-icon"
       class:on={isOn}
@@ -100,6 +105,8 @@
 </BaseTile>
 
 <style>
+  /* ── Root ─────────────────────────────────────────────────────────────── */
+
   /* ── Flame icon (visual only) ─────────────────────────────────────────── */
   .flame-icon {
     width: 100%;
@@ -123,21 +130,18 @@
   .icon-span { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; }
   .pulse { animation: flame-pulse 0.8s ease-in-out infinite alternate; }
 
-  /* On but not heating → info color */
   .flame-icon.on {
     color: var(--color-info);
     background: color-mix(in srgb, var(--color-info) 15%, transparent);
     border-color: color-mix(in srgb, var(--color-info) 35%, transparent);
   }
 
-  /* Heating → warning color (overrides .on) */
   .flame-icon.heating {
     color: var(--color-warning);
     background: color-mix(in srgb, var(--color-warning) 18%, transparent);
     border-color: color-mix(in srgb, var(--color-warning) 40%, transparent);
   }
 
-  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
   .flame-icon.override {
     background: transparent;
     border-color: transparent;

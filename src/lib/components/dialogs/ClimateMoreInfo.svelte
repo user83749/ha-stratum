@@ -1,12 +1,17 @@
 <script lang="ts">
+	// ── ClimateMoreInfo ───────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { climateService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
@@ -25,6 +30,7 @@
 	const hvacAction = $derived((entity?.attributes.hvac_action as string | undefined) ?? '');
 	const supportsRange = $derived(targetTempLow !== undefined && targetTempHigh !== undefined);
 
+	// ── Local State ───────────────────────────────────────────────────────────
 	let localTemp = $state(72);
 	let localTempLow = $state(68);
 	let localTempHigh = $state(76);
@@ -39,6 +45,7 @@
 		if (targetTempHigh !== undefined) localTempHigh = targetTempHigh;
 	});
 
+	// ── Temperature Controls ──────────────────────────────────────────────────
 	let tempDebounce: ReturnType<typeof setTimeout> | null = null;
 	function onTempInput(next: number) {
 		localTemp = next;

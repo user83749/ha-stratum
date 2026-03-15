@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── EnergyTile ────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -6,9 +9,11 @@
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const sizePreset = $derived(getTileSizePreset(tile));
   const state = $derived(entity?.state ?? '0');
@@ -39,6 +44,8 @@
   const flowColor = $derived(deviceClass === 'battery' ? 'var(--color-info)' : isPositive ? 'var(--color-warning)' : 'var(--color-on)');
   const showName = $derived(sizePreset !== 'sm');
   const showMeta = $derived(sizePreset === 'lg' || sizePreset === 'xl');
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
 </script>
 
 <BaseTile {name} state={displayValue} isOn={isPositive} style="--ec: {flowColor};">

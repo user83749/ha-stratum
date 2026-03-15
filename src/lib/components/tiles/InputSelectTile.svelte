@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── InputSelectTile ───────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -7,9 +10,11 @@
   import { inputSelectService, selectService } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
@@ -29,6 +34,7 @@
 
   let open = $state(false);
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   function select(option: string) {
     open = false;
     if (!entityId) return;

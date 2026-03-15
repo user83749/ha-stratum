@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── UpdateTile ────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -10,14 +13,15 @@
   import { entities } from '$lib/ha/websocket';
   import { getUpdateCount } from '$lib/ha/updateSummary';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const sizePreset = $derived(getTileSizePreset(tile));
   const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');
   const entityState = $derived(entity?.state ?? 'off');
-  const entityDomain = $derived(entityId ? entityId.split('.')[0] : '');
   const isUnavail = $derived(!entity || entityState === 'unavailable' || entityState === 'unknown');
   const attrs = $derived(entity?.attributes ?? {});
   const name = $derived(config.name ?? attrs.friendly_name ?? 'Update');
@@ -45,6 +49,7 @@
     (hasUpdate ? 'circle-arrow-up' : 'circle-check')
   );
 
+  // ── Local State ───────────────────────────────────────────────────────────
   let installing = $state(false);
   const showVersionInfo = $derived(sizePreset === 'lg' || sizePreset === 'xl');
   const showDetailedVersions = $derived(sizePreset === 'lg' || sizePreset === 'xl');
@@ -55,6 +60,7 @@
     'Up to date'
   );
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   async function install() {
     if (!entityId || !hasUpdate) return;
     installing = true;
@@ -115,6 +121,7 @@
 </BaseTile>
 
 <style>
+  /* ── Icon + Meta ──────────────────────────────────────────────────────── */
   .icon-wrap {
     width: 100%;
     height: 100%;

@@ -1,8 +1,11 @@
+// ── UI Store ────────────────────────────────────────────────────────────────
+
+// ── Imports ─────────────────────────────────────────────────────────────────
 import { writable, derived } from 'svelte/store';
 import type { MoreInfoStyle } from '$lib/types/dashboard';
 import type { TileType } from '$lib/types/dashboard';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface ActiveDialog {
 	entityId: string;
@@ -16,7 +19,7 @@ export type Breakpoint = 'sm' | 'md' | 'lg';
 interface UIState {
 	// Page navigation
 	activePageId: string | null;
-	previousPageId: string | null;
+	navigationHistory: string[];
 
 	// Overlays
 	searchOpen: boolean;
@@ -35,11 +38,11 @@ interface UIState {
 	breakpoint: Breakpoint;
 }
 
-// ─── Store ───────────────────────────────────────────────────────────────────
+// ── Store ─────────────────────────────────────────────────────────────────────
 
 const initial: UIState = {
 	activePageId: null,
-	previousPageId: null,
+	navigationHistory: [],
 	searchOpen: false,
 	settingsOpen: false,
 	settingsTab: 'theme',
@@ -59,20 +62,32 @@ function createUIStore() {
 		// ── Page navigation ────────────────────────────────────────────────
 
 		navigateTo(pageId: string) {
-			update((s) => ({
-				...s,
-				previousPageId: s.activePageId,
-				activePageId: pageId,
-				searchOpen: false,
-				activeDialog: null,
-				dialogStack: []
-			}));
+			update((s) => {
+				const pushCurrent =
+					s.activePageId !== null &&
+					s.activePageId !== pageId &&
+					s.navigationHistory[s.navigationHistory.length - 1] !== s.activePageId;
+				return {
+					...s,
+					activePageId: pageId,
+					navigationHistory: pushCurrent ? [...s.navigationHistory, s.activePageId!] : s.navigationHistory,
+					searchOpen: false,
+					settingsOpen: false,
+					mobileNavOpen: false,
+					activeDialog: null,
+					dialogStack: [],
+					notificationsOpen: false
+				};
+			});
 		},
 
 		navigateBack() {
 			update((s) => {
-				if (!s.previousPageId) return s;
-				return { ...s, activePageId: s.previousPageId, previousPageId: null };
+				if (s.navigationHistory.length === 0) return s;
+				const nextHistory = [...s.navigationHistory];
+				const previous = nextHistory.pop() ?? null;
+				if (!previous) return s;
+				return { ...s, activePageId: previous, navigationHistory: nextHistory };
 			});
 		},
 
@@ -165,10 +180,13 @@ function createUIStore() {
 
 export const uiStore = createUIStore();
 
-// ─── Derived convenience stores ───────────────────────────────────────────────
+// ── Derived Convenience Stores ────────────────────────────────────────────────
 
 export const activePageId       = derived(uiStore, ($ui) => $ui.activePageId);
-export const previousPageId     = derived(uiStore, ($ui) => $ui.previousPageId);
+export const previousPageId     = derived(
+	uiStore,
+	($ui) => $ui.navigationHistory[$ui.navigationHistory.length - 1] ?? null
+);
 export const isSearchOpen       = derived(uiStore, ($ui) => $ui.searchOpen);
 export const isSettingsOpen     = derived(uiStore, ($ui) => $ui.settingsOpen);
 export const settingsTab        = derived(uiStore, ($ui) => $ui.settingsTab);
@@ -180,5 +198,5 @@ export const currentBreakpoint  = derived(uiStore, ($ui) => $ui.breakpoint);
 
 export const isAnyOverlayOpen = derived(
 	uiStore,
-	($ui) => $ui.searchOpen || $ui.settingsOpen || $ui.activeDialog !== null || $ui.notificationsOpen
+	($ui) => $ui.searchOpen || $ui.settingsOpen || $ui.activeDialog !== null || $ui.notificationsOpen || $ui.mobileNavOpen
 );

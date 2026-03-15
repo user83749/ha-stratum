@@ -1,12 +1,17 @@
 <script lang="ts">
+	// ── RemoteMoreInfo ────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { remoteService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const state = $derived(entity?.state ?? 'idle');
@@ -15,6 +20,7 @@
 	const activities = $derived((entity?.attributes.activity_list as string[] | undefined) ?? []);
 	const currentActivity = $derived((entity?.attributes.current_activity as string | undefined) ?? '');
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function send(cmd: string) {
 		if (isUnavail) return;
 		if (optimisticPreviewEnabled) return;

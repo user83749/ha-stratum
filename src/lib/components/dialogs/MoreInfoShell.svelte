@@ -1,4 +1,7 @@
 <script module lang="ts">
+	// ── MoreInfoShell (Module) ───────────────────────────────────────────────
+
+	// ── Module State ──────────────────────────────────────────────────────────
 	// Module-level counter shared across ALL MoreInfoShell instances.
 	// Incremented when a blocking overlay opens, decremented when it closes.
 	// body overflow is only restored when this reaches zero.
@@ -6,17 +9,17 @@
 </script>
 
 <script lang="ts">
-	// ─────────────────────────────────────────────────────────────────────────
-	// Stratum — MoreInfoShell.svelte
+	// ── MoreInfoShell ─────────────────────────────────────────────────────────
 	// Unified overlay shell: modal, drawer, or docked panel.
-	// ─────────────────────────────────────────────────────────────────────────
 
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import type { Snippet } from 'svelte';
 	import type { MoreInfoStyle, DrawerSide } from '$lib/types/dashboard';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { haptic } from '$lib/utils/haptics';
 	import { dashboardStore } from '$lib/stores/dashboard';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		open:      boolean;
 		onclose:   () => void;
@@ -29,19 +32,20 @@
 		children:  Snippet;
 	}
 
-		let {
-			open,
-			onclose,
-			onback,
-			canBack = false,
-				style  = 'drawer',
-				side   = 'right',
-				title  = '',
-				variant = 'default',
-				children
-			}: Props = $props();
+	let {
+		open,
+		onclose,
+		onback,
+		canBack = false,
+		style  = 'drawer',
+		side   = 'right',
+		title  = '',
+		variant = 'default',
+		children
+	}: Props = $props();
 
-	// ── Reference-counted body scroll lock ────────────────────────────────────
+	// ── Local State ───────────────────────────────────────────────────────────
+	// ── Scroll Lock ───────────────────────────────────────────────────────────
 	// Multiple MoreInfoShell instances may be active simultaneously (e.g. nested
 	// dialogs). A plain overflow toggle would unlock the body when the first
 	// one closes, even if another is still open. The counter ensures overflow
@@ -60,7 +64,8 @@
 		};
 	});
 
-	// Focus the panel when it opens
+	// ── Open / Close Lifecycle ────────────────────────────────────────────────
+	// Focus the panel when it opens.
 	let panelEl = $state<HTMLElement | undefined>(undefined);
 	let bodyEl = $state<HTMLDivElement | undefined>(undefined);
 	let visible = $state(false);
@@ -100,7 +105,7 @@
 		return () => window.clearTimeout(id);
 	});
 
-	// Mobile bottom-sheet behaviour
+	// ── Mobile Sheet State ────────────────────────────────────────────────────
 	const cfg = $derived($dashboardStore);
 	const mobileBreakpoint = $derived(cfg.nav.mobileBreakpoint ?? 800);
 	let isMobileSheet = $state(false);
@@ -133,6 +138,7 @@
 
 	const isSheet = $derived(isMobileSheet && style !== 'panel');
 
+	// ── Sheet Drag Helpers ────────────────────────────────────────────────────
 	function isInteractiveTarget(target: EventTarget | null): boolean {
 		if (!target) return false;
 		const el = target as Element;
@@ -183,8 +189,7 @@
 		const scroller = findScrollable(target);
 		if (scroller && scroller.scrollTop > 0) return;
 
-		// Commit: capture pointer so the drag continues even if the finger
-		// leaves the original element (important for fast swipes on iOS).
+		// Commit: capture pointer so drag can continue if the pointer leaves the start target.
 		if (panelEl && dragPointerId !== null) {
 			panelEl.setPointerCapture?.(dragPointerId);
 		}
@@ -259,11 +264,11 @@
 		}
 	}
 
-	// ── Non-passive touch event handlers ─────────────────────────────────────
-	// Svelte's `ontouchmove` attribute registers a PASSIVE listener, which means
+	// ── Touch Event Wiring ────────────────────────────────────────────────────
+	// Svelte's `ontouchmove` attribute registers a passive listener, which means
 	// e.preventDefault() inside it is silently ignored. The browser's native
 	// scroll then wins every time, preventing the sheet drag from committing.
-	// We register NON-PASSIVE listeners via $effect so preventDefault actually works.
+	// Register non-passive listeners via $effect so preventDefault can take effect.
 	let touchStartY = 0;
 
 	$effect(() => {
@@ -278,8 +283,8 @@
 			const touch = e.touches[0];
 			if (!touch) return;
 
-			// Drive the drag-commit from touch events too, because on iOS WKWebView,
-			// pointermove does NOT fire once the browser enters scroll mode.
+			// Drive drag commit from touch events too, because pointermove may stop
+			// firing once the browser enters native scroll mode.
 			// Since pointerdown DID fire (arming the drag), we can commit here.
 			if (dragArmed && !dragging) {
 				maybeStartFromArmed(touch.clientX, touch.clientY, e.target as EventTarget);
@@ -333,6 +338,7 @@
 		requestClose();
 	}
 
+	// ── Interaction Handlers ─────────────────────────────────────────────────
 	function handleBodyInteraction(e: PointerEvent) {
 		const t = e.target as Element | null;
 		if (!t) return;
@@ -357,10 +363,11 @@
 		if (e.key === 'Enter' || e.key === ' ') requestClose();
 	}
 
-		const isDrawer = $derived(style === 'drawer');
-		const isModal  = $derived(style === 'modal');
-		const isPanel  = $derived(style === 'panel');
-		const isCameraDesktop = $derived(variant === 'camera' && !isSheet && !isPanel);
+	// ── View Mode Flags ──────────────────────────────────────────────────────
+	const isDrawer = $derived(style === 'drawer');
+	const isModal  = $derived(style === 'modal');
+	const isPanel  = $derived(style === 'panel');
+	const isCameraDesktop = $derived(variant === 'camera' && !isSheet && !isPanel);
 </script>
 
 {#if visible}

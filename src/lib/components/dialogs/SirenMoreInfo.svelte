@@ -1,12 +1,17 @@
 <script lang="ts">
+	// ── SirenMoreInfo ─────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { sirenService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
@@ -15,6 +20,7 @@
 	const tones = $derived((entity?.attributes.available_tones as string[] | undefined) ?? []);
 	const currentTone = $derived(entity?.attributes.tone as string | undefined);
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function toggle() {
 		if (isUnavail) return;
 		if (optimisticPreviewEnabled) applyPatch(entityId, { state: isOn ? 'off' : 'on' });

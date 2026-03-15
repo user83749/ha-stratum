@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── MediaPlayerTile ───────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -9,9 +12,11 @@
   import { mediaService } from '$lib/ha/services';
   import { clockNow } from '$lib/stores/clock';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const sizePreset = $derived(getTileSizePreset(tile));
   const isSm = $derived(sizePreset === 'sm');
@@ -55,6 +60,8 @@
   });
   const progressPct = $derived(mediaDuration > 0 ? Math.min((livePosition / mediaDuration) * 100, 100) : 0);
   const showProgress = $derived(mediaDuration > 0 && isOn);
+
+  // ── Actions ───────────────────────────────────────────────────────────────
 </script>
 
 {#if isHero}

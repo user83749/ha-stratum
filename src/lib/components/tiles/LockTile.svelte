@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── LockTile ─────────────────────────────────────────────────────────────
+
+  // ── Imports ─────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -7,9 +10,11 @@
   import { lockService } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ───────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ───────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const sizePreset = $derived(getTileSizePreset(tile));
 
@@ -32,9 +37,11 @@
   const stateLabel = $derived(isLocked ? 'Locked' : isJammed ? 'Jammed!' : isUnlocked ? 'Unlocked' : entityState);
   const showAction = $derived(sizePreset !== 'sm');
 
+  // ── Local State ─────────────────────────────────────────────────────────
   let confirming = $state(false);
   let confirmTimer: ReturnType<typeof setTimeout>;
 
+  // ── Actions ─────────────────────────────────────────────────────────────
   function handleToggle() {
     if (!entityId) return;
     if (isLocked) {
@@ -55,15 +62,13 @@
 <BaseTile {name} state={stateLabel} isOn={isUnlocked} style="--lc: {lockColor};">
 
   {#snippet icon()}
-    <!-- Visual-only lock icon — tile tap handled by TileWrapper -->
+    <!-- ── Icon ──────────────────────────────────────────────────────────── -->
     {#if iconOverride}
       {#if overrideIsCustom}
-        <!-- Custom icon override: render directly so YAML width/margins apply; no badge behind. -->
         <span class="lock-icon-override" style="color: var(--lc);">
           <Icon name={iconOverride} entity={entity} />
         </span>
       {:else}
-        <!-- Built-in icon override: keep centered, but remove the badge behind the icon. -->
         <div class="lock-icon-override centered" style="color: var(--lc);">
           <span class="icon-span">
             <Icon name={iconOverride} entity={entity} size="100%" />
@@ -134,13 +139,11 @@
     transition: all var(--transition);
   }
 
-  /* Changes the icon chip when locked. */
   .lock-icon.locked {
     background: color-mix(in srgb, var(--lc) 18%, transparent);
     border-color: color-mix(in srgb, var(--lc) 35%, var(--border));
   }
 
-  /* Changes the icon chip when jammed — danger color override. */
   .lock-icon.jammed {
     background: color-mix(in srgb, var(--color-danger) 20%, transparent);
     border-color: color-mix(in srgb, var(--color-danger) 40%, var(--border));

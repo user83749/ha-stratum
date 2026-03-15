@@ -1,4 +1,7 @@
 <script lang="ts">
+	// ── AlertsSettings ────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { entities } from '$lib/ha/websocket';
 	import { getEntityName } from '$lib/ha/entities';
@@ -6,6 +9,7 @@
 	import Toggle from '$lib/components/ui/Toggle.svelte';
 	import type { NotificationConfig } from '$lib/types/dashboard';
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const root = $derived($dashboardStore);
 	const cfg = $derived(root.notifications);
 	const allEntities = $derived(Object.values($entities));
@@ -21,6 +25,7 @@
 			.slice(0, 100);
 	});
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function setNotif(patch: Partial<NotificationConfig>) {
 		dashboardStore.setNotifications(patch);
 	}
@@ -38,6 +43,7 @@
 		setNotif({ alertEntityIds: [...current, entityId] });
 	}
 
+	// ── Cleanup ───────────────────────────────────────────────────────────────
 	$effect(() => {
 		const tracked = cfg.alertEntityIds ?? [];
 		if (tracked.length === 0) return;

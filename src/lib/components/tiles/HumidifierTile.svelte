@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── HumidifierTile ────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -7,9 +10,11 @@
   import { clamp } from '$lib/utils/format';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config    = $derived(tile.config);
   const layoutW   = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH   = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
@@ -37,6 +42,7 @@
   const displayHum = $derived(dragging ? (localHum ?? targetHum) : targetHum);
   const humPct = $derived(((displayHum) - minHum) / (maxHum - minHum) * 100);
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   function toggle() { if (entityId) humidifierService.toggle(entityId); }
 
   function adjustHum(delta: number) {

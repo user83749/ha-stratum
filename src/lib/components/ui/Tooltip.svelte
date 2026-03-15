@@ -1,6 +1,10 @@
 <script lang="ts">
+	// ── Tooltip ───────────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import type { Snippet } from 'svelte';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		text: string;
 		side?: 'top' | 'bottom' | 'left' | 'right';
@@ -11,6 +15,7 @@
 		children: Snippet;
 	}
 
+	// ── Props / Local State ───────────────────────────────────────────────────
 	let {
 		text,
 		side = 'top',
@@ -22,6 +27,7 @@
 	let visible = $state(false);
 	let timer: ReturnType<typeof setTimeout> | null = null;
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function show() {
 		if (disabled || !text) return;
 		timer = setTimeout(() => (visible = true), delay);

@@ -1,9 +1,13 @@
 <script lang="ts">
+	// ── MapTileMoreInfo ───────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import type { HassEntity } from 'home-assistant-js-websocket';
 	import type { Tile } from '$lib/types/dashboard';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { getEntityName } from '$lib/ha/entities';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		tile: Tile;
 		entity: HassEntity | null;
@@ -11,6 +15,7 @@
 
 	const { tile, entity }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const title = $derived((tile.config.name as string) ?? (entity ? getEntityName(entity) : 'Map'));
 	const lat = $derived((entity?.attributes.latitude ?? tile.config.latitude) as number | undefined);
 	const lon = $derived((entity?.attributes.longitude ?? tile.config.longitude) as number | undefined);
@@ -28,7 +33,8 @@
 		return `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
 	});
 
-	// Mock data for proximity
+	// ── Proximity Data ────────────────────────────────────────────────────────
+	// Mock data for proximity.
 	const zones = $derived.by(() => [
 		{ name: 'Home', distance: 1.2, unit: 'km', active: stateLabel === 'home' },
 		{ name: 'Work', distance: 8.4, unit: 'km', active: stateLabel === 'work' },

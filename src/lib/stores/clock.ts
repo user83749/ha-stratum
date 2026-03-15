@@ -1,5 +1,9 @@
+// ── Imports ────────────────────────────────────────────────────────────────
+
 import { browser } from '$app/environment';
 import { readable } from 'svelte/store';
+
+// ── Tick Stores ─────────────────────────────────────────────────────────────
 
 function createTickStore(intervalMs: number) {
 	return readable<number>(Date.now(), (set) => {
@@ -9,6 +13,8 @@ function createTickStore(intervalMs: number) {
 		return () => clearInterval(id);
 	});
 }
+
+// ── Public Stores ───────────────────────────────────────────────────────────
 
 export const clockNow = createTickStore(1000);
 export const relativeNow = createTickStore(30_000);

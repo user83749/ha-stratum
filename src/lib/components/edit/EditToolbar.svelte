@@ -1,18 +1,13 @@
 <script lang="ts">
-	// ─────────────────────────────────────────────────────────────────────────
-	// Stratum — EditToolbar.svelte
-	// Fixed top bar shown when edit mode is active.
-	// Left:   "Edit Mode" label + Undo/Redo
-	// Center: Grid-conflict warning (conditional)
-	// Right:  Add Section | Add Tile | Discard | Save
-	// ─────────────────────────────────────────────────────────────────────────
+	// ── EditToolbar ───────────────────────────────────────────────────────────
 
+	// ── Imports ─────────────────────────────────────────────────────────────
 	import { get } from 'svelte/store';
 	import { editMode } from '$lib/stores/editMode';
 	import { undoStore, canUndo, canRedo } from '$lib/stores/undoStore';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { entities } from '$lib/ha/websocket';
-	import { getEntityName, getDomain } from '$lib/ha/entities';
+	import { getEntityName } from '$lib/ha/entities';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
 	// ── Props ──────────────────────────────────────────────────────────────────
@@ -26,14 +21,14 @@
 
 	const { hasConflicts = false, onAddSection, onAddTile, onAutoFix }: Props = $props();
 
-	// ── Entity picker (pin to nav) ─────────────────────────────────────────────
+	// ── Entity Picker ─────────────────────────────────────────────────────────
 
 	let entityPickerOpen = $state(false);
 	let entitySearch     = $state('');
 
 	const pinnedIds = $derived(new Set($dashboardStore.favorites.entityIds));
 
-	const pickerResults = $derived(() => {
+	const pickerResults = $derived.by(() => {
 		const q = entitySearch.trim().toLowerCase();
 		const all = Object.values($entities);
 		const unpinned = all.filter((e) => !pinnedIds.has(e.entity_id));
@@ -62,12 +57,16 @@
 		if (e.key === 'Escape') { entityPickerOpen = false; entitySearch = ''; }
 	}
 
-	// ── Derived ────────────────────────────────────────────────────────────────
+	function pinnedEntityLabel(entityId: string): string {
+		return ($entities[entityId]?.attributes?.friendly_name as string | undefined) ?? entityId;
+	}
+
+	// ── Derived State ─────────────────────────────────────────────────────────
 
 	const undoDisabled = $derived(!$canUndo);
 	const redoDisabled = $derived(!$canRedo);
 
-	// ── Handlers ──────────────────────────────────────────────────────────────
+	// ── Actions ───────────────────────────────────────────────────────────────
 
 	function handleUndo() {
 		const current = get(dashboardStore);
@@ -150,7 +149,7 @@
 
 		<div class="toolbar__sep" aria-hidden="true"></div>
 
-		<!-- Add entity to nav -->
+		<!-- ── Add Entity To Sidebar ───────────────────────────────────────── -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="toolbar__picker-wrap" onkeydown={handlePickerKeydown}>
 			<button
@@ -181,7 +180,7 @@
 						{/if}
 					</div>
 					<div class="tep__list">
-						{#each pickerResults() as entity (entity.entity_id)}
+						{#each pickerResults as entity (entity.entity_id)}
 							<button
 								class="tep__item"
 								onclick={() => { pinEntity(entity.entity_id); entityPickerOpen = false; }}
@@ -205,7 +204,7 @@
 							<div class="tep__pinned-list">
 								{#each [...pinnedIds] as id (id)}
 									<span class="tep__chip">
-										{id}
+										{pinnedEntityLabel(id)}
 										<button
 											class="tep__chip-remove"
 											onclick={() => dashboardStore.toggleFavorite(id)}
@@ -270,12 +269,17 @@
 		background: var(--bg-elevated);
 		border-bottom: 1px solid var(--border);
 		box-shadow: var(--shadow);
+		animation: toolbar-slide-down 0.2s ease-out both;
 	}
 
-	@starting-style {
-		.edit-toolbar {
+	@keyframes toolbar-slide-down {
+		from {
 			transform: translateY(-100%);
 			opacity: 0;
+		}
+		to {
+			transform: translateY(0);
+			opacity: 1;
 		}
 	}
 
@@ -425,7 +429,7 @@
 
 	.toolbar__btn:active { transform: scale(0.97); }
 
-	/* Secondary (Add Section) */
+	/* ── Secondary (Add Section) ──────────────────────────────────────── */
 	.toolbar__btn--secondary {
 		background: var(--hover);
 		color: var(--fg-muted);
@@ -437,7 +441,7 @@
 		border-color: var(--border-strong, var(--border));
 	}
 
-	/* Accent (Add Tile) */
+	/* ── Accent (Add Tile) ─────────────────────────────────────────────── */
 	.toolbar__btn--accent {
 		background: var(--accent);
 		color: var(--accent-fg);
@@ -449,7 +453,7 @@
 		filter: brightness(1.08);
 	}
 
-	/* Ghost (Discard) */
+	/* ── Ghost (Discard) ───────────────────────────────────────────────── */
 	.toolbar__btn--ghost {
 		background: transparent;
 		color: var(--fg-muted);
@@ -461,7 +465,7 @@
 		border-color: var(--border);
 	}
 
-	/* Save / Done */
+	/* ── Save / Done ───────────────────────────────────────────────────── */
 	.toolbar__btn--save {
 		background: var(--color-on);
 		color: var(--accent-fg);
@@ -473,7 +477,7 @@
 		box-shadow: 0 2px 8px color-mix(in srgb, var(--color-on) 40%, transparent);
 	}
 
-	/* Active state for toggleable buttons */
+	/* ── Active State For Toggle Buttons ──────────────────────────────── */
 	.toolbar__btn--active {
 		background: color-mix(in srgb, var(--accent) 12%, transparent);
 		color: var(--accent);

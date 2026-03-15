@@ -1,16 +1,16 @@
 <script lang="ts">
-	// ─────────────────────────────────────────────────────────────────────────
-	// Stratum — ResetSettings.svelte
-	// Export, import, reset, factory reset.
-	// ─────────────────────────────────────────────────────────────────────────
+	// ── ResetSettings ─────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { defaultConfig, migrateConfig } from '$lib/types/dashboard';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	let cfg = $derived($dashboardStore);
 
-	// ── Export ─────────────────────────────────────────────────────────────
+	// ── Actions ───────────────────────────────────────────────────────────────
 
 	function exportConfig() {
 		const json = JSON.stringify(cfg, null, 2);
@@ -22,8 +22,6 @@
 		a.click();
 		URL.revokeObjectURL(url);
 	}
-
-	// ── Import ─────────────────────────────────────────────────────────────
 
 	let importError = $state('');
 	let importSuccess = $state(false);
@@ -57,8 +55,6 @@
 		(e.target as HTMLInputElement).value = '';
 	}
 
-	// ── Reset ──────────────────────────────────────────────────────────────
-
 	let resetConfirm = $state(false);
 
 	async function resetToDefaults() {
@@ -73,8 +69,6 @@
 		await dashboardStore.replace(fresh);
 		resetConfirm = false;
 	}
-
-	// ── Factory reset ──────────────────────────────────────────────────────
 
 	let factoryStep = $state(0);
 

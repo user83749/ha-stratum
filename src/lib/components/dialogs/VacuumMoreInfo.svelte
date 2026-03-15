@@ -1,12 +1,17 @@
 <script lang="ts">
+	// ── VacuumMoreInfo ────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { vacuumService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
@@ -26,6 +31,7 @@
 		'var(--fg-subtle)'
 	);
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function run(action: 'start' | 'pause' | 'stop' | 'dock' | 'locate') {
 		if (isUnavail) return;
 		if (optimisticPreviewEnabled) {

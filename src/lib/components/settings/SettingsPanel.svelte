@@ -1,9 +1,7 @@
 <script lang="ts">
-	// ─────────────────────────────────────────────────────────────────────────
-	// Stratum — SettingsPanel.svelte
-	// Right-side drawer with tabbed settings sections.
-	// ─────────────────────────────────────────────────────────────────────────
+	// ── SettingsPanel ─────────────────────────────────────────────────────────
 
+	// ── Imports ─────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import ConnectionSettings from './ConnectionSettings.svelte';
 	import ThemeSettings from './ThemeSettings.svelte';
@@ -47,11 +45,12 @@
 		{ id: 'reset',      icon: 'rotate-ccw',       label: 'Reset'        },
 	];
 
+	// ── Local State ───────────────────────────────────────────────────────────
 	const validTabIds = new Set(TABS.map((t) => t.id));
 	let activeTab = $state<TabId>('theme');
 	let bodyEl = $state<HTMLDivElement | null>(null);
 
-	// When the panel opens, jump to whichever tab was requested
+	// ── Tab Sync ─────────────────────────────────────────────────────────────
 	$effect(() => {
 		if (open) {
 			const requested = $settingsTab;
@@ -69,15 +68,14 @@
 		}
 	});
 
-	// If you scroll a tab, then switch tabs, always start at the top.
+	// ── Scroll Reset ─────────────────────────────────────────────────────────
 	$effect(() => {
 		activeTab;
 		if (!bodyEl) return;
 		queueMicrotask(() => bodyEl?.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
 	});
 
-	// ── Keyboard close ─────────────────────────────────────────────────────
-
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') onclose();
 	}
@@ -95,17 +93,17 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-	<!-- Backdrop -->
+	<!-- ── Backdrop ─────────────────────────────────────────────────────── -->
 	<div
 		class="sp__backdrop"
 		onclick={handleClose}
 		aria-hidden="true"
 	></div>
 
-	<!-- Panel -->
+	<!-- ── Panel ────────────────────────────────────────────────────────── -->
 	<div class="sp" aria-label="Settings" role="dialog" aria-modal="true" tabindex="-1">
 
-		<!-- Tab sidebar -->
+		<!-- ── Tab Sidebar ───────────────────────────────────────────────── -->
 		<nav class="sp__tabs" aria-label="Settings sections">
 			<div class="sp__tabs-header">
 				<button
@@ -133,27 +131,27 @@
 			<div class="sp__tabs-spacer"></div>
 		</nav>
 
-		<!-- Content area -->
+		<!-- ── Content Area ──────────────────────────────────────────────── -->
 		<div class="sp__content">
 			<div class="sp__content-header">
 				<span class="sp__content-title">
 					{TABS.find((t) => t.id === activeTab)?.label ?? 'Settings'}
 				</span>
 			</div>
-				<div class="sp__body" bind:this={bodyEl}>
-					{#if activeTab === 'connection'}
-						<ConnectionSettings />
-					{:else if activeTab === 'theme'}
-						<ThemeSettings />
-					{:else if activeTab === 'nav'}
-						<NavSettings />
-					{:else if activeTab === 'alerts'}
-						<AlertsSettings />
-					{:else if activeTab === 'dialog'}
-						<DialogSettings />
-					{:else if activeTab === 'profiles'}
-						<ProfilesSettings />
-					{:else if activeTab === 'shortcuts'}
+			<div class="sp__body" bind:this={bodyEl}>
+				{#if activeTab === 'connection'}
+					<ConnectionSettings />
+				{:else if activeTab === 'theme'}
+					<ThemeSettings />
+				{:else if activeTab === 'nav'}
+					<NavSettings />
+				{:else if activeTab === 'alerts'}
+					<AlertsSettings />
+				{:else if activeTab === 'dialog'}
+					<DialogSettings />
+				{:else if activeTab === 'profiles'}
+					<ProfilesSettings />
+				{:else if activeTab === 'shortcuts'}
 					<KeyboardShortcuts />
 				{:else if activeTab === 'reset'}
 					<ResetSettings />
@@ -172,6 +170,7 @@
 		z-index: 359;
 		background: rgba(0, 0, 0, 0.35);
 		backdrop-filter: blur(1px);
+		animation: sp-fade-in 0.25s ease both;
 	}
 
 	/* ── Panel ────────────────────────────────────────────────────────────── */
@@ -190,6 +189,7 @@
 		box-shadow: var(--shadow-lg);
 		transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 		overflow: hidden;
+		animation: sp-slide-in 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
 	}
 
 	@media (max-width: 800px) {
@@ -198,8 +198,14 @@
 		}
 	}
 
-	@starting-style {
-		.sp { transform: translateX(100%); }
+	@keyframes sp-slide-in {
+		from { transform: translateX(100%); }
+		to { transform: translateX(0); }
+	}
+
+	@keyframes sp-fade-in {
+		from { opacity: 0; }
+		to { opacity: 1; }
 	}
 
 	/* ── Tab sidebar ──────────────────────────────────────────────────────── */

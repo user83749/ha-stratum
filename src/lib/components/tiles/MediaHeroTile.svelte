@@ -1,35 +1,7 @@
 <script lang="ts">
-  /**
-   * MediaHeroTile — ports the HA conditional_media / base_media / media button-card templates.
-   *
-   * Layout:
-   *   ┌─────────────────────────────────────┐
-   *   │  [icon 30%]                         │  ← top-left (user-specified, e.g. icon_kodi/icon_sonos)
-   *   │                                     │
-   *   │  [name — dimmed]                    │  ← bottom, e.g. "Now Playing"
-   *   │  [state/title marquee]              │  ← bottom, "artist - title", padding-bottom 4%
-   *   └─────────────────────────────────────┘
-   *
-   * No explicit play/pause button — whole tile taps via TileWrapper tap_action.
-   * Background: full-bleed artwork image with bottom-to-top gradient overlay.
-   * Blur overlay: 110×110% copy of same image, blurred+darkened, inserted behind content.
-   * Icon: user-specified per player entry (mirrors icon_kodi / icon_sonos / icon_tv templates).
-   *       Hidden when artwork is present and media is on.
-   * Name: card name field (e.g. "Now Playing", "Sonos"), dimmed, at bottom above state.
-   * State: title marquee at bottom — "artist - title" or whichever exists.
-   *
-   * Actions (configured in TileEditor per tile):
-   *   tap        → media_player.media_play_pause
-   *   hold       → media_player.turn_off
-   *   double-tap → more-info
-   *
-   * Config:
-   *   entity            = select.conditional_media  (state = active player name)
-   *   config.player_map = [{ state, entity_id, picture_entity?, name?, icon? }, …]
-   *   config.sensor_entity = sensor.active_media_players  (pre-aggregated metadata)
-   *   config.show_artwork  = true (default)
-   *   config.show_progress = true (default)
-   */
+  // ── MediaHeroTile ────────────────────────────────────────────────────────
+
+  // ── Imports ─────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import Icon from '$lib/components/ui/Icon.svelte';
@@ -38,20 +10,23 @@
   import { isCustomIcon } from '$lib/icons/customIcons';
   import { clockNow } from '$lib/stores/clock';
 
+  // ── Types ─────────────────────────────────────────────────────────────
   export interface PlayerMapEntry {
-    state: string;           // select/sensor state to match, e.g. "CoreELEC"
-    entity_id: string;       // media_player.* to control
-    picture_entity?: string; // entity whose entity_picture attr = artwork (e.g. sensor.kodi_poster)
-    name?: string;           // friendly name override
-    icon?: string;           // icon name override
+    state: string;           // state value used to select the mapped player
+    entity_id: string;       // target media player entity
+    picture_entity?: string; // optional entity used as artwork source
+    name?: string;           // optional display name override
+    icon?: string;           // optional icon override
   }
 
+  // ── Props ─────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Base Config ────────────────────────────────────────────────────────
   const config = $derived(tile.config);
 
-  // ── Resolve the "Active" Player vs Fallback Entity ─────────────────────────
+  // ── Active Entity Resolution ─────────────────────────────────────────────────────────────
 
   const switcherId     = $derived(config.switcher_entity_id as string | undefined);
   const switcherEntity = $derived(switcherId ? ($optimisticEntities[switcherId] ?? null) : null);
@@ -59,28 +34,24 @@
 
   const playerMap     = $derived((config.player_map ?? []) as PlayerMapEntry[]);
 
-  // Find if current state matches a mapped media_player
+  // Match current state to a mapped player entry when available.
   const mappedEntry = $derived.by(() => {
     if (!playerMap.length || !switcherState) return null;
     const s = switcherState.toLowerCase();
     return playerMap.find(e => e.state.trim().toLowerCase() === s) ?? null;
   });
 
-  /**
-   * RESOLUTION LOGIC:
-   * 1. If switcher state matches a mapped entry -> Use that media_player.
-   * 2. Otherwise -> Fall back to the tile's main entity (e.g. sensor.trakt).
-   */
+  // Prefer mapped player; otherwise use tile/entity fallback.
   const activeEntityId = $derived(mappedEntry?.entity_id ?? entity?.entity_id ?? '');
   const activeEntity   = $derived(activeEntityId ? ($optimisticEntities[activeEntityId] ?? null) : null);
   const activeAttrs    = $derived(activeEntity?.attributes ?? {});
 
-  // Optional aggregator sensor (sensor.active_media_players)
+  // Optional metadata aggregator entity.
   const sensorEntityId = $derived((config.sensor_entity as string | undefined) ?? '');
   const sensorEntity   = $derived(sensorEntityId ? ($optimisticEntities[sensorEntityId] ?? null) : null);
   const sensorAttrs    = $derived(sensorEntity?.attributes ?? {});
 
-  // ── Playback / On State ───────────────────────────────────────────────────
+  // ── Playback State ─────────────────────────────────────────────────────────────
 
   const rawState = $derived(activeEntity?.state ?? 'off');
 
@@ -91,13 +62,14 @@
   const mediaOff  = $derived(MEDIA_OFF.includes(rawState.toLowerCase()));
   const isPlaying = $derived(rawState.toLowerCase() === 'playing');
 
-  // ── Metadata Parsing (strictly per YAML conditional_media) ─────────────────
+  // ── Metadata Parsing ─────────────────────────────────────────────────────────────
 
   const dataList = $derived(activeAttrs.data as any[] | undefined);
   
   // Pick a random item once per data-list length change, not on every WS tick.
   // Using a plain closure variable to track the previous length avoids
   // treating a re-created array (same length) as a meaningful change.
+  // ── Local State ────────────────────────────────────────────────────────
   let _prevDataLen = -1;
   let dataIdx = $state(0);
   $effect(() => {
@@ -119,7 +91,7 @@
   const displayState = $derived.by(() => {
     if (!activeEntity) return 'Unknown';
 
-    // 1. Aggregator Active State
+    // Aggregator active-state display.
     if (rawState === 'Active') {
       const title = activeAttrs.title || '';
       const s_e   = activeAttrs.number;
@@ -127,7 +99,7 @@
       return `${title}${number}`;
     }
 
-    // 2. Trakt / Data Array (Recommended index variables.i)
+    // Data-array item display.
     if (dataList !== undefined && currentItem) {
       const title = currentItem.title || '';
       let number = '';
@@ -141,7 +113,7 @@
       return `${title}${number}`;
     }
 
-    // 3. Fallback Standard Media (Artist - Title)
+    // Standard media metadata fallback.
     const media_artist = activeAttrs.media_artist;
     const media_title = activeAttrs.media_title;
     if (media_artist && media_title) return `${media_artist} - ${media_title}`;
@@ -158,7 +130,7 @@
   );
   const iconIsCustom = $derived(typeof iconName === 'string' && isCustomIcon(iconName));
 
-  // ── Artwork Resolution ─────────────────────────────────────────────────────
+  // ── Artwork Resolution ─────────────────────────────────────────────────────────────
 
   const pictureEntityId = $derived(mappedEntry?.picture_entity);
   const pictureEntity   = $derived(pictureEntityId ? ($optimisticEntities[pictureEntityId] ?? null) : null);
@@ -167,18 +139,18 @@
     const imgs: string[] = [];
     if (config.entity_picture) imgs.push(config.entity_picture as string);
 
-    // 1. Check mapped picture_entity
+    // Mapped picture entity.
     const fromPicEntity = pictureEntity?.attributes.entity_picture as string | undefined;
     if (fromPicEntity) imgs.push(fromPicEntity);
 
-    // 2. Check current Trakt item attributes
+    // Current data-item artwork fields.
     if (currentItem) {
       if (currentItem.fanart) imgs.push(currentItem.fanart);
       if (currentItem.poster) imgs.push(currentItem.poster);
       if (currentItem.entity_picture) imgs.push(currentItem.entity_picture);
     }
 
-    // 3. Fallback to sensor aggregator or active entity
+    // Fallback artwork sources.
     const fromSensor = sensorAttrs.entity_picture as string | undefined;
     if (fromSensor && fromSensor !== 'null') imgs.push(fromSensor);
 
@@ -194,7 +166,7 @@
 
   const showIcon = $derived(config.show_icon !== false);
 
-  // ── Progress Bar ───────────────────────────────────────────────────────────
+  // ── Progress ─────────────────────────────────────────────────────────────
 
   const mediaDuration     = $derived((sensorAttrs.media_duration as number) ?? (activeAttrs.media_duration as number) ?? 0);
   const mediaPosition     = $derived((sensorAttrs.media_position as number) ?? (activeAttrs.media_position as number) ?? 0);
@@ -211,17 +183,7 @@
   const showProgress = $derived(config.show_progress !== false && mediaDuration > 0 && mediaOn);
 </script>
 
-<!--
-  Layout:
-    ┌─[icon top-left]──────────────┐
-    │                              │
-    │                              │
-    │ Now Playing    ← name        │
-    │ artist - title ← state       │
-    └──────────────────────────────┘  ← padding-bottom 4%
-  Icon top-left (user-specified per player, e.g. icon_kodi/icon_sonos/icon_tv).
-  Name + state stacked at bottom. No play button — whole tile taps via TileWrapper.
--->
+<!-- ── Tile Root ───────────────────────────────────────────────────────────── -->
 <div
   class="media-hero"
   class:media-on={mediaOn}
@@ -246,27 +208,22 @@
     };
   "
 >
-  <!-- 
-    blur_overlay: Bottom-weighted glass bar per YAML.
-    Only blurs the area behind the text/labels for legibility.
-  -->
-
-  <!-- Card content -->
+  <!-- ── Tile Content ───────────────────────────────────────────────────────────── -->
   <div class="card-grid">
 
-	    <!-- Icon: top-left (HA conditional_media: custom_fields.icon always rendered). -->
-	    {#if showIcon}
+		    <!-- ── Icon ───────────────────────────────────────────────────────────── -->
+		    {#if showIcon}
 	      <div class="icon-field">
 	        <div class="icon-inner">
 	          <Icon name={iconName} entity={activeEntity} />
 	        </div>
 	      </div>
-	    {/if}
+		    {/if}
 
-    <!-- Spacer: fills middle area -->
+    <!-- ── Spacer ───────────────────────────────────────────────────────────── -->
     <div class="spacer-field"></div>
 
-    <!-- Bottom: name + state stacked -->
+    <!-- ── Bottom Meta ───────────────────────────────────────────────────────────── -->
     <div class="bottom-field">
       {#if showProgress}
         <div class="progress-bar" aria-hidden="true">
@@ -327,21 +284,21 @@
     min-height: 0;
   }
 
-	  /* ── Icon (top-left, HA conditional_media: custom_fields.icon width 30%) ─── */
-	  .icon-field {
-	    grid-area: icon;
-	    display: flex;
-	    align-items: flex-start;
-	    transition: opacity 0.3s ease;
-	  }
+  /* ── Icon ───────────────────────────────────────────────────────────── */
+  .icon-field {
+    grid-area: icon;
+    display: flex;
+    align-items: flex-start;
+    transition: opacity 0.3s ease;
+  }
 
-		.icon-inner {
-			width: 20%;
-			margin-left: 0;
-			color: currentColor;
-			fill: currentColor;
-			transition: color 0.3s ease;
-		}
+  .icon-inner {
+    width: 20%;
+    margin-left: 0;
+    color: currentColor;
+    fill: currentColor;
+    transition: color 0.3s ease;
+  }
 
   /* ── Spacer ────────────────────────────────────────────────────────────────── */
   .spacer-field { grid-area: spacer; }
@@ -357,7 +314,7 @@
     overflow: visible;
   }
 
-  /* name: dimmed label — inherits card font size, 120% line-height per HA template */
+  /* Name label inherits card typography with tuned line-height for readability. */
   .name-text {
     justify-self: flex-start;
     font-size: var(--button-card-font-size);

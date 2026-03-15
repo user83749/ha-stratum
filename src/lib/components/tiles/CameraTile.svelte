@@ -1,4 +1,7 @@
 <script lang="ts">
+	// ── CameraTile ────────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import type { HassEntity } from 'home-assistant-js-websocket';
 	import type { Tile } from '$lib/types/dashboard';
 	import { configStore } from '$lib/stores/config';
@@ -6,9 +9,12 @@
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { isCustomIcon } from '$lib/icons/customIcons';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { tile: Tile; entity: HassEntity | null; }
 	const { tile, entity }: Props = $props();
 	const sizePreset = $derived(getTileSizePreset(tile));
+
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const name           = $derived((tile.config.name as string | undefined) ?? entity?.attributes.friendly_name ?? 'Camera');
 	const iconOverride   = $derived(((tile.config.icon as string | undefined) ?? '').trim() || undefined);
 	const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);

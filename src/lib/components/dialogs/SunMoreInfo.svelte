@@ -1,10 +1,15 @@
 <script lang="ts">
+	// ── SunMoreInfo ───────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities } from '$lib/ha/optimistic';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const above = $derived(entity?.state === 'above_horizon');
 	const nextRising = $derived((entity?.attributes.next_rising as string | undefined) ?? '');
@@ -12,6 +17,7 @@
 	const elevation = $derived((entity?.attributes.elevation as number | undefined) ?? undefined);
 	const azimuth = $derived((entity?.attributes.azimuth as number | undefined) ?? undefined);
 
+	// ── Helpers ───────────────────────────────────────────────────────────────
 	function formatDate(value: string): string {
 		if (!value) return '—';
 		const date = new Date(value);

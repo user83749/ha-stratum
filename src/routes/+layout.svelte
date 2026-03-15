@@ -1,4 +1,7 @@
 <script lang="ts">
+	// ── Route Layout ───────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { onMount, onDestroy, untrack } from 'svelte';
 	import { browser } from '$app/environment';
 	import favicon from '$lib/assets/favicon.svg';
@@ -10,6 +13,7 @@
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { applyTheme, watchSystemScheme } from '$lib/themes/apply';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	let { data, children } = $props();
 
 	// ── Boot: init config store and isAddon from server-side data ────────────
@@ -44,20 +48,13 @@
 		if (retryInterval) clearInterval(retryInterval);
 	});
 
-	// ── Connection waterfall ──────────────────────────────────────────────────
+	// ── Connection Flow ───────────────────────────────────────────────────────
 	//
-	//   Priority 1: Manual LLAT — if hassUrl + token set, always use them.
-	//               This is the most reliable path and takes precedence over
-	//               everything else, including the addon relay.
+	//   Priority 1: Manual credentials (URL + token) when configured.
+	//   Priority 2: Add-on relay path when manual credentials are absent.
+	//   Priority 3: Wait for user credentials.
 	//
-	//   Priority 2: Addon relay — SUPERVISOR_TOKEN based, no browser token needed.
-	//               Used when no manual LLAT is configured.
-	//
-	//   Priority 3: Nothing configured — wait for user to enter credentials in
-	//               Settings → Connection.
-	//
-	// Reconnect fires: (a) on startup, (b) every 5 s if not connected,
-	// (c) immediately when credentials change (via $effect below).
+	// Reconnect attempts run on startup, on interval, and on credential changes.
 
 	let isConnecting = false;
 	let retryInterval: ReturnType<typeof setInterval> | null = null;
@@ -113,19 +110,19 @@
 		const { hassUrl, token } = $configStore;
 
 		try {
-			// ── Priority 1: Manual LLAT — if hassUrl + token set, always use them. ──
+			// ── Priority 1: Manual credentials ──────────────────────────────────
 			if (hassUrl.trim() && token.trim()) {
 				await connect(hassUrl.trim(), token.trim());
 				if (get(connectionStatus) === 'connected') return;
 			}
 
-			// ── Priority 2: Addon relay — SUPERVISOR_TOKEN based, no browser token. ─
+			// ── Priority 2: Add-on relay ────────────────────────────────────────
 			if (isAddon) {
 				await connectAddon();
 				if (get(connectionStatus) === 'connected') return;
 			}
 
-			// ── Priority 3: Nothing configured / still failing — wait for user. ────
+			// ── Priority 3: Wait for user configuration ─────────────────────────
 		} catch (e) {
 			console.warn('[Stratum] Connection attempt failed:', e);
 		} finally {

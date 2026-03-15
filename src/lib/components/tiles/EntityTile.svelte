@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── EntityTile ───────────────────────────────────────────────────────────
+
+  // ── Imports ─────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -12,8 +15,10 @@
   import { entities } from '$lib/ha/websocket';
   import { relativeNow } from '$lib/stores/clock';
 
+  // ── Props ───────────────────────────────────────────────────────────────
   let { tile, entity }: { tile: Tile; entity: HassEntity | null } = $props();
 
+  // ── Derived State ───────────────────────────────────────────────────────
   const cfg             = $derived(tile.config ?? {});
   const sizePreset = $derived(getTileSizePreset(tile));
   const showName        = $derived(cfg.show_name !== false);
@@ -35,6 +40,7 @@
   const unavailable = $derived(entity ? isUnavailable(entity) : false);
   const iconIsCustom = $derived(typeof icon === 'string' && isCustomIcon(icon));
 
+  // ── Secondary / Attributes ─────────────────────────────────────────────
   const secondaryEntity = $derived(
     cfg.secondary_entity_id ? ($entities[cfg.secondary_entity_id] ?? null) : null
   );
@@ -74,7 +80,7 @@
   class:no-icon={!showIcon}
   style="--ec: {entityColor};"
 >
-  <!-- Grid layout: icon | (empty circle area) / name / state -->
+  <!-- ── Primary layout ─────────────────────────────────────────────── -->
   {#if showIcon}
     <div class="icon-wrap" class:active class:is-custom={iconIsCustom}>
       {#if iconIsCustom}
@@ -85,7 +91,7 @@
     </div>
   {/if}
 
-  <!-- circle area placeholder (grid-area: circle) — empty for EntityTile -->
+  <!-- ── Circle placeholder ──────────────────────────────────────────── -->
   <div class="circle-placeholder"></div>
 
   {#if showName}
@@ -101,7 +107,7 @@
     <span class="changed-val">{lastChangedText}</span>
   {/if}
 
-  <!-- Attribute cards — shown only on larger tiles via container query -->
+  <!-- ── Attribute cards ─────────────────────────────────────────────── -->
   {#if showAttributeCards}
     <div class="attr-grid">
       {#each attributeRows as row}
@@ -152,7 +158,7 @@
     transition: color var(--transition);
   }
   .icon-wrap.is-custom {
-    /* Keep the same square `custom_fields.icon`-like box for % margins. */
+    /* Keep a square icon box so percentage-based custom icon spacing remains stable. */
     display: block;
     line-height: 0;
   }

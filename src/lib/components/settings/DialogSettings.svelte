@@ -1,14 +1,15 @@
 <script lang="ts">
-	// ─────────────────────────────────────────────────────────────────────────
-	// Stratum — DialogSettings.svelte
-	// More-info style and drawer side.
-	// ─────────────────────────────────────────────────────────────────────────
+	// ── DialogSettings ────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import type { DialogConfig } from '$lib/types/dashboard';
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	let cfg = $derived($dashboardStore.dialog);
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function set(patch: Partial<DialogConfig>) {
 		dashboardStore.setDialog(patch);
 	}
@@ -37,7 +38,7 @@
 		</div>
 	</div>
 
-	<!-- Drawer side (only relevant for drawer mode) -->
+	<!-- Drawer side -->
 	{#if cfg.moreInfoStyle === 'drawer'}
 		<div class="dgs__group">
 			<span class="s-label">Drawer side</span>

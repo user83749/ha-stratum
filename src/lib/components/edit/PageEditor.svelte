@@ -1,9 +1,7 @@
 <script lang="ts">
-	// ─────────────────────────────────────────────────────────────────────────
-	// Stratum — PageEditor.svelte
-	// Right-side drawer for editing page properties.
-	// ─────────────────────────────────────────────────────────────────────────
+	// ── PageEditor ────────────────────────────────────────────────────────────
 
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { CUSTOM_ICON_NAMES } from '$lib/icons/customIcons';
@@ -65,6 +63,7 @@
 		});
 	}
 
+	// ── Option Sets ───────────────────────────────────────────────────────────
 	const LAYOUTS: { value: PageLayout; label: string; icon: string }[] = [
 		{ value: 'default', label: 'Default', icon: 'layout-grid' },
 		{ value: 'full',    label: 'Full',    icon: 'maximize-2'  },
@@ -74,6 +73,7 @@
 
 	let confirmDelete = $state(false);
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function handleDelete() {
 		if (!confirmDelete) { confirmDelete = true; return; }
 		onDelete();

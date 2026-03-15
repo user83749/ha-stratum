@@ -1,4 +1,7 @@
 <script lang="ts">
+	// ── CommandPalette ────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore } from '$lib/stores/ui';
 	import { entities } from '$lib/ha/websocket';
@@ -11,6 +14,7 @@
 		onclose: () => void;
 	}
 
+	// ── Props / Local State ───────────────────────────────────────────────────
 	let { open, onclose }: Props = $props();
 
 	const cfg    = $derived($dashboardStore);
@@ -21,6 +25,7 @@
 	let selected  = $state(0);
 	let inputEl: HTMLInputElement | undefined = $state();
 
+	// ── Open/Close Sync ───────────────────────────────────────────────────────
 	// Auto-focus input when opened
 	$effect(() => {
 		if (open) {
@@ -54,6 +59,7 @@
 		icon: string;
 	}
 
+	// ── Search Derivation ─────────────────────────────────────────────────────
 	const results = $derived.by(() => {
 		if (!open) return [] as ResultItem[];
 

@@ -1,14 +1,20 @@
 <script lang="ts">
+	// ── CustomIcon ────────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import type { HassEntity } from 'home-assistant-js-websocket';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		name: string;
 		entity?: HassEntity | null;
 		class?: string;
 	}
 
+	// ── Props / Local State ───────────────────────────────────────────────────
 	let { name, entity = null, class: className = '' }: Props = $props();
 
+	// ── Helpers ───────────────────────────────────────────────────────────────
 	function randomId(): string {
 		return Math.random().toString(36).slice(2, 9);
 	}
@@ -92,7 +98,7 @@
 						}
 					}
 
-					// Many HA SVGs put classes on the root `<svg class="on">`.
+					// Many inline SVGs put classes on the root `<svg class="on">`.
 					// Prefixing with a descendant combinator would break those rules.
 					if (/^[.#[:]/.test(s)) {
 						return [`${scopeSelector}${s}`, `${scopeSelector} ${s}`];
@@ -154,7 +160,7 @@
 			let css = String(cssText);
 
 			// Avoid global keyframe name collisions. Keyframes are global by name even if we scope selectors.
-			// Many of your ported HA SVGs use generic names like "on"/"off"/"rotate".
+			// Many imported SVGs use generic names like "on"/"off"/"rotate".
 			const keyframes = new Set<string>();
 			css.replace(/@keyframes\s+([a-zA-Z0-9_-]+)\b/g, (_k, name: string) => {
 				keyframes.add(String(name));
@@ -187,7 +193,7 @@
 
 	const entityState = $derived(entity?.state ?? 'off');
 	const attrs = $derived(entity?.attributes ?? {});
-	// Mirror your HA button-card `variables.state_on` semantics so icon animations
+	// Mirror active-state semantics so icon animations
 	// (e.g. `closet`) trigger on lock unlock and other non-"on" active states.
 	const isOn = $derived(
 		['on', 'home', 'cool', 'fan_only', 'playing', 'open', 'opening', 'active', 'unlocked'].includes(entityState)

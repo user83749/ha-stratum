@@ -1,5 +1,9 @@
+// ── Update Summary Helpers ───────────────────────────────────────────────────
+
+// ── Imports ──────────────────────────────────────────────────────────────────
 import type { HassEntities, HassEntity } from 'home-assistant-js-websocket';
 
+// ── Normalization Helpers ────────────────────────────────────────────────────
 function toPositiveCount(value: unknown): number | null {
 	if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
 		return Math.floor(value);
@@ -28,6 +32,7 @@ function toPositiveCount(value: unknown): number | null {
 	return null;
 }
 
+// ── Public API ───────────────────────────────────────────────────────────────
 export function getUpdateCount(entity: HassEntity | null | undefined, all?: HassEntities): number {
 	if (!entity) return 0;
 	if (entity.state === 'unknown' || entity.state === 'unavailable') return 0;

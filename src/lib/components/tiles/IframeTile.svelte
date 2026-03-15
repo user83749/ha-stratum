@@ -1,15 +1,21 @@
 <script lang="ts">
+  // ── IframeTile ────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const url = $derived((config as Record<string, unknown>).url as string ?? '');
   const title = $derived(config.name ?? entity?.attributes?.friendly_name ?? 'Iframe');
   const allowInteraction = $derived(config.allow_interaction !== false);
 
+  // ── Local State ───────────────────────────────────────────────────────────
   let src = $state('');
   $effect(() => { src = url; });
 </script>

@@ -1,13 +1,18 @@
 <script lang="ts">
+	// ── TvMoreInfo ────────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { mediaService, remoteService } from '$lib/ha/services';
 	import type { Tile } from '$lib/types/dashboard';
 	import { resolveTvCommandEntityId, type TvRemoteCommand } from '$lib/ha/tvRemote';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; tile?: Tile | null; }
 	const { entityId, tile = null }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const tvRemoteEntities = $derived((tile?.config.tv_remote_entities as Record<string, string> | undefined) ?? {});
 	const optimisticPreviewEnabled = false;
 	function resolveTarget(cmd: TvRemoteCommand): string {
@@ -46,6 +51,7 @@
 		return domain === 'remote' || domain === 'media_player';
 	}
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function sendCmd(cmd: TvRemoteCommand) {
 		if (!canSend(cmd)) return;
 		if (optimisticPreviewEnabled) return;

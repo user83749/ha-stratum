@@ -1,8 +1,7 @@
 <script lang="ts">
-	// ─────────────────────────────────────────────────────────────────────────
-	// Stratum — NavSettings.svelte
-	// Navigation style, toggles, mobile behaviour, sidebar entities.
-	// ─────────────────────────────────────────────────────────────────────────
+	// ── NavSettings ───────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import Toggle from '$lib/components/ui/Toggle.svelte';
@@ -14,15 +13,17 @@
 	import { getEntityName } from '$lib/ha/entities';
 	import { isSettingsOpen } from '$lib/stores/ui';
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	let root = $derived($dashboardStore);
 	let cfg = $derived(root.nav);
 	let display = $derived(root.display);
 	let pages = $derived(root.pages);
 	let schedule = $derived(display.themeSchedule);
 	let favorites = $derived(root.favorites);
-let allEntities = $derived(Object.values($entities));
-let mobileStyle = $derived(cfg.mobileStyle);
+	let allEntities = $derived(Object.values($entities));
+	let mobileStyle = $derived(cfg.mobileStyle);
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function set(patch: Partial<NavConfig>) {
 		dashboardStore.setNav(patch);
 	}
@@ -108,7 +109,7 @@ let mobileStyle = $derived(cfg.mobileStyle);
 		</div>
 	</div>
 
-	<!-- Theme schedule (kept here per your current "Display → Navigation" grouping) -->
+	<!-- Theme schedule -->
 	<div class="ns__group">
 		<div class="ns__group-header">
 			<span class="s-label">Theme schedule</span>

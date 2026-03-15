@@ -1,9 +1,7 @@
 <script lang="ts">
-	// ─────────────────────────────────────────────────────────────────────────
-	// Stratum — NotificationsPanel.svelte
-	// Right-side drawer showing HA persistent_notifications and real alerts.
-	// ─────────────────────────────────────────────────────────────────────────
+	// ── NotificationsPanel ────────────────────────────────────────────────────
 
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore } from '$lib/stores/ui';
 	import { callService, persistentNotificationService } from '$lib/ha/services';
@@ -16,6 +14,7 @@
 		onclose: () => void;
 	}
 
+	// ── Props / Local State ───────────────────────────────────────────────────
 	let { open, onclose }: Props = $props();
 
 	const cfg           = $derived($dashboardStore);
@@ -23,7 +22,8 @@
 	let clearingAll = $state(false);
 	let dismissedAlertEntityIds = $state<string[]>([]);
 
-	// Gather persistent_notification entities (HA creates these as entities)
+	// ── Derived State ─────────────────────────────────────────────────────────
+	// Gather persistent_notification entities.
 	const persistentNotifs = $derived(
 		open && notifCfg.showPersistent
 			? Object.values($entities).filter((e) => e.entity_id.startsWith('persistent_notification.'))
@@ -38,7 +38,7 @@
 		if (value === 'unavailable' || value === 'unknown') return false;
 
 		if (domain === 'alert') {
-			// HA alert entities are active when "on" (firing).
+			// Alert entities are active when "on" (firing).
 			return value === 'on';
 		}
 
@@ -101,7 +101,7 @@
 	});
 
 	function openNotifDetails(entityId: string) {
-		// Open the Home Assistant more-info/details view for this notification entity.
+		// Open the details view for this notification entity.
 		uiStore.openDialog(entityId);
 	}
 

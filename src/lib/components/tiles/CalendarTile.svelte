@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── CalendarTile ──────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -6,9 +9,11 @@
   import { appSettings } from '$lib/stores/dashboard';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const sizePreset = $derived(getTileSizePreset(tile));
   const name = $derived(config.name ?? entity?.attributes?.friendly_name ?? 'Calendar');
@@ -21,6 +26,7 @@
   const showTimeMeta = $derived(sizePreset !== 'sm');
   const showTitleLine = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
   function relTime(ts: string): string {
     if (!ts) return '';
     const d = new Date(ts), now = new Date();

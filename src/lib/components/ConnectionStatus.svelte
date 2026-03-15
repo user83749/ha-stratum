@@ -1,4 +1,6 @@
 <script lang="ts">
+	// ── State ────────────────────────────────────────────────────────────────
+
 	import { connectionStatus } from '$lib/ha/websocket';
 
 	const statusConfig = {
@@ -10,6 +12,8 @@
 
 	const current = $derived(statusConfig[$connectionStatus]);
 </script>
+
+<!-- ── UI ─────────────────────────────────────────────────────────────────── -->
 
 <div class="flex items-center gap-2">
 	<span class="relative flex h-2 w-2">

@@ -8,7 +8,7 @@
 	import { isEditing } from '$lib/stores/editMode';
 	import TileWrapper from '$lib/components/tiles/TileWrapper.svelte';
 
-	// ─── Props ───────────────────────────────────────────────────────────────
+	// ── Props ────────────────────────────────────────────────────────────────
 
 	interface Props {
 		tile: Tile;
@@ -22,7 +22,7 @@
 	const { tile, pageId, sectionId, preview = false, onEditDragStart, onEditResizeStart }: Props = $props();
 	const editing = $derived($isEditing);
 
-	// ─── Live entity ─────────────────────────────────────────────────────────
+	// ── Live Entity ──────────────────────────────────────────────────────────
 
 	const liveEntity = $derived(tile.entity_id ? ($optimisticEntities[tile.entity_id] ?? null) : null);
 	const PREVIEW_ART_DATA_URI =

@@ -1,9 +1,13 @@
 <script lang="ts">
+	// ── TodoMoreInfo ──────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { todoService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 
+	// ── Props & Types ─────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	interface TodoItem {
 		uid?: string;
@@ -13,6 +17,7 @@
 	}
 
 	const { entityId }: Props = $props();
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
@@ -20,8 +25,10 @@
 	const pending = $derived(items.filter((item) => item.status !== 'completed'));
 	const completed = $derived(items.filter((item) => item.status === 'completed'));
 
+	// ── Local State ───────────────────────────────────────────────────────────
 	let draft = $state('');
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function patchItems(nextItems: TodoItem[]) {
 		applyPatch(entityId, { attributes: { items: nextItems as unknown as Record<string, unknown> } });
 	}

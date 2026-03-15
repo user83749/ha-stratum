@@ -1,13 +1,18 @@
 <script lang="ts">
+  // ── RemoteTile ────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { callService } from '$lib/ha/services';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
@@ -20,6 +25,7 @@
   const showHeader = $derived(sizePreset !== 'sm' && !isTallMd);
   const showAuxRows = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   function send(command: string) {
     if (!entityId) return;
     callService('remote', 'send_command', { command }, { entity_id: entityId });
@@ -32,7 +38,6 @@
 
 <div class="remote-tile" class:on={isOn} class:is-tall-md={isTallMd} data-size={sizePreset}>
 
-  <!-- Name + power at top -->
   {#if showHeader}
   <div class="header">
     <span class="name-small">{name}</span>
@@ -42,7 +47,6 @@
   </div>
   {/if}
 
-  <!-- D-pad centered -->
   <div class="dpad">
     <button class="dpad-btn up" onclick={() => send('up')} aria-label="Up"><Icon name="chevron-up" /></button>
     <button class="dpad-btn left" onclick={() => send('left')} aria-label="Left"><Icon name="chevron-left" /></button>
@@ -69,6 +73,7 @@
 </div>
 
 <style>
+  /* ── Root ─────────────────────────────────────────────────────────────── */
   .remote-tile {
     position: relative;
     display: flex;
@@ -100,7 +105,6 @@
     flex: 1;
   }
 
-  /* Changes the active remote title text only. */
   .remote-tile.on .name-small { color: var(--tile-label-on, var(--control-active-name)); }
 
   .power-btn {
@@ -119,14 +123,9 @@
     flex-shrink: 0;
   }
 
-  /* Inner control chip only: this styles the power button itself.
-     It must not be used as the main active tile-face treatment. */
   .power-btn.on {
-    /* Changes the icon glyph color only. */
     color: var(--accent);
-    /* Changes the round power-chip fill only. */
     background: color-mix(in srgb, var(--accent) 18%, transparent);
-    /* Changes the round power-chip border only. */
     border-color: color-mix(in srgb, var(--accent) 35%, transparent);
   }
 
@@ -167,16 +166,11 @@
 
   .dpad-btn.up { grid-column: 2; grid-row: 1; }
   .dpad-btn.left { grid-column: 1; grid-row: 2; }
-  /* Center key only: accent foreground, but no filled block.
-     The shared active tile surface should remain the dominant background. */
   .dpad-btn.center {
     grid-column: 2;
     grid-row: 2;
-    /* Changes the center D-pad chip fill only. */
     background: transparent;
-    /* Changes the center D-pad glyph only. */
     color: var(--accent);
-    /* Changes the center D-pad border only. */
     border-color: transparent;
     font-size: var(--button-card-font-size);
   }

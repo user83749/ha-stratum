@@ -1,16 +1,16 @@
 <script lang="ts">
-	// ─────────────────────────────────────────────────────────────────────────
-	// Stratum — ConnectionSettings.svelte
-	// ─────────────────────────────────────────────────────────────────────────
+	// ── ConnectionSettings ────────────────────────────────────────────────────
 
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { configStore } from '$lib/stores/config';
 	import { connectionStatus, disconnect as disconnectHA, pauseReconnect } from '$lib/ha/websocket';
 	import { isAddon as isAddonStore } from '$lib/stores/app';
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const isAddon = $derived($isAddonStore);
 
-	// Returns the Ingress path prefix or '' for direct access
+	// ── URL Helper ────────────────────────────────────────────────────────────
 	function prefix(): string {
 		const m = window.location.pathname.match(/^(\/api\/hassio_ingress\/[^/]+)/);
 		return m ? m[1] : '';
@@ -24,7 +24,6 @@
 	let testResult  = $state<'idle' | 'success' | 'error'>('idle');
 	let testMessage = $state('');
 
-	// Keep local fields in sync when the store changes externally
 	$effect(() => {
 		if (!testing) {
 			url   = $configStore.hassUrl;
@@ -59,7 +58,6 @@
 			if (res.ok) {
 				testResult  = 'success';
 				testMessage = 'Connection successful!';
-				// Save credentials (also triggers layout $effect → reconnect)
 				configStore.set({ hassUrl: url.trim(), token: token.trim() });
 			} else {
 				const data = await res.json().catch(() => ({}));
@@ -79,8 +77,6 @@
 	}
 
 	function disconnect() {
-		// Prevent the auto-reconnect loop (especially in add-on mode) from
-		// immediately reconnecting and making this button feel non-functional.
 		pauseReconnect(30_000);
 		disconnectHA();
 		configStore.clear();
@@ -90,7 +86,6 @@
 </script>
 
 <div class="cs">
-	<!-- Addon mode -->
 	{#if isAddon}
 		{#if isLiveConnected}
 			<div class="cs__banner cs__banner--connected">
@@ -115,7 +110,6 @@
 			long-lived token below — this takes priority over the automatic relay.
 		</p>
 	{:else}
-		<!-- Standalone mode banner -->
 		{#if isLiveConnected}
 			<div class="cs__banner cs__banner--connected">
 				<Icon name="circle-check" size={15} />
@@ -134,7 +128,6 @@
 		{/if}
 	{/if}
 
-	<!-- URL + Token entry (shown in both modes) -->
 	<div class="cs__group">
 		<span class="s-label">{isAddon ? 'Manual override — Home Assistant URL' : 'Home Assistant URL'}</span>
 		<input
@@ -163,7 +156,6 @@
 		</span>
 	</div>
 
-	<!-- Test result -->
 	{#if testResult !== 'idle'}
 		<div
 			class="cs__result"
@@ -175,7 +167,6 @@
 		</div>
 	{/if}
 
-	<!-- Actions -->
 	<div class="cs__actions">
 		<button
 			class="cs__btn cs__btn--primary"

@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── CircleControl ────────────────────────────────────────────────────────
+
+  // ── Props ───────────────────────────────────────────────────────────────
   interface Props {
     value: number | null;
     isOn: boolean;
@@ -14,7 +17,8 @@
 
   const effectiveMin = $derived(min < 1 ? 1 : min);
 
-  // Local slider value — synced from prop only when not dragging
+  // ── Local State ─────────────────────────────────────────────────────────
+  // Local slider value, synced from props when not dragging.
   let localValue = $state<number>(0);
   let dragging   = $state(false);
   let pendingCommit = $state<number | null>(null);
@@ -38,7 +42,7 @@
     }, PENDING_TTL_MS);
   }
 
-  // Keep in sync with prop changes from HA (ignored while user is dragging)
+  // ── Prop Sync ───────────────────────────────────────────────────────────
   $effect.pre(() => {
     if (dragging) return;
     const serverValue = value ?? (isOn ? max : effectiveMin);
@@ -63,11 +67,12 @@
 
   const pct = $derived(localValue);
 
-  // r=22.1, circumference = 2π×r  (exactly matching YAML)
+  // ── Ring Geometry ───────────────────────────────────────────────────────
+  // r=22.1, circumference = 2π×r
   const circumference = 138.938;
 
   // ── Drag state ───────────────────────────────────────────────────────────
-  // Drag direction matches the YAML rotated range slider:
+  // Drag direction matches a rotated vertical range interaction:
   //   drag UP   → value increases  (same as dragging slider thumb up)
   //   drag DOWN → value decreases
   // Sensitivity auto-scales from element size: full element height = full range.
@@ -116,12 +121,7 @@
   }
 </script>
 
-<!--
-  Visual: SVG ring + value text.
-  Interaction: pointer-capture on the circle-wrap overlay.
-  Dragging UP increases value, DOWN decreases — same axis as the YAML's
-  rotated vertical range slider.
--->
+<!-- ── Circle Control ─────────────────────────────────────────────────────── -->
 <button
   class="circle-wrap"
   class:interactive={!!onchange}
@@ -143,7 +143,7 @@
     class="circle-svg"
     aria-hidden="true"
   >
-    <!-- Ring stroke — matches YAML exactly -->
+    <!-- Ring Stroke -->
     <circle
       cx="25" cy="25" r="22.1"
       class="circle-stroke"
@@ -152,7 +152,7 @@
       stroke-dasharray={circumference}
       stroke-dashoffset={circumference - pct / 100 * circumference}
     />
-    <!-- Value label — matches YAML tspan offset exactly -->
+    <!-- Value Label -->
     <text x="50%" y="52%" class="circle-value">
       {Math.round(pct)}<tspan dx=".2" dy="-.4">{unit}</tspan>
     </text>
@@ -170,7 +170,7 @@
     border: 0;
     background: none;
     appearance: none;
-    /* Prevent accidental text selection during fast drags */
+    /* Prevent accidental text selection during fast drags. */
     user-select: none;
     -webkit-user-select: none;
     touch-action: none;
@@ -182,10 +182,10 @@
   .circle-svg {
     width: 100%;
     height: 100%;
-    pointer-events: none;  /* SVG itself is display-only; wrap div handles events */
+    pointer-events: none;  /* SVG is display-only; wrapper handles events. */
   }
 
-  /* ── Ring stroke — YAML variable defaults ────────────────────────────── */
+  /* ── Ring Stroke ──────────────────────────────────────────────────────── */
   .circle-stroke {
     transform: rotate(-90deg);
     transform-origin: 50% 50%;
@@ -200,13 +200,12 @@
     fill: var(--c-fill-color-on, none);
   }
 
-  /* YAML: stroke-width expands to --c-stroke-width-dragging while dragging */
   .circle-stroke.dragging {
     stroke-width: var(--c-stroke-width-dragging, 5);
     transition: stroke-width 0.08s ease;
   }
 
-  /* ── Value text — YAML variable defaults ─────────────────────────────── */
+  /* ── Value Text ───────────────────────────────────────────────────────── */
   .circle-value {
     font-size: var(--c-font-size, 14px);
     font-weight: var(--c-font-weight, 700);

@@ -1,9 +1,13 @@
 <script lang="ts">
+	// ── FanMoreInfo ───────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { fanService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
@@ -12,7 +16,7 @@
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const optimisticPreviewEnabled = false;
 
-	// ─── Attributes ───────────────────────────────────────────────────────────
+	// ── Attributes ────────────────────────────────────────────────────────────
 
 	const percentage   = $derived(entity?.attributes.percentage as number | undefined);
 	const presetMode   = $derived(entity?.attributes.preset_mode as string | undefined);
@@ -25,7 +29,7 @@
 	const supportsDirection= $derived((supportedFeat & 4) !== 0);
 	const supportsPreset   = $derived((supportedFeat & 8) !== 0);
 
-	// ─── Local speed ──────────────────────────────────────────────────────────
+	// ── Local Speed ───────────────────────────────────────────────────────────
 
 	let localPct = $state(50);
 	$effect(() => { if (percentage !== undefined) localPct = percentage; });
@@ -60,7 +64,7 @@
 		commitSpeed(v, true);
 	}
 
-	// ─── Toggle ───────────────────────────────────────────────────────────────
+	// ── Toggle ────────────────────────────────────────────────────────────────
 
 	let toggling = $state(false);
 	async function toggle() {

@@ -1,10 +1,12 @@
 <script lang="ts">
+	// ── PageView ───────────────────────────────────────────────────────────────
+
+	// ── Imports ─────────────────────────────────────────────────────────────
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { activePageId, currentBreakpoint, uiStore } from '$lib/stores/ui';
 	import { isEditing, editMode } from '$lib/stores/editMode';
 	import { clockNow } from '$lib/stores/clock';
-	import SectionGrid from './SectionGrid.svelte';
-	import SectionHorizontalChipRow from './SectionHorizontalChipRow.svelte';
+	import SectionList from './SectionList.svelte';
 	import IntegratedNavRail from './IntegratedNavRail.svelte';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import type { Page, PageTransitionType } from '$lib/types/dashboard';
@@ -95,7 +97,7 @@
 		});
 	}
 
-	// Build inline background style from PageBackground config
+	// ── Background Style Builder ───────────────────────────────────────────────
 	function buildBgStyle(page: Page): string {
 		const bg = page.background;
 		if (!bg || bg.type === 'none' || isThemeStampedBackground(page)) return '';
@@ -124,12 +126,12 @@
 				break;
 		}
 
-		if (bg.blur) parts.push(`backdrop-filter: blur(${bg.blur}px)`);
+		if (bg.blur) parts.push(`filter: blur(${bg.blur}px)`);
 
 		return parts.join('; ');
 	}
 
-	// ── Edit mode helpers ──────────────────────────────────────────────────────
+	// ── Edit Mode Helpers ──────────────────────────────────────────────────────
 
 	function handleAddSection() {
 		if (!activePage) return;
@@ -147,10 +149,9 @@
 
 	// ── Section drag-to-reorder ────────────────────────────────────────────────
 
-	let sectionDragId   = $state<string | null>(null); // section being dragged
+	let sectionDragId   = $state<string | null>(null); // Section being dragged.
 	let sectionDragPin  = $state<'top' | 'none' | 'bottom' | null>(null);
-	let sectionDropIdx  = $state<number>(-1);           // nearest visible-section index for UI highlight
-	let sectionDragGrid = $state<HTMLElement | null>(null);
+	let sectionDropIdx  = $state<number>(-1); // Nearest visible-section index for highlight.
 
 	function canParticipateInSectionDrag(
 		dragged: Page['sections'][number] | undefined,
@@ -255,16 +256,45 @@
 		return { time, date };
 	});
 
+	// ── Weather Entity Cache ───────────────────────────────────────────────────
+	let discoveredWeatherEntityId = $state('');
+
+	$effect(() => {
+		const configured = String(cfg.weather?.entityId ?? '').trim();
+		if (configured) {
+			discoveredWeatherEntityId = configured;
+			return;
+		}
+
+		if ($entities['weather.forecast_home']) {
+			discoveredWeatherEntityId = 'weather.forecast_home';
+			return;
+		}
+
+		if (discoveredWeatherEntityId && $entities[discoveredWeatherEntityId]) return;
+
+		const discovered = Object.keys($entities).find((id) => id.startsWith('weather.')) ?? '';
+		if (discovered) discoveredWeatherEntityId = discovered;
+	});
+
+	const weatherEntityId = $derived.by(() => {
+		const configured = cfg.weather?.entityId as string | undefined;
+		if (configured) return configured;
+		return $entities['weather.forecast_home']
+			? 'weather.forecast_home'
+			: discoveredWeatherEntityId;
+	});
+
 	const weatherEntity = $derived(
-		$entities['weather.forecast_home'] ??
-		Object.values($entities).find(e => e.entity_id.startsWith('weather.'))
+		weatherEntityId ? ($entities[weatherEntityId] ?? null) : null
 	);
 	const weatherStr = $derived.by(() => {
 		if (!weatherEntity || weatherEntity.state === 'unknown' || weatherEntity.state === 'unavailable') return null;
 		const feelsLike = weatherEntity.attributes?.apparent_temperature ?? weatherEntity.attributes?.temperature;
 		const temp = Math.round(Number(feelsLike || 0));
+		const unit = (weatherEntity.attributes?.temperature_unit as string | undefined) ?? '°';
 		const condition = formatState(weatherEntity);
-		return `Feels like ${temp}° — ${condition}`;
+		return `Feels like ${temp}${unit} — ${condition}`;
 	});
 
 	const mobileHeroEntities = $derived(
@@ -273,6 +303,7 @@
 
 </script>
 
+<!-- ── Page Content ───────────────────────────────────────────────────────────── -->
 {#if activePage}
 	{#key activePage.id}
 		<div
@@ -280,7 +311,7 @@
 			in:pageTransition={currentPageTransition}
 			out:pageTransition={currentPageTransition}
 		>
-			<!-- Page background layer -->
+			<!-- ── Page Background Layer ───────────────────────────────────────── -->
 			{#if activePage.background.type !== 'none' && !isThemeStampedBackground(activePage)}
 				<div class="page-bg" style={buildBgStyle(activePage)} aria-hidden="true">
 					{#if activePage.background.type === 'video' && activePage.background.value}
@@ -305,7 +336,7 @@
 						class:page-view--with-nav={showIntegratedNav}
 					>
 						{#if showIntegratedNav}
-							<!-- Desktop: sidebar rail + content -->
+							<!-- ── Desktop: Sidebar Rail + Content ───────────────────────────── -->
 							<div class="page-view__dashboard">
 								<div class="page-view__nav-panel">
 									<IntegratedNavRail />
@@ -325,51 +356,18 @@
 										</div>
 									{/if}
 
-										<div
-											bind:this={sectionDragGrid}
-											class="page-sections-grid"
-											class:sections-dragging={!!sectionDragId}
-											role="presentation"
-											onpointermove={(ev) => sectionDragGrid && moveSectionDrag(ev, sectionDragGrid)}
-											onpointerup={endSectionDrag}
-											onpointercancel={endSectionDrag}
-										>
-										{#each visibleSections as section, si (section.id)}
-											<div
-												class="section-drag-item"
-												class:section-drag-item--dragging={section.id === sectionDragId}
-												class:section-drag-item--drop-target={sectionDragId !== null && si === sectionDropIdx && section.id !== sectionDragId}
-												class:section-drag-item--fullrow={section.layoutMode === 'horizontal_chip_row'}
-											>
-												{#if section.layoutMode === 'horizontal_chip_row'}
-													<SectionHorizontalChipRow
-														{section}
-														pageId={activePage.id}
-														onEditSection={onEditSection
-															? () => onEditSection!(activePage.id, section.id)
-															: undefined}
-														onAddTile={onAddTile
-															? () => onAddTile!(activePage.id, section.id, 1)
-															: undefined}
-													/>
-												{:else}
-													<SectionGrid
-														{section}
-														pageId={activePage.id}
-														onEditSection={onEditSection
-															? () => onEditSection!(activePage.id, section.id)
-															: undefined}
-														onAddTile={onAddTile
-															? (activeColumns) => onAddTile!(activePage.id, section.id, activeColumns)
-															: undefined}
-														onSectionDragStart={editing
-															? (ev) => startSectionDrag(ev, section.id)
-															: undefined}
-													/>
-												{/if}
-											</div>
-										{/each}
-									</div>
+									<!-- ── Sections ───────────────────────────────────────────────────────────── -->
+									<SectionList
+										sections={visibleSections}
+										pageId={activePage.id}
+										{sectionDragId}
+										{sectionDropIdx}
+										onEditSection={onEditSection ?? null}
+										onAddTile={onAddTile ?? null}
+										onSectionDragStart={editing ? startSectionDrag : null}
+										onSectionDragMove={moveSectionDrag}
+										onSectionDragEnd={endSectionDrag}
+									/>
 
 									{#if editing}
 										<div class="page-edit-bar">
@@ -386,7 +384,7 @@
 								</div>
 							</div>
 						{:else}
-							<!-- Mobile / no-nav -->
+							<!-- ── Mobile: No Nav Rail ────────────────────────────────────────── -->
 							<div
 								class="mobile-page-clock"
 								class:mobile-page-clock--clock-hidden={!showMobileClock}
@@ -413,50 +411,18 @@
 								{/each}
 							</div>
 
-								<div
-									class="page-sections-grid"
-									class:sections-dragging={!!sectionDragId}
-									role="presentation"
-									onpointermove={(ev) => { const g = ev.currentTarget as HTMLElement; moveSectionDrag(ev, g); }}
-									onpointerup={endSectionDrag}
-									onpointercancel={endSectionDrag}
-								>
-								{#each visibleSections as section, si (section.id)}
-									<div
-										class="section-drag-item"
-										class:section-drag-item--dragging={section.id === sectionDragId}
-										class:section-drag-item--drop-target={sectionDragId !== null && si === sectionDropIdx && section.id !== sectionDragId}
-										class:section-drag-item--fullrow={section.layoutMode === 'horizontal_chip_row'}
-									>
-										{#if section.layoutMode === 'horizontal_chip_row'}
-											<SectionHorizontalChipRow
-												{section}
-												pageId={activePage.id}
-												onEditSection={onEditSection
-													? () => onEditSection!(activePage.id, section.id)
-													: undefined}
-												onAddTile={onAddTile
-													? () => onAddTile!(activePage.id, section.id, 1)
-													: undefined}
-											/>
-										{:else}
-											<SectionGrid
-												{section}
-												pageId={activePage.id}
-												onEditSection={onEditSection
-													? () => onEditSection!(activePage.id, section.id)
-													: undefined}
-												onAddTile={onAddTile
-													? (activeColumns) => onAddTile!(activePage.id, section.id, activeColumns)
-													: undefined}
-												onSectionDragStart={editing
-													? (ev) => startSectionDrag(ev, section.id)
-													: undefined}
-											/>
-										{/if}
-									</div>
-								{/each}
-							</div>
+							<!-- ── Sections ───────────────────────────────────────────────────────────── -->
+							<SectionList
+								sections={visibleSections}
+								pageId={activePage.id}
+								{sectionDragId}
+								{sectionDropIdx}
+								onEditSection={onEditSection ?? null}
+								onAddTile={onAddTile ?? null}
+								onSectionDragStart={editing ? startSectionDrag : null}
+								onSectionDragMove={moveSectionDrag}
+								onSectionDragEnd={endSectionDrag}
+							/>
 
 							{#if editing}
 								<div class="page-edit-bar">
@@ -477,7 +443,7 @@
 		</div>
 	{/key}
 {:else}
-	<!-- No pages configured yet -->
+	<!-- ── Empty Page State ───────────────────────────────────────────────────── -->
 	<div class="page-empty">
 		{#if editing}
 			<button class="page-add-first" onclick={handleAddSection}>
@@ -499,7 +465,7 @@
 		flex: 1;
 	}
 
-	/* Background layer */
+	/* ── Background Layer ────────────────────────────────────────────────────── */
 	.page-bg {
 		position: absolute;
 		inset: 0;
@@ -513,7 +479,7 @@
 		object-fit: cover;
 	}
 
-	/* Default / full layout */
+	/* ── Default / Full Layout ──────────────────────────────────────────────── */
 	.page-stage {
 		position: relative;
 		width: 100%;
@@ -672,35 +638,8 @@
 		opacity: 1;
 	}
 
-	.page-sections-grid {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		align-items: start;
-		/* Match your HA `custom:grid-layout` view grid-gap. */
-		gap: var(--custom-layout-card-padding);
-		width: 100%;
-	}
-	:global(.page-sections-grid > *) {
-		min-width: 0;
-	}
-	/* NOTE: Previously 1200px to mirror YAML literally.
-	   Adjusted to 1160px so Stratum's 3-column section layout visually lines up
-	   with the user's HA YAML dashboard timing in practice. */
-	@media (max-width: 1160px) {
-		.page-sections-grid {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
-	}
-		@media (max-width: 800px) {
-			.page-sections-grid {
-				grid-template-columns: repeat(2, minmax(0, 1fr));
-				/* Keep HA-like horizontal spacing, but tighten vertical stacking slightly. */
-				column-gap: calc(var(--custom-layout-card-padding) * 1.7);
-				row-gap: calc(var(--custom-layout-card-padding) * 1.45);
-			}
-		}
 
-	/* Empty state */
+	/* ── Empty State ─────────────────────────────────────────────────────────── */
 	.page-empty {
 		display: flex;
 		align-items: center;
@@ -721,7 +660,7 @@
 	}
 
 	.mobile-page-clock--clock-hidden {
-		/* Keep the "header" block, but remove the big top padding reserved for the time. */
+		/* Keep header block while removing extra top space when clock is hidden. */
 		padding-top: 1.2vw;
 	}
 
@@ -734,7 +673,7 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	/* Date and weather stack vertically so long weather strings don't get clipped */
+	/* ── Mobile Clock Date / Weather ────────────────────────────────────────── */
 	.mobile-page-clock__sub {
 		display: flex;
 		flex-direction: column;
@@ -771,7 +710,7 @@
 		}
 	}
 
-	/* Hero entity rows below the clock */
+	/* ── Mobile Clock Hero Rows ─────────────────────────────────────────────── */
 	.mobile-page-clock__hero {
 		display: flex;
 		flex-direction: column;
@@ -870,42 +809,6 @@
 	.page-add-first:hover {
 		border-color: var(--accent);
 		color: var(--accent);
-	}
-
-	/* ── Section drag preview ─────────────────────────────────────────────── */
-	.section-drag-item {
-		transition: opacity 0.15s ease, transform 0.15s ease;
-	}
-
-	.section-drag-item--fullrow {
-		grid-column: 1 / -1;
-	}
-
-	.section-drag-item--dragging {
-		opacity: 0.4;
-		transform: scale(0.97);
-		pointer-events: none;
-	}
-
-	.section-drag-item--drop-target {
-		position: relative;
-	}
-
-	.section-drag-item--drop-target::before {
-		content: '';
-		position: absolute;
-		top: -4px;
-		left: 0;
-		right: 0;
-		height: 3px;
-		border-radius: 2px;
-		background: var(--accent);
-		box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 50%, transparent);
-		z-index: 10;
-	}
-
-	.sections-dragging {
-		cursor: grabbing;
 	}
 
 </style>

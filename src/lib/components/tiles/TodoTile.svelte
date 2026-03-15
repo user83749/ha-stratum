@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── TodoTile ──────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -6,9 +9,11 @@
   import { todoService } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
@@ -20,11 +25,13 @@
   const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
   const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
 
+  // ── Local State ───────────────────────────────────────────────────────────
   interface TodoItem { uid: string; summary: string; status: 'needs_action' | 'completed'; }
   let items = $state<TodoItem[]>([]);
   let loading = $state(true);
   let newTask = $state('');
 
+  // ── Effects ───────────────────────────────────────────────────────────────
   $effect(() => {
     void entity;
     if (!entityId) { loading = false; return; }
@@ -34,6 +41,7 @@
     else { loading = false; }
   });
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   function toggleItem(item: TodoItem) {
     if (!entityId) return;
     const newStatus = item.status === 'completed' ? 'needs_action' : 'completed';
@@ -108,6 +116,7 @@
 </div>
 
 <style>
+  /* ── Root ─────────────────────────────────────────────────────────────── */
   .todo-tile {
     --todo-check-size: calc(var(--button-card-font-size) * 1.35);
     --todo-input-height: calc(var(--action-icon-size) * 1.2);
@@ -144,7 +153,6 @@
     overflow: visible;
   }
 
-  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
   .icon-bubble.override {
     background: transparent;
   }

@@ -1,13 +1,18 @@
 <script lang="ts">
+	// ── WaterHeaterMoreInfo ───────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { waterHeaterService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { clamp } from '$lib/utils/format';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
@@ -29,6 +34,7 @@
 
 	let localTemp = $state(120);
 	let dragging = $state(false);
+	// ── Local State Sync ──────────────────────────────────────────────────────
 	$effect(() => { if (!dragging) localTemp = temp; });
 
 	const displayTemp = $derived(dragging ? localTemp : temp);
@@ -38,6 +44,7 @@
 			: 0
 	);
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function onInput(e: Event) {
 		dragging = true;
 		localTemp = Number((e.target as HTMLInputElement).value);

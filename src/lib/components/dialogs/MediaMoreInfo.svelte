@@ -1,13 +1,18 @@
 <script lang="ts">
+	// ── MediaMoreInfo ─────────────────────────────────────────────────────────
+
+	// ── Imports ─────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { mediaService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 	import { formatDuration } from '$lib/utils/format';
 
+	// ── Props ────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const __state = $derived(entity?.state ?? 'off');
@@ -21,7 +26,7 @@
 	const groupMembers = $derived((entity?.attributes.group_members as string[] | undefined) ?? []);
 	const groupedOthers = $derived(groupMembers.filter((id) => id !== entityId));
 	
-	// Progressive position logic
+	// ── Position / Progress ─────────────────────────────────────────────────────────────
 	const duration = $derived(entity?.attributes.media_duration as number | undefined);
 	const position = $derived(entity?.attributes.media_position as number | undefined);
 	const posUpdatedAt = $derived(entity?.attributes.media_position_updated_at as string | undefined);
@@ -37,7 +42,7 @@
 		return () => clearInterval(id);
 	});
 
-	// Grouping logic
+	// ── Grouping ─────────────────────────────────────────────────────────────
 	const allMediaPlayers = $derived(
 		Object.entries($optimisticEntities)
 			.filter(([id, e]) => id.startsWith('media_player.') && id !== entityId && e.state !== 'unavailable')
@@ -55,8 +60,6 @@
 	function toggleGroup(otherId: string) {
 		const isMember = groupMembers.includes(otherId);
 		if (isMember) {
-			// In many HA implementations, you unjoin the member, or remove from lead
-			// For Sonos/Join, you usually call join on the member to join the lead, or unjoin the member.
 			call(() => mediaService.unjoinGroup(otherId));
 		} else {
 			call(() => mediaService.joinGroup(entityId, [otherId]));
@@ -64,14 +67,15 @@
 	}
 </script>
 
+<!-- ── Media More-Info Root ───────────────────────────────────────────────────────────── -->
 <div class="ios-media">
-	<!-- Background Blur Layer -->
+	<!-- ── Background Layer ───────────────────────────────────────────────────────────── -->
 	{#if artwork && !isUnavail}
 		<div class="ios-media__bg" style="background-image: url({artwork})"></div>
 	{/if}
 
 	<div class="ios-media__content">
-		<!-- Artwork -->
+		<!-- ── Artwork ───────────────────────────────────────────────────────────── -->
 		<div class="ios-media__art-section">
 			<div class="ios-media__art-frame" class:ios-media__art-frame--playing={isPlaying}>
 				{#if artwork && !isUnavail}
@@ -92,7 +96,7 @@
 			</div>
 		</div>
 
-		<!-- Metadata (iOS Style: Bold Title, Soft Artist) -->
+		<!-- ── Metadata ───────────────────────────────────────────────────────────── -->
 		<div class="ios-media__meta">
 			<div class="ios-media__title">{title || (isUnavail ? 'Unavailable' : 'Not Playing')}</div>
 			{#if isPlaying}
@@ -100,7 +104,7 @@
 			{/if}
 		</div>
 
-		<!-- Progress (Thick iOS Pill Bar) -->
+		<!-- ── Progress ───────────────────────────────────────────────────────────── -->
 		{#if duration}
 			<div class="ios-media__progress">
 				<div class="ios-media__track">
@@ -119,7 +123,7 @@
 			</div>
 		{/if}
 
-		<!-- Playback Controls (Futuristic Minimalist) -->
+		<!-- ── Playback Controls ───────────────────────────────────────────────────────────── -->
 		<div class="ios-media__controls">
 			<button class="ios-media__btn" onclick={() => call(() => mediaService.previous(entityId))} disabled={isUnavail}>
 				<Icon name="skip-back" size={32} fill="currentColor" />
@@ -132,7 +136,7 @@
 			</button>
 		</div>
 
-		<!-- Volume & Grouping (Futuristic AirPlay Style) -->
+		<!-- ── Volume & Grouping ───────────────────────────────────────────────────────────── -->
 		<div class="ios-media__footer">
 			<div class="ios-media__volume">
 				<button class="ios-media__vol-btn" onclick={() => call(() => mediaService.setVolume(entityId, Math.max(0, volume - 0.1)))} disabled={isUnavail}>
@@ -166,7 +170,7 @@
 		</div>
 	</div>
 
-	<!-- Grouping Overlay (Frosted Glass) -->
+	<!-- ── Grouping Overlay ───────────────────────────────────────────────────────────── -->
 	{#if showGrouping}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -208,6 +212,7 @@
 </div>
 
 <style>
+	/* ── Shell ───────────────────────────────────────────────────────────── */
 	.ios-media {
 		position: relative;
 		display: flex;
@@ -228,7 +233,7 @@
 		--mmi-border-soft: color-mix(in srgb, var(--fg) 14%, transparent);
 	}
 
-	/* Ambient Background Blur */
+	/* ── Background ───────────────────────────────────────────────────────────── */
 	.ios-media__bg {
 		position: absolute;
 		inset: -50px;
@@ -240,6 +245,7 @@
 		transition: background-image 0.5s ease;
 	}
 
+	/* ── Content ───────────────────────────────────────────────────────────── */
 	.ios-media__content {
 		position: relative;
 		z-index: 1;
@@ -250,7 +256,7 @@
 		gap: 24px;
 	}
 
-	/* Artwork styling */
+	/* ── Artwork ───────────────────────────────────────────────────────────── */
 	.ios-media__art-section {
 		flex: 1;
 		display: flex;
@@ -335,7 +341,7 @@
 		color: rgba(255,255,255,0.45);
 	}
 
-	/* Meta Section */
+	/* ── Metadata ───────────────────────────────────────────────────────────── */
 	.ios-media__meta {
 		display: flex;
 		flex-direction: column;
@@ -358,7 +364,7 @@
 		text-overflow: ellipsis;
 	}
 
-	/* Sliders (iOS 26 Thick Pill Style) */
+	/* ── Sliders ───────────────────────────────────────────────────────────── */
 	.ios-media__track {
 		position: relative;
 		height: 6px;
@@ -401,7 +407,7 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	/* Playback Controls */
+	/* ── Playback Controls ───────────────────────────────────────────────────────────── */
 	.ios-media__controls {
 		display: flex;
 		align-items: center;
@@ -431,7 +437,7 @@
 		transform: scale(0.85);
 	}
 
-	/* Footer & Volume */
+	/* ── Footer & Volume ───────────────────────────────────────────────────────────── */
 	.ios-media__footer {
 		display: flex;
 		align-items: center;
@@ -484,7 +490,7 @@
 		transform: scale(0.9);
 	}
 
-	/* Grouping Overlay (Frosted iOS Style) */
+	/* ── Grouping Overlay ───────────────────────────────────────────────────────────── */
 	.ios-media__overlay {
 		position: absolute;
 		inset: 0;

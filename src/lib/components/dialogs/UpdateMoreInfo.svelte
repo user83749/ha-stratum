@@ -1,13 +1,18 @@
 <script lang="ts">
+	// ── UpdateMoreInfo ────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities } from '$lib/ha/optimistic';
 	import { updateService } from '$lib/ha/services';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { getEntityIcon, getEntityName } from '$lib/ha/entities';
 	import { sanitizeHtml } from '$lib/utils/sanitizeHtml';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	
@@ -19,6 +24,8 @@
 	let fetchedReleaseNotes = $state('');
 	let releaseFetchKey = '';
 	let releaseFetchSeq = 0;
+
+	// ── Helpers ───────────────────────────────────────────────────────────────
 	function normalizeReleaseNotes(input: unknown): string {
 		if (input == null) return '';
 		if (typeof input === 'string') return input.trim();

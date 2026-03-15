@@ -1,8 +1,12 @@
 <script lang="ts">
+	// ── GraphTile ─────────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import type { HassEntity } from 'home-assistant-js-websocket';
 	import type { Tile } from '$lib/types/dashboard';
-  import { getTileSizePreset } from '$lib/layout/tileSizing';
+	import { getTileSizePreset } from '$lib/layout/tileSizing';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		tile: Tile;
 		entity: HassEntity | null;
@@ -12,8 +16,9 @@
 	}
 
 	let { tile, entity, mode: modeProp, history, statisticValue }: Props = $props();
-  const sizePreset = $derived(getTileSizePreset(tile));
+	const sizePreset = $derived(getTileSizePreset(tile));
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	let mode = $derived(modeProp ?? (tile.config.graph_mode as string) ?? 'history');
 	let name = $derived(
 		(tile.config.name as string) ?? entity?.attributes.friendly_name ?? 'Graph'

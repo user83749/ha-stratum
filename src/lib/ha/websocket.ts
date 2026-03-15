@@ -1,3 +1,6 @@
+// ── Home Assistant WebSocket Store ───────────────────────────────────────────
+
+// ── Imports ──────────────────────────────────────────────────────────────────
 import {
 	createConnection,
 	createLongLivedTokenAuth,
@@ -9,16 +12,20 @@ import {
 import { writable, derived, get } from 'svelte/store';
 import { clearPatchesForSnapshot, syncBaseEntities } from './optimistic';
 
+// ── Types ─────────────────────────────────────────────────────────────────────
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
+// ── Stores ────────────────────────────────────────────────────────────────────
 export const connection = writable<Connection | null>(null);
 export const connectionStatus = writable<ConnectionStatus>('disconnected');
 export const entities = writable<HassEntities>({});
 export const error = writable<string | null>(null);
 
+// ── Internal State ───────────────────────────────────────────────────────────
 let unsubscribeEntities: (() => void) | null = null;
 const FIRST_SNAPSHOT_TIMEOUT_MS = 6000;
 
+// ── Connection Helpers ───────────────────────────────────────────────────────
 function attachListeners(conn: Connection) {
 	connection.set(conn);
 	connectionStatus.set('connected');
@@ -82,6 +89,7 @@ async function connectViaRelay(): Promise<Connection> {
 // ── Addon mode: connect via our server-side WebSocket relay ─────────────────
 // The relay at /api-stratum/ws handles add-on HA auth server-side — no token
 // needed from the browser.
+// ── Public Connection API ────────────────────────────────────────────────────
 export async function connectAddon(): Promise<void> {
 	if (get(connection)) disconnect();
 	connectionStatus.set('connecting');

@@ -1,11 +1,6 @@
 import type { PageBackground } from '$lib/types/dashboard';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Stratum — Comprehensive Theme Library
-// A massive collection of high-end, elegant, modern themes.
-// STRICTLY NEUTRAL surfaces and text. Gradients provide the backdrop, 
-// but the UI elements remain clean and sophisticated glass/solid layers.
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Theme Types ─────────────────────────────────────────────────────────────
 
 export interface ThemeTokens {
 	'--theme-bg-css': string;
@@ -53,9 +48,7 @@ export interface ThemeDefinition {
 	};
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// The Gradient Collection (Bold Backgrounds, Strictly Neutral Cards)
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Gradient Themes ─────────────────────────────────────────────────────────
 
 export const THEME_NEBULA: ThemeDefinition = {
 	id: 'nebula', name: 'Furnace Line',
@@ -177,9 +170,7 @@ export const THEME_TITANIUM: ThemeDefinition = {
 	defaultBackground: { type: 'gradient', value: 'linear-gradient(to right, #434343 0%, #111111 60%, #000000 100%)' }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// The Luxury Collection (Premium, Minimalist, High-End Neutrals)
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Luxury Themes ───────────────────────────────────────────────────────────
 
 export const THEME_ONYX: ThemeDefinition = {
 	id: 'onyx', name: 'Onyx Reserve',
@@ -271,9 +262,7 @@ export const THEME_SILICON: ThemeDefinition = {
 	defaultBackground: { type: 'gradient', value: 'radial-gradient(circle at top left, #f9fafb, #f3f4f6, #e5e7eb)' }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// The Classic Collection (The Original Revamped to be Strictly Neutral)
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Classic Themes ──────────────────────────────────────────────────────────
 
 export const THEME_MIDNIGHT: ThemeDefinition = {
 	id: 'midnight', name: 'Classic Midnight',
@@ -359,7 +348,7 @@ export const THEME_DRAFTWORK: ThemeDefinition = {
 	}
 };
 
-// ─── Registry ─────────────────────────────────────────────────────────────────
+// ── Theme Registry ──────────────────────────────────────────────────────────
 
 export const SYSTEM_THEMES: ThemeDefinition[] = [
 	// Gradients
@@ -390,7 +379,7 @@ export function getSystemTheme(id: string): ThemeDefinition | undefined {
 	return SYSTEM_THEMES.find((t) => t.id === id);
 }
 
-// Legacy compat
+// ── Legacy Compatibility ────────────────────────────────────────────────────
 export type ThemePreset = ThemeDefinition;
 export const THEME_PRESETS = SYSTEM_THEMES;
 export const DARK_PRESETS = SYSTEM_THEMES.filter((t) => t.colorScheme === 'dark');

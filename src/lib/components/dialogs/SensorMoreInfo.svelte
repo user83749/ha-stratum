@@ -1,4 +1,7 @@
 <script lang="ts">
+	// ── SensorMoreInfo ────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import type { HassEntity } from 'home-assistant-js-websocket';
 	import { optimisticEntities } from '$lib/ha/optimistic';
@@ -9,9 +12,11 @@
 	import { uiStore } from '$lib/stores/ui';
 	import { getUpdateCount } from '$lib/ha/updateSummary';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; tile?: Tile | null; }
 	const { entityId, tile = null }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const domain = $derived(getDomain(entityId));
 	const iconName = $derived(entity ? getEntityIcon(entity) : 'activity');
@@ -19,7 +24,7 @@
 	const unit = $derived((entity?.attributes.unit_of_measurement as string | undefined) ?? '');
 	const deviceClass = $derived((entity?.attributes.device_class as string | undefined) ?? '');
 
-	// Special-case: update summary sensors like `sensor.hassio_updates_available`.
+	// Special-case: update summary sensors like `sensor.*updates_available`.
 	// These sensors usually have attributes like { total, home_assistant, update_entities }.
 	const isUpdateSummary = $derived.by(() => {
 		if (!entity) return false;
@@ -86,6 +91,7 @@
 		}
 	});
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function getInstallState(id: string): 'idle' | 'installing' | 'queued' | 'error' {
 		return installStateById[id] ?? 'idle';
 	}

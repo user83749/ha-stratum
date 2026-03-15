@@ -1,4 +1,7 @@
 <script lang="ts">
+	// ── IntegratedNavRail ─────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { generateId } from '$lib/utils/uuid';
 	import { get } from 'svelte/store';
 	import { dashboardStore } from '$lib/stores/dashboard';
@@ -14,6 +17,7 @@
 	import type { Page } from '$lib/types/dashboard';
 	import { VISIBLE_ALL } from '$lib/types/dashboard';
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const cfg = $derived($dashboardStore);
 	const nav = $derived(cfg.nav);
 	const settings = $derived(cfg.settings);
@@ -23,6 +27,7 @@
 	const editing = $derived($isEditing);
 	const connStatus = $derived($connectionStatus);
 
+	// ── Domain icon map ───────────────────────────────────────────────────────
 	const DOMAIN_ICONS: Record<string, string> = {
 		light: 'lightbulb',
 		switch: 'toggle-right',
@@ -71,10 +76,11 @@
 		return [...ordered, ...missing];
 	});
 
-	// If there is only one page, don't render the page list on desktop.
-	// (Favorites can still render below.)
+	// If there is only one page, hide the page list on desktop.
+	// Favorites can still render below.
 	const showPageNav = $derived(editing || pages.length > 1);
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function navigate(pageId: string) {
 		haptic('selection');
 		uiStore.navigateTo(pageId);

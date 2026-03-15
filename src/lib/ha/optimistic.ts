@@ -1,11 +1,10 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Stratum — Optimistic entity state store
+// ── Optimistic Entity Store ──────────────────────────────────────────────────
 //
 // When a service call is made, we immediately patch the entity state in a local
 // overlay store. The WebSocket update (typically 50–200 ms later) overwrites it.
 // If no WS update arrives within 3 s, the patch expires automatically.
-// ─────────────────────────────────────────────────────────────────────────────
 
+// ── Imports ──────────────────────────────────────────────────────────────────
 import { writable, derived } from 'svelte/store';
 import type { HassEntities, HassEntity } from 'home-assistant-js-websocket';
 

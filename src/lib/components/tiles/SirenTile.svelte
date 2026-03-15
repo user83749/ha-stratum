@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── SirenTile ─────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -7,9 +10,11 @@
   import { sirenService } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const sizePreset = $derived(getTileSizePreset(tile));
   const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');
@@ -26,7 +31,6 @@
 <BaseTile {name} state={isOn ? 'Sounding' : 'Silent'} {isOn}>
 
   {#snippet icon()}
-    <!-- Visual-only siren icon — tile tap handled by TileWrapper -->
     <div
       class="siren-icon"
       class:on={isOn}
@@ -80,14 +84,12 @@
     overflow: visible;
   }
 
-  /* Inner chip only: danger color when sounding. */
   .siren-icon.on {
     color: var(--color-danger);
     background: color-mix(in srgb, var(--color-danger) 20%, transparent);
     border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
   }
 
-  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
   .siren-icon.override {
     background: transparent;
     border-color: transparent;
@@ -125,7 +127,6 @@
     text-transform: capitalize;
   }
 
-  /* Inner tone chip only: active text state, not tile background. */
   .tone-chip.active {
     background: transparent;
     color: var(--color-danger);

@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── ClimateTile ───────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -9,9 +12,11 @@
   import { haptic } from '$lib/utils/haptics';
   import { optimisticClimateTemp } from '$lib/ha/optimistic';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
   const isWideMd = $derived(layoutW >= 2 && layoutH === 1);
@@ -29,8 +34,7 @@
   const maxTemp     = $derived((entity?.attributes.max_temp as number | undefined) ?? 32);
   const hvacMode    = $derived(entity?.state ?? 'off');
   const hvacAction  = $derived((entity?.attributes.hvac_action as string | undefined) ?? '');
-  // Prefer live hvac_action when available so state text reflects what the unit
-  // is actually doing right now (heating/cooling), otherwise fall back to mode.
+  // ── Effective State ───────────────────────────────────────────────────────
   const effectiveState = $derived(
     hvacAction === 'heating' || hvacAction === 'cooling' || hvacAction === 'drying' || hvacAction === 'fan'
       ? hvacAction
@@ -59,7 +63,6 @@
       ? 'var(--tile-label-off, #97989c)'
       : 'var(--tile-label-on, var(--control-active-name))'
   );
-  // Match BaseTile label semantics so climate "state" text reads like other tiles.
   const stateTextColor = $derived(
     isOff
       ? 'var(--tile-label-off, #97989c)'
@@ -87,12 +90,11 @@
   };
 
   const modeLabel = $derived(MODE_LABELS[effectiveState] ?? effectiveState.replace(/_/g, ' '));
-  // Keep the setpoint visible on medium (1x2) climate tiles, but render it in a
-  // compact secondary line so the right side does not crowd primary status text.
   const showMdControls = $derived(!isOff && targetTemp !== undefined);
   const showMdSetpoint = $derived(targetTemp !== undefined && !isOff);
   const tempUnit = '°';
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   function adjustTemp(delta: number): void {
     if (targetTemp === undefined || !entityId) return;
     const newVal = clamp(targetTemp + delta, minTemp, maxTemp);
@@ -125,14 +127,12 @@
       return;
     }
 
-    // No explicit hvac mode available; defer to generic climate turn_on.
     climateService.turnOn(entityId);
   }
 </script>
 
 <div class="climate-tile size-{sizePreset}" class:is-off={isOff} class:unavailable style="--mc: {modeColor};">
   {#if sizePreset === 'sm'}
-    <!-- 1x1 Bold Complication — tap handled by TileWrapper (more-info) -->
     <div class="layout-sm">
       {#if targetTemp !== undefined && !isOff}
         <div class="sm-setpoint" style="color: {setpointTextColor}">
@@ -155,7 +155,6 @@
     </div>
 
   {:else if sizePreset === 'md'}
-    <!-- 2x1 Horizontal Row -->
     {#if isWideMd}
       <div class="layout-md layout-md--wide2">
         <div class="md-topline">
@@ -196,7 +195,6 @@
       </div>
     {:else}
       <div class="layout-md" class:is-tall-md={isTallMd}>
-        <!-- Primary tile action is handled by TileWrapper interaction settings -->
         <div class="md-left">
           <div class="md-icon" style="color: {modeColor}">
             {#if iconOverride && overrideIsCustom}
@@ -235,7 +233,6 @@
     {/if}
 
   {:else}
-    <!-- lg / xl Dashboard View -->
     <div class="layout-lg" class:is-xl={sizePreset === 'xl'}>
       <div class="lg-top">
         <div class="lg-hero">
@@ -252,18 +249,18 @@
           </div>
         </div>
 
-	        <div class="lg-stats">
-	          {#if humidity !== undefined}
-	            <div class="stat">
-	              <Icon name="droplets" size={14} />
-	              <span>{humidity}%</span>
-	            </div>
-	          {/if}
-	          <button class="power-toggle" class:active={!isOff} onclick={() => { haptic('light'); togglePower(); }}>
-	            <Icon name="power" size={16} strokeWidth={2.5} />
-	          </button>
-	        </div>
-	      </div>
+        <div class="lg-stats">
+          {#if humidity !== undefined}
+            <div class="stat">
+              <Icon name="droplets" size={14} />
+              <span>{humidity}%</span>
+            </div>
+          {/if}
+          <button class="power-toggle" class:active={!isOff} onclick={() => { haptic('light'); togglePower(); }}>
+            <Icon name="power" size={16} strokeWidth={2.5} />
+          </button>
+        </div>
+      </div>
 
       <div class="lg-main">
         <div class="temp-display">
@@ -304,6 +301,7 @@
 </div>
 
 <style>
+  /* ── Root ─────────────────────────────────────────────────────────────── */
   .climate-tile {
     width: 100%;
     height: 100%;
@@ -870,4 +868,5 @@
   .climate-tile.is-off .layout-lg {
     background: color-mix(in srgb, var(--surface) 80%, transparent);
     justify-content: center;
-  }</style>
+  }
+</style>

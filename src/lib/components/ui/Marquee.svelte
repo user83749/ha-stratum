@@ -1,7 +1,11 @@
 <script lang="ts">
+	// ── Marquee ───────────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { onMount } from 'svelte';
 	import { tick } from 'svelte';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		text: string;
 		speed?: number; // px per second
@@ -9,6 +13,7 @@
 		class?: string;
 	}
 
+	// ── Props / Local State ───────────────────────────────────────────────────
 	const { text, speed = 40, gap = 40, class: className = '' }: Props = $props();
 
 	let container = $state<HTMLElement | null>(null);
@@ -17,6 +22,7 @@
 	let duration = $state(0);
 	let shift = $state(0);
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function update() {
 		if (!container || !content) return;
 		const containerWidth = container.clientWidth;

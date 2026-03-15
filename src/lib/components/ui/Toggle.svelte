@@ -1,4 +1,7 @@
 <script lang="ts">
+	// ── Toggle ────────────────────────────────────────────────────────────────
+
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		checked: boolean;
 		disabled?: boolean;
@@ -7,6 +10,7 @@
 		onchange?: (checked: boolean) => void;
 	}
 
+	// ── Props / Local State ───────────────────────────────────────────────────
 	let {
 		checked = $bindable(false),
 		disabled = false,
@@ -15,6 +19,7 @@
 		onchange
 	}: Props = $props();
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function toggle() {
 		if (disabled) return;
 		checked = !checked;

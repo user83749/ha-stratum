@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── FanTile ───────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
@@ -7,9 +10,11 @@
   import { fanService } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
@@ -32,6 +37,7 @@
   const wideDisplaySpeed = $derived(wideDragging ? wideDraftSpeed : speed);
   const wideStateLabel = $derived(isOn ? 'On' : 'Off');
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   function handleWideSpeedInput(ev: Event) {
     wideDragging = true;
     wideDraftSpeed = Number((ev.target as HTMLInputElement).value);

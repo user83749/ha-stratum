@@ -1,4 +1,7 @@
 <script lang="ts">
+	// ── Icon ──────────────────────────────────────────────────────────────────
+
+	// ── Imports ─────────────────────────────────────────────────────────────
 	import { icons } from 'lucide-svelte';
 	import Iconify from '@iconify/svelte';
 	import type { HassEntity } from 'home-assistant-js-websocket';
@@ -7,6 +10,7 @@
 	import CustomIcon from './CustomIcon.svelte';
 	import { isCustomIcon, getCustomIconMeta } from '$lib/icons/customIcons';
 
+	// ── Props ───────────────────────────────────────────────────────────────
 	interface Props {
 		/** Icon name — either:
 		 *  • Iconify format: "mdi:home", "mdi:lightbulb-on", "ph:gear-bold"
@@ -25,8 +29,7 @@
 	let { name: rawName, size, strokeWidth = 1.75, fill = 'none', class: className = '', color, entity = null }: Props = $props();
 	const name = $derived(rawName ?? '');
 
-	// Normalize a few deprecated Lucide alias names to the current icon set.
-	// (lucide-svelte exports aliases as components, but the `icons` map only includes canonical names.)
+	// ── Name Normalization ─────────────────────────────────────────────────
 	const normName = $derived.by(() => {
 		switch (name) {
 			case 'arrow-up-circle': return 'circle-arrow-up';
@@ -36,7 +39,7 @@
 		}
 	});
 
-	// Iconify format detection: contains a colon (e.g. "mdi:home", "ph:gear")
+	// ── Icon Type Derivation ───────────────────────────────────────────────
 	const isIconify = $derived(normName.includes(':'));
 
 	const isHueLight = $derived(normName === 'hue-light');
@@ -44,6 +47,7 @@
 	const isCustom = $derived(isCustomIcon(normName));
 	const customMeta = $derived(getCustomIconMeta(normName));
 
+	// ── Color Helpers ──────────────────────────────────────────────────────
 	function mixChannel(a: number, b: number, t: number): number {
 		return Math.round(a + (b - a) * t);
 	}
@@ -62,7 +66,7 @@
 		return Math.round(1_000_000 / Math.max(kelvin, 1));
 	}
 
-	// Convert kebab-case → PascalCase to match the lucide icons map keys
+	// ── Icon Map Helpers ───────────────────────────────────────────────────
 	function toKey(raw: string): string {
 		return raw
 			.split('-')
@@ -70,7 +74,7 @@
 			.join('');
 	}
 
-	// Cast to Component<IconProps> — Svelte 5 renders Component-typed variables directly as tags
+	// ── Dynamic Icon Selection ─────────────────────────────────────────────
 	const DynIcon = $derived(
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(!isIconify && !isHueLight && !isAirplay && !isCustom)
@@ -80,14 +84,14 @@
 
 	const resolvedSize = $derived((size ?? '1em') as IconProps['size']);
 	const cssSize = $derived(typeof resolvedSize === 'number' ? `${resolvedSize}px` : String(resolvedSize));
-	// `size="100%"` is used throughout tiles to make Lucide/Iconify icons fill their chip.
-	// For HA-style custom SVG icons, forcing a square box breaks the YAML width/margins,
-	// so treat `100%` as "not explicit" for custom icons.
+	// ── Size Handling ──────────────────────────────────────────────────────
+	// Treat size="100%" as implicit sizing for custom icons.
 	const hasExplicitSize = $derived(
 		size !== undefined &&
 		!(isCustom && String(size).trim() === '100%')
 	);
 	const iconProps: IconProps = $derived({ size: resolvedSize, strokeWidth, fill, class: className });
+	// ── Hue Light State ────────────────────────────────────────────────────
 	const hueLightState = $derived.by(() => {
 		if (!isHueLight || !entity || !entity.entity_id.startsWith('light.')) {
 			return {
@@ -147,8 +151,7 @@
 			/>
 		</svg>
 	{:else if isCustom && customMeta}
-		<!-- Custom built-in icon — use the YAML-like sizing (width + margins) by default.
-		     Only force a square box when `size` is explicitly passed. -->
+		<!-- Custom built-in icon -->
 		{@const extraStyle =
 			`${customMeta.position ? `position:${customMeta.position};` : ''}` +
 			`${customMeta.left ? `left:${customMeta.left};` : ''}` +
@@ -198,7 +201,7 @@
 			<path d="m12 15 5 6H7l5-6z" fill="currentColor" stroke="none" />
 		</svg>
 	{:else if isIconify}
-		<!-- Iconify icon — supports mdi:*, ph:*, etc. -->
+		<!-- Iconify icon -->
 		<Iconify
 			icon={normName}
 			width={resolvedSize}
@@ -208,7 +211,7 @@
 	{:else if DynIcon}
 		<DynIcon {...iconProps} />
 	{:else if normName}
-		<!-- Fallback: rounded-square question mark for unrecognised icon names -->
+		<!-- Fallback icon -->
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
 			width={resolvedSize}

@@ -1,5 +1,9 @@
+// ── Imports ────────────────────────────────────────────────────────────────
+
 import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
+
+// ── Types ──────────────────────────────────────────────────────────────────
 
 export interface HAConfig {
 	hassUrl: string;
@@ -8,12 +12,16 @@ export interface HAConfig {
 
 const defaultConfig: HAConfig = { hassUrl: '', token: '' };
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
 /** Returns the Ingress path prefix (e.g. /api/hassio_ingress/{token}) or '' */
 function ingressPrefix(): string {
 	if (!browser) return '';
 	const m = window.location.pathname.match(/^(\/api\/hassio_ingress\/[^/]+)/);
 	return m ? m[1] : '';
 }
+
+// ── Store ──────────────────────────────────────────────────────────────────
 
 function createConfigStore() {
 	const store = writable<HAConfig>(defaultConfig);
@@ -25,7 +33,7 @@ function createConfigStore() {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(value)
-		}).catch((e) => console.error('[Stratum] Failed to save config:', e));
+		}).catch((e) => console.error('[App] Failed to save config:', e));
 	}
 
 	return {
@@ -54,5 +62,7 @@ function createConfigStore() {
 		}
 	};
 }
+
+// ── Public Store ────────────────────────────────────────────────────────────
 
 export const configStore = createConfigStore();

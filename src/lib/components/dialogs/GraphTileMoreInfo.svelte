@@ -1,4 +1,7 @@
 <script lang="ts">
+	// ── GraphTileMoreInfo ─────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import type { HassEntity } from 'home-assistant-js-websocket';
 	import type { Tile } from '$lib/types/dashboard';
 	import Icon from '$lib/components/ui/Icon.svelte';
@@ -6,6 +9,7 @@
 	import { connection } from '$lib/ha/websocket';
 	import { get } from 'svelte/store';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		tile: Tile;
 		entity: HassEntity | null;
@@ -14,6 +18,7 @@
 
 	const { tile, entity, mode }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const title = $derived((tile.config.name as string) ?? (entity ? getEntityName(entity) : 'Graph'));
 	const unit = $derived(
 		(tile.config.unit_of_measurement as string | undefined) ??
@@ -42,7 +47,7 @@
 		return Math.max(0, Math.min(100, ((numericValue - minVal) / range) * 100));
 	});
 
-	// ── Real history fetch ────────────────────────────────────────────────────
+	// ── History Fetch ─────────────────────────────────────────────────────────
 	let historyData = $state<number[]>([]);
 	let historyLoading = $state(false);
 

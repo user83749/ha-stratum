@@ -1,10 +1,15 @@
 <script lang="ts">
+	// ── PersonMoreInfo ────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities } from '$lib/ha/optimistic';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const picture = $derived((entity?.attributes.entity_picture as string | undefined) ?? '');
 	const state = $derived((entity?.state as string | undefined) ?? 'unknown');
@@ -18,6 +23,7 @@
 	const isHome = $derived(state.toLowerCase() === 'home');
 	const statusColor = $derived(isHome ? 'var(--color-on)' : 'var(--color-warning)');
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function openInMaps() {
 		if (latitude !== undefined && longitude !== undefined) {
 			const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;

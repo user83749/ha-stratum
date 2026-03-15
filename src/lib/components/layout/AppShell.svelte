@@ -1,8 +1,12 @@
 <script lang="ts">
+	// ── AppShell ──────────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { isEditing } from '$lib/stores/editMode';
 	import type { Snippet } from 'svelte';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		nav: Snippet;
 		header: Snippet;
@@ -91,8 +95,7 @@
 		width: 100%;
 		height: 100%;
 		overflow: hidden;
-		/* Theme background: gradient or solid, set by applyTheme() via --theme-bg-css.
-		   Falls back to --bg (plain dark/light base color) for custom pages. */
+	/* Theme background from --theme-bg-css, with --bg as fallback. */
 		background: var(--theme-bg-css, var(--bg));
 		background-attachment: fixed;
 		color: var(--fg);
@@ -111,7 +114,7 @@
 		overflow: hidden;
 		transition: width var(--transition-slow);
 		border-right: 1px solid var(--border-strong);
-		/* Sidebar sits on --surface (elevated layer above --bg) for separation */
+		/* Sidebar uses elevated surface for visual separation. */
 		background-color: var(--surface);
 		z-index: 20;
 	}

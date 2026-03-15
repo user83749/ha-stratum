@@ -1,13 +1,18 @@
 <script lang="ts">
+	// ── GroupMoreInfo ─────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { callService } from '$lib/ha/services';
 	import { getEntityName } from '$lib/ha/entities';
 	import { browser } from '$app/environment';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const memberIds = $derived((entity?.attributes.entity_id as string[] | undefined) ?? []);
 	const members = $derived(memberIds.map((id) => ({ id, entity: $optimisticEntities[id] ?? null })));
@@ -15,6 +20,7 @@
 	const isUnavail = $derived(!entity || entity.state === 'unavailable' || entity.state === 'unknown');
 	const optimisticPreviewEnabled = false;
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	async function setGroup(nextOn: boolean) {
 		if (isUnavail) return;
 		if (optimisticPreviewEnabled) {

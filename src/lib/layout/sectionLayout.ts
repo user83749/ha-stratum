@@ -1,9 +1,14 @@
+// ── Section Layout ───────────────────────────────────────────────────────────
+
+// ── Imports ──────────────────────────────────────────────────────────────────
 import type { Section, Tile, TileLayout, TileSize } from '$lib/types/dashboard';
 import { inferPresetFromLegacySize, resolvePresetToSpan } from '$lib/layout/tileSizing';
 
+// ── Constants ────────────────────────────────────────────────────────────────
 export const MOBILE_SECTION_COLS = 4;
 export const DEFAULT_LAYOUT_MAX_COLS = 12;
 
+// ── Column Helpers ───────────────────────────────────────────────────────────
 export function getSectionMaxColumns(section: Section): number {
 	const configured = section.grid.columns && section.grid.columns > 0 ? section.grid.columns : null;
 	return configured ?? DEFAULT_LAYOUT_MAX_COLS;
@@ -20,6 +25,7 @@ export function getAdaptiveColumns(
 	return Math.max(1, Math.min(fitCols, maxColumns));
 }
 
+// ── Placement Primitives ─────────────────────────────────────────────────────
 function normalizeBox(box: Partial<TileLayout> | undefined, fallback: TileSize): TileLayout {
 	return {
 		x: Math.max(0, Math.floor(box?.x ?? 0)),
@@ -50,6 +56,7 @@ function occupy(layout: TileLayout, occupied: Set<string>) {
 	}
 }
 
+// ── Placement Search ─────────────────────────────────────────────────────────
 export function findFirstFitPosition(
 	occupied: Set<string>,
 	cols: number,
@@ -70,6 +77,7 @@ export function findFirstFitPosition(
 	return { x: 0, y, w, h };
 }
 
+// ── Normalization ────────────────────────────────────────────────────────────
 export function normalizeTilesForColumns(
 	tiles: Tile[],
 	cols: number
@@ -109,6 +117,7 @@ export function normalizeTilesForStorage(tiles: Tile[], cols: number): Tile[] {
 	}));
 }
 
+// ── Mutations ────────────────────────────────────────────────────────────────
 export function appendTileToLayout(tiles: Tile[], tile: Tile, cols: number): Tile[] {
 	const normalized = normalizeTilesForStorage(tiles, cols);
 	const occupied = new Set<string>();

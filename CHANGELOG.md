@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.53] - 2026-03-15
+
+### Added
+- Added shared section rendering support for more consistent page layouts.
+
+### Changed
+- Improved page rendering consistency and reduced duplicated layout logic.
+- Refined dashboard editing experience and entity selection behavior.
+- Improved animation compatibility across embedded/webview environments.
+- Improved overlay and navigation behavior across the app.
+- Refined weather, camera, and background display behavior for better reliability.
+- Applied broad component cleanup and fixed related display regressions.
+
 ## [1.0.52] - 2026-03-14
 
 ### Added

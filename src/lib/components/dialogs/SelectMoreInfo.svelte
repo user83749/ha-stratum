@@ -1,16 +1,25 @@
 <script lang="ts">
+	// ── SelectMoreInfo ────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { inputSelectService, selectService } from '$lib/ha/services';
 	import { getDomain } from '$lib/ha/entities';
 	import { browser } from '$app/environment';
+
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
+
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const domain = $derived(getDomain(entityId));
 	const options = $derived((entity?.attributes.options as string[] | undefined) ?? []);
 	const selected = $derived((entity?.state as string | undefined) ?? '');
+
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function setOption(next: string) {
 		if (isUnavail) return;
 		if (optimisticPreviewEnabled) { applyPatch(entityId, { state: next }); return; }

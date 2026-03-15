@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── LightTile ────────────────────────────────────────────────────────────
+
+  // ── Imports ─────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -8,9 +11,11 @@
   import { lightService } from '$lib/ha/services';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ───────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ───────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const sizePreset = $derived(getTileSizePreset(tile));
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
@@ -27,11 +32,6 @@
   const brightness = $derived.by(() => {
     if (attrs.brightness === undefined) return null;
     let pct = Math.round((attrs.brightness as number) / 2.54);
-
-    // ✅ CHANGE #1: do NOT force 1% minimum (HA allows 0..100)
-    // if (pct === 0 && entity?.state === 'on') pct = 1;
-
-    // Clamp just for safety
     pct = Math.max(0, Math.min(100, pct));
     return pct;
   });
@@ -46,7 +46,6 @@
   const supportsBrightness = $derived(supportedModes.some(m => ['brightness','color_temp','rgb','xy','hs'].includes(m)) || brightness !== null);
   const supportsColorTemp = $derived(supportedModes.includes('color_temp') || colorTempMired !== undefined || colorTempKelvin !== undefined);
   const showBrightnessRing = $derived(supportsBrightness && isOn);
-  // Keep medium compact; show inline sliders only on larger variants.
   const showInlineControls = $derived(
     (sizePreset === 'lg' || sizePreset === 'xl') &&
     isOn &&
@@ -55,6 +54,7 @@
 
   const rgbColor = $derived(attrs.rgb_color as [number, number, number] | undefined);
 
+  // ── Helpers ─────────────────────────────────────────────────────────────
   function mixChannel(a: number, b: number, t: number): number {
     return Math.round(a + (b - a) * t);
   }
@@ -79,11 +79,13 @@
     isOn ? 'var(--fg)' : 'var(--fg-muted)'
   );
 
+  // ── Local Interaction State ─────────────────────────────────────────────
   let localColorTemp = $state<number | null>(null);
   let draggingTemp = $state(false);
   const brightPct = $derived(brightness ?? (isOn ? 100 : 0));
   const displayColorTemp = $derived(draggingTemp ? localColorTemp : (colorTempMired ?? colorTempKelvin ?? null));
 
+  // ── Actions ─────────────────────────────────────────────────────────────
   function handleBrightnessChange(value: number) {
     const next = Math.max(0, Math.min(100, Math.round(value)));
     if (entityId) lightService.turnOn(entityId, { brightness_pct: next }).catch(() => {});
@@ -187,7 +189,7 @@
 
   {#snippet icon()}
     {#if iconOverride && iconIsCustom}
-      <!-- HA-style custom icon: allow YAML width/margins to control placement -->
+      <!-- ── Custom Icon ─────────────────────────────────────────────────── -->
       <Icon name={iconOverride} entity={entity} />
     {:else}
       <div class="hue-icon-wrap" class:on={isOn}>

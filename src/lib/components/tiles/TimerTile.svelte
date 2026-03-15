@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ── TimerTile ─────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
@@ -8,9 +11,11 @@
   import { isCustomIcon } from '$lib/icons/customIcons';
   import { clockNow } from '$lib/stores/clock';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
@@ -29,6 +34,7 @@
   const remaining = $derived((attrs.remaining as string | undefined) ?? duration);
   const finishesAt = $derived(attrs.finishes_at as string | undefined);
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
   // Supports "SS", "MM:SS", "HH:MM:SS"
   function parseSeconds(s: string): number {
     const parts = String(s ?? '').trim().split(':').map((p) => Number(p));
@@ -71,14 +77,12 @@
     totalSecs > 0 ? Math.max(0, Math.min(100, (1 - remainingSecs / totalSecs) * 100)) : 0
   );
 
-  // `statusColor` is the timer's semantic accent for the icon/time/progress, not the entity label text.
   const statusColor = $derived(
     isActive ? 'var(--accent)' :
     isPaused ? 'var(--color-warning)' :
     'var(--fg-muted)'
   );
 
-  // `labelColor` keeps the timer's visible "state" + entity name aligned with the shared tile label rules.
   const labelColor = $derived(
     isActive ? 'var(--tile-label-on, var(--control-active-name))' :
     isPaused ? 'var(--color-warning)' :
@@ -158,6 +162,7 @@
 </BaseTile>
 
 <style>
+  /* ── Icon ─────────────────────────────────────────────────────────────── */
 
   .icon-sq {
     width: 100%;
@@ -179,7 +184,6 @@
     overflow: visible;
   }
 
-  /* If the user explicitly overrides the icon, remove the badge/chip behind it. */
   .icon-sq.override {
     background: transparent;
     border-color: transparent;

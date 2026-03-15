@@ -1,13 +1,7 @@
 import type { ThemeConfig } from '$lib/types/dashboard';
 import { SYSTEM_THEMES, type ThemeDefinition, type VisualStyle } from '$lib/themes/presets';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Stratum — Theme Applier
-//
-// Resolves a ThemeConfig (which just has a themeId) → ThemeDefinition,
-// then stamps every token directly onto :root.
-// No dark/light if-branching. No accent-color templates.
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Theme Maps ──────────────────────────────────────────────────────────────
 
 const RADIUS_MAP: Record<string, string> = {
 	none: '0px',
@@ -42,10 +36,14 @@ const FONT_SIZE_MAP: Record<string, string> = {
 	lg: '16px'
 };
 
+// ── Theme Resolution ────────────────────────────────────────────────────────
+
 function resolveTheme(cfg: ThemeConfig): ThemeDefinition {
 	const found = SYSTEM_THEMES.find((t) => t.id === cfg.themeId);
 	return found ?? SYSTEM_THEMES[0];
 }
+
+// ── Theme Application ───────────────────────────────────────────────────────
 
 export function applyTheme(cfg: ThemeConfig): void {
 	if (typeof document === 'undefined') return;
@@ -118,12 +116,13 @@ export function applyTheme(cfg: ThemeConfig): void {
 	root.classList.add(`vs-${theme.visualStyle}`);
 	applyVisualStyle(root, theme.visualStyle, isDark);
 
-	// Notify UI components that read computed theme vars (e.g. button-card
-	// compatibility variables) that the theme has been re-applied.
+	// Notify components that depend on computed theme vars.
 	if (typeof window !== 'undefined') {
 		window.dispatchEvent(new Event('stratum:theme-applied'));
 	}
 }
+
+// ── Visual Style Tokens ─────────────────────────────────────────────────────
 
 function applyVisualStyle(root: HTMLElement, vs: VisualStyle, isDark: boolean): void {
 	if (vs === 'liquid') {
@@ -171,6 +170,8 @@ function applyVisualStyle(root: HTMLElement, vs: VisualStyle, isDark: boolean): 
 	}
 }
 
+// ── System Scheme Watcher ───────────────────────────────────────────────────
+
 export function watchSystemScheme(
 	getCurrentCfg: () => { theme: ThemeConfig }
 ): () => void {
@@ -183,5 +184,7 @@ export function watchSystemScheme(
 	mq.addEventListener('change', handler);
 	return () => mq.removeEventListener('change', handler);
 }
+
+// ── Backward-Compatible API ────────────────────────────────────────────────
 
 export function applyBackground() { /* no-op — background lives in theme tokens */ }

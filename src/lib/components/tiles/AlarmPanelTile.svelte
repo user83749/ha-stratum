@@ -1,16 +1,21 @@
 <script lang="ts">
+	// ── AlarmPanelTile ────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import type { HassEntity } from 'home-assistant-js-websocket';
 	import type { Tile } from '$lib/types/dashboard';
-  import { getTileSizePreset } from '$lib/layout/tileSizing';
+	import { getTileSizePreset } from '$lib/layout/tileSizing';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import BaseTile from '$lib/components/tiles/BaseTile.svelte';
 	import { alarmService } from '$lib/ha/services';
 	import { isCustomIcon } from '$lib/icons/customIcons';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { tile: Tile; entity: HassEntity | null; }
 	const { tile, entity }: Props = $props();
 	const sizePreset = $derived(getTileSizePreset(tile));
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entityId    = $derived(entity?.entity_id ?? '');
 	const entityState = $derived(entity?.state ?? 'unknown');
 	const name        = $derived((tile.config.name as string | undefined) ?? (entity?.attributes.friendly_name as string | undefined) ?? 'Alarm');
@@ -52,9 +57,11 @@
 	const showActions = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 	const showKeypad = $derived((sizePreset === 'lg' || sizePreset === 'xl') && tile.config.show_keypad !== false);
 
+	// ── Local State ───────────────────────────────────────────────────────────
 	let code = $state('');
 	let pendingAction = $state<'disarm' | 'arm_home' | 'arm_away' | 'arm_night' | null>(null);
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function arm(action: typeof pendingAction) {
 		if (!entityId || !action) return;
 

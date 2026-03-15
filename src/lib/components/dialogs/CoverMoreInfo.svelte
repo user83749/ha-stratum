@@ -1,12 +1,17 @@
 <script lang="ts">
+	// ── CoverMoreInfo ─────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { coverService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
@@ -37,7 +42,7 @@
 	const canSetPosition = $derived(unknownFeatures || (supportedFeatures & SET_POSITION) !== 0);
 	const canSetTilt = $derived(unknownFeatures || (supportedFeatures & SET_TILT_POSITION) !== 0);
 
-	// ─── Archetypes ──────────────────────────────────────────────────────────
+	// ── Archetypes ────────────────────────────────────────────────────────────
 	const archetype = $derived.by(() => {
 		if (['curtain', 'gate', 'door'].includes(deviceClass)) return 'horizontal';
 		if (deviceClass === 'garage') return 'portal';
@@ -67,6 +72,7 @@
 		return { open: 'Raise', close: 'Lower' };
 	});
 
+	// ── Controls ──────────────────────────────────────────────────────────────
 	function onInput(e: Event) {
 		dragging = true;
 		localPos = Number((e.target as HTMLInputElement).value);

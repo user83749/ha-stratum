@@ -1,11 +1,11 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Stratum — undoStore.ts
+// ── Undo/Redo Store ────────────────────────────────────────────────────────
 // In-memory undo/redo ring buffer for DashboardConfig snapshots.
 // Holds up to MAX_HISTORY snapshots. Call push() before every mutation.
-// ─────────────────────────────────────────────────────────────────────────────
 
 import { writable, derived, get } from 'svelte/store';
 import type { DashboardConfig } from '$lib/types/dashboard';
+
+// ── Constants & Types ───────────────────────────────────────────────────────
 
 const MAX_HISTORY = 50;
 
@@ -13,6 +13,8 @@ interface UndoState {
 	past:   DashboardConfig[];   // stack of past states (index 0 = oldest)
 	future: DashboardConfig[];   // stack of future states (index 0 = most-recent-undone)
 }
+
+// ── Store ──────────────────────────────────────────────────────────────────
 
 function createUndoStore() {
 	const { subscribe, set, update } = writable<UndoState>({ past: [], future: [] });
@@ -62,6 +64,8 @@ function createUndoStore() {
 		}
 	};
 }
+
+// ── Public Stores ───────────────────────────────────────────────────────────
 
 export const undoStore = createUndoStore();
 

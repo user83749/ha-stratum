@@ -1,19 +1,19 @@
 <script lang="ts">
-	// ─────────────────────────────────────────────────────────────────────────
-	// Stratum — ProfilesSettings.svelte
-	// List, create, rename, delete user profiles.
-	// ─────────────────────────────────────────────────────────────────────────
+	// ── ProfilesSettings ──────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 
 	import { generateId } from '$lib/utils/uuid';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import type { UserProfile } from '$lib/types/dashboard';
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	let cfg = $derived($dashboardStore);
 	let profiles = $derived(cfg.profiles);
 	let activeProfileId = $derived(cfg.activeProfileId);
 
-	// ── Add profile ────────────────────────────────────────────────────────
+	// ── Actions ───────────────────────────────────────────────────────────────
 
 	function addProfile() {
 		const id = generateId();
@@ -25,13 +25,9 @@
 		dashboardStore.setActiveProfile(id);
 	}
 
-	// ── Rename ─────────────────────────────────────────────────────────────
-
 	function rename(id: string, name: string) {
 		dashboardStore.updateProfile(id, { name: name || 'Profile' });
 	}
-
-	// ── Delete ─────────────────────────────────────────────────────────────
 
 	let confirmDeleteId = $state<string | null>(null);
 

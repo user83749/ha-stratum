@@ -1,13 +1,18 @@
 <script lang="ts">
+	// ── HumidifierMoreInfo ────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { humidifierService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { clamp } from '$lib/utils/format';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
@@ -25,6 +30,7 @@
 	let dragging = $state(false);
 	let dialElement: HTMLElement | null = $state(null);
 
+	// ── Local State Sync ──────────────────────────────────────────────────────
 	$effect(() => { 
 		if (!dragging) localHum = targetHum; 
 	});
@@ -32,9 +38,8 @@
 	const displayHum = $derived(dragging ? localHum : targetHum);
 	const ringPct = $derived(clamp(((displayHum - minHum) / (maxHum - minHum)) * 100, 0, 100));
 
-	/**
-	 * Calculates the humidity value based on the angle of the mouse/touch relative to dial center.
-	 */
+	// ── Dial Interaction ──────────────────────────────────────────────────────
+	// Calculates humidity based on pointer angle relative to dial center.
 	function handleGesture(clientX: number, clientY: number) {
 		if (!dialElement || !isOn || isUnavail) return;
 
@@ -82,6 +87,7 @@
 		}
 	}
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function toggle() {
 		if (isUnavail) return;
 		if (optimisticPreviewEnabled) applyPatch(entityId, { state: isOn ? 'off' : 'on' });

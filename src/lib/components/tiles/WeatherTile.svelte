@@ -1,13 +1,18 @@
 <script lang="ts">
+  // ── WeatherTile ───────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
   import Icon from '$lib/components/ui/Icon.svelte';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
   const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
@@ -53,6 +58,7 @@
     exceptional: 'Exceptional'
   };
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
   function formatConditionLabel(value: string): string {
     const key = value.toLowerCase();
     if (CONDITION_LABELS[key]) return CONDITION_LABELS[key];
@@ -100,7 +106,6 @@
 
 <div class="weather-tile size-{sizePreset}" style="--wc: {conditionColor(state)};">
   {#if sizePreset === 'sm'}
-    <!-- 1x1 Bold Center Complication -->
     <div class="layout-sm">
       <div class="sm-icon-wrap" style="color: {conditionColor(state)}">
         {#if iconOverride && overrideIsCustom}
@@ -126,7 +131,6 @@
     </div>
 
   {:else if sizePreset === 'md'}
-    <!-- 2x1 Horizontal Row -->
     <div class="layout-md" class:is-wide-md={isWideMd} class:is-tall-md={isTallMd}>
       <div class="md-icon" style="color: {conditionColor(state)}">
         {#if iconOverride && overrideIsCustom}
@@ -219,6 +223,7 @@
 </div>
 
 <style>
+  /* ── Root ─────────────────────────────────────────────────────────────── */
   .weather-tile {
     --weather-icon-sm: calc(var(--button-card-font-size) * 2.55);
     --weather-icon-md: calc(var(--button-card-font-size) * 2.95);

@@ -1,13 +1,18 @@
 <script lang="ts">
+	// ── SwitchMoreInfo ────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { callService } from '$lib/ha/services';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { getDomain, getEntityName } from '$lib/ha/entities';
 	import { browser } from '$app/environment';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const domain = $derived(getDomain(entityId));
 	const name = $derived(entity ? getEntityName(entity) : entityId);
@@ -15,6 +20,7 @@
 	const isUnavail = $derived(!entity || entity.state === 'unavailable' || entity.state === 'unknown');
 	const optimisticPreviewEnabled = false;
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	async function setState(nextOn: boolean) {
 		if (isUnavail) return;
 		if (optimisticPreviewEnabled) {

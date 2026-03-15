@@ -1,9 +1,13 @@
 <script lang="ts">
+	// ── SectionEditor ─────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { CUSTOM_ICON_NAMES } from '$lib/icons/customIcons';
 	import type { Section, SectionLayoutMode, SectionPinMode } from '$lib/types/dashboard';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
 		open: boolean;
 		section: Section | null;
@@ -15,6 +19,7 @@
 
 	const { open, section, pageId, onclose, onDelete, onAddTile }: Props = $props();
 
+	// ── Local State ───────────────────────────────────────────────────────────
 	let title       = $state('');
 	let titleSize   = $state(19);
 	let icon        = $state('');
@@ -25,6 +30,7 @@
 	let layoutMode  = $state<SectionLayoutMode>('grid');
 	let pinMode     = $state<SectionPinMode>('none');
 
+	// ── State Sync ────────────────────────────────────────────────────────────
 	$effect(() => {
 		if (!section) return;
 		title       = section.title     ?? '';
@@ -37,6 +43,7 @@
 		pinMode     = section.pinMode         ?? 'none';
 	});
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	let _saveTimer: ReturnType<typeof setTimeout> | null = null;
 	function save(patch: Partial<Section>) {
 		if (!section) return;
@@ -67,9 +74,12 @@
 </script>
 
 {#if open && section}
+	<!-- ── Backdrop ─────────────────────────────────────────────────────────── -->
 	<div class="se__backdrop" onclick={onclose} aria-hidden="true"></div>
 
+	<!-- ── Editor Panel ─────────────────────────────────────────────────────── -->
 	<aside class="se" aria-label="Section editor">
+		<!-- ── Header ───────────────────────────────────────────────────────── -->
 		<div class="se__header">
 			<button class="se__close" onclick={onclose} aria-label="Close">
 				<Icon name="x" size={17} />
@@ -80,8 +90,9 @@
 			</div>
 		</div>
 
+		<!-- ── Body ─────────────────────────────────────────────────────────── -->
 		<div class="se__body">
-			<!-- Layout type first: it controls which section-specific options appear -->
+			<!-- ── Layout Options ─────────────────────────────────────────────── -->
 			<div class="se__group">
 				<div class="se__label-row">
 					<span class="se__label">Section Type</span>
@@ -133,7 +144,7 @@
 				</div>
 			{/if}
 
-			<!-- Title -->
+			<!-- ── Title / Icon ───────────────────────────────────────────────── -->
 			<div class="se__group">
 				<span class="se__label">Section title</span>
 				<input
@@ -220,7 +231,7 @@
 			</div>
 
 			{#if layoutMode !== 'horizontal_chip_row'}
-				<!-- Collapsible -->
+				<!-- ── Collapsible Options ─────────────────────────────────────── -->
 				<div class="se__group">
 					<label class="se__check">
 						<input
@@ -243,7 +254,7 @@
 				</div>
 			{/if}
 
-			<!-- Actions -->
+			<!-- ── Actions ────────────────────────────────────────────────────── -->
 			<div class="se__actions">
 				<button class="se__btn se__btn--add" onclick={onAddTile}>
 					<Icon name="plus" size={14} strokeWidth={2} />

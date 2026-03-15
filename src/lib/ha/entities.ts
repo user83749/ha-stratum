@@ -5,6 +5,7 @@
  * No dependencies outside of home-assistant-js-websocket types.
  */
 
+// ── Imports ──────────────────────────────────────────────────────────────────
 import type { HassEntity } from 'home-assistant-js-websocket';
 
 // ─── Domain ──────────────────────────────────────────────────────────────────

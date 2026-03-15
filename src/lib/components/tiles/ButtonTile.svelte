@@ -1,13 +1,18 @@
 <script lang="ts">
+  // ── ButtonTile ────────────────────────────────────────────────────────────
+
+  // ── Imports ───────────────────────────────────────────────────────────────
   import type { HassEntity } from 'home-assistant-js-websocket';
   import type { Tile } from '$lib/types/dashboard';
   import Icon from '$lib/components/ui/Icon.svelte';
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
   import { isCustomIcon } from '$lib/icons/customIcons';
 
+  // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
   const { tile, entity }: Props = $props();
 
+  // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
   const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');
   const domain = $derived(entityId.split('.')[0] ?? 'script');
@@ -21,6 +26,7 @@
     (domain === 'scene' && entity?.state !== 'scenery_not_ready')
   );
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
   function domainLabel() {
     if (domain === 'scene') return '';
     if (domain === 'automation') return 'Automation';

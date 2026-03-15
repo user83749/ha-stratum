@@ -1,15 +1,24 @@
 <script lang="ts">
+	// ── TimerMoreInfo ─────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { timerService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
+
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
+
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const stateLabel = $derived((entity?.state as string | undefined) ?? 'idle');
 	const remaining = $derived((entity?.attributes.remaining as string | undefined) ?? (entity?.attributes.duration as string | undefined) ?? '00:00:00');
+
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function run(action: 'start' | 'pause' | 'cancel') {
 		if (isUnavail) return;
 		if (optimisticPreviewEnabled) {

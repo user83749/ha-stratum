@@ -1,3 +1,5 @@
+// ── Haptic Types ────────────────────────────────────────────────────────────
+
 export type HapticType =
 	| 'success'
 	| 'warning'
@@ -18,6 +20,8 @@ const VALID_HAPTICS = new Set<HapticType>([
 	'selection',
 	'none'
 ]);
+
+// ── Event Dispatch ──────────────────────────────────────────────────────────
 
 export function triggerHaptic(style: HapticType = 'medium'): void {
 	const hapticType: HapticType = VALID_HAPTICS.has(style) ? style : 'medium';
@@ -83,12 +87,14 @@ export function triggerHaptic(style: HapticType = 'medium'): void {
 	}
 }
 
+// ── Convenience Helpers ─────────────────────────────────────────────────────
+
 export function haptic(type: HapticType = 'light'): void {
 	triggerHaptic(type);
 }
 
 export function hapticDouble(): void {
-	// In HA iOS app, "success" already maps to the double-tap success pattern.
+	// "success" maps to the desired double-tap success pattern.
 	// Keep this synchronous to the user gesture.
 	triggerHaptic('success');
 }

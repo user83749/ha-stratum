@@ -1,8 +1,7 @@
 <script lang="ts">
-	// ─────────────────────────────────────────────────────────────────────────
-	// Stratum — KeyboardShortcuts.svelte
-	// Static reference table of keyboard shortcuts.
-	// ─────────────────────────────────────────────────────────────────────────
+	// ── KeyboardShortcuts ─────────────────────────────────────────────────────
+
+	// ── Shortcut Table ────────────────────────────────────────────────────────
 
 	const SHORTCUTS: { category: string; items: { keys: string[]; desc: string }[] }[] = [
 		{

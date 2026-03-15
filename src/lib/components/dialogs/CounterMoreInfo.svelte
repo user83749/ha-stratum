@@ -1,17 +1,24 @@
 <script lang="ts">
+	// ── CounterMoreInfo ───────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { counterService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
+
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const value = $derived(Number(entity?.state ?? 0));
 	const step = $derived(Number(entity?.attributes.step ?? 1));
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function setValue(next: number) {
 		applyPatch(entityId, { state: String(next) });
 	}

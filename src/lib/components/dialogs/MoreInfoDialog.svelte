@@ -1,16 +1,12 @@
 <script lang="ts">
-	// ─────────────────────────────────────────────────────────────────────────
-	// Stratum — MoreInfoDialog.svelte
-	// Root dialog dispatcher. Reads the active dialog from uiStore and
-	// the dialog config from dashboardStore, then renders MoreInfoShell with
-	// the appropriate tile-type-specific or domain-specific content inside.
-	// ─────────────────────────────────────────────────────────────────────────
+	// ── MoreInfoDialog ────────────────────────────────────────────────────────
 
-		import { dashboardStore } from '$lib/stores/dashboard';
-		import { uiStore, activeDialog, dialogStackDepth } from '$lib/stores/ui';
+	// ── Imports ─────────────────────────────────────────────────────────────
+	import { dashboardStore } from '$lib/stores/dashboard';
+	import { uiStore, activeDialog, dialogStackDepth } from '$lib/stores/ui';
 	import { optimisticEntities } from '$lib/ha/optimistic';
 	import { getDomain, getEntityName } from '$lib/ha/entities';
-	import MoreInfoShell  from './MoreInfoShell.svelte';
+	import MoreInfoShell from './MoreInfoShell.svelte';
 	import EntityMoreInfo from './EntityMoreInfo.svelte';
 	import AlarmPanelMoreInfo from './AlarmPanelMoreInfo.svelte';
 	import ActionMoreInfo from './ActionMoreInfo.svelte';
@@ -20,8 +16,8 @@
 	import CounterMoreInfo from './CounterMoreInfo.svelte';
 	import CoverMoreInfo from './CoverMoreInfo.svelte';
 	import DateTimeMoreInfo from './DateTimeMoreInfo.svelte';
-	import LightMoreInfo  from './LightMoreInfo.svelte';
-	import FanMoreInfo    from './FanMoreInfo.svelte';
+	import LightMoreInfo from './LightMoreInfo.svelte';
+	import FanMoreInfo from './FanMoreInfo.svelte';
 	import HumidifierMoreInfo from './HumidifierMoreInfo.svelte';
 	import GraphTileMoreInfo from './GraphTileMoreInfo.svelte';
 	import GroupMoreInfo from './GroupMoreInfo.svelte';
@@ -29,7 +25,7 @@
 	import LawnMowerMoreInfo from './LawnMowerMoreInfo.svelte';
 	import LogbookTileMoreInfo from './LogbookTileMoreInfo.svelte';
 	import MapTileMoreInfo from './MapTileMoreInfo.svelte';
-	import MediaMoreInfo  from './MediaMoreInfo.svelte';
+	import MediaMoreInfo from './MediaMoreInfo.svelte';
 	import NumberMoreInfo from './NumberMoreInfo.svelte';
 	import PersonMoreInfo from './PersonMoreInfo.svelte';
 	import RemoteMoreInfo from './RemoteMoreInfo.svelte';
@@ -41,7 +37,7 @@
 	import TimerMoreInfo from './TimerMoreInfo.svelte';
 	import TextMoreInfo from './TextMoreInfo.svelte';
 	import TodoMoreInfo from './TodoMoreInfo.svelte';
-	import TvMoreInfo     from './TvMoreInfo.svelte';
+	import TvMoreInfo from './TvMoreInfo.svelte';
 	import UpdateMoreInfo from './UpdateMoreInfo.svelte';
 	import ValveMoreInfo from './ValveMoreInfo.svelte';
 	import VacuumMoreInfo from './VacuumMoreInfo.svelte';
@@ -49,23 +45,22 @@
 	import WeatherMoreInfo from './WeatherMoreInfo.svelte';
 	import ZoneMoreInfo from './ZoneMoreInfo.svelte';
 
-	// ─── Dialog state ─────────────────────────────────────────────────────────
-
-		const dialog    = $derived($activeDialog);
-		const isOpen    = $derived(dialog !== null);
+	// ── Dialog State ─────────────────────────────────────────────────────────
+	const dialog    = $derived($activeDialog);
+	const isOpen    = $derived(dialog !== null);
 	const entityId  = $derived(dialog?.entityId ?? '');
 	const tileId    = $derived(dialog?.tileId ?? '');
 	const tileType  = $derived(dialog?.tileType);
 
-	// ─── Config ───────────────────────────────────────────────────────────────
+	// ── Config ────────────────────────────────────────────────────────────────
 
 	const storeState = $derived($dashboardStore);
 	const cfg        = $derived(storeState.dialog);
-	// styleOverride from the tile's openDialog call takes priority over global config
+	// styleOverride from tile openDialog takes priority over global dialog config.
 	const style      = $derived(dialog?.styleOverride ?? cfg.moreInfoStyle);
 	const side       = $derived(cfg.drawerSide);
 
-	// ─── Panel title ──────────────────────────────────────────────────────────
+	// ── Panel Title ───────────────────────────────────────────────────────────
 
 	const entity = $derived(entityId ? ($optimisticEntities[entityId] ?? null) : null);
 	const selectedTile = $derived.by(() => {
@@ -89,7 +84,7 @@
 		return selectedTile ? selectedTile.type : entityId;
 	});
 
-	// ─── Domain routing ───────────────────────────────────────────────────────
+	// ── Domain Routing ────────────────────────────────────────────────────────
 
 	const domain = $derived(entityId ? getDomain(entityId) : '');
 	const shellVariant = $derived(domain === 'camera' ? 'camera' : 'default');
@@ -103,27 +98,29 @@
 		)
 	);
 
-		function close() {
-			uiStore.closeDialog();
-		}
+	// ── Actions ───────────────────────────────────────────────────────────────
+	function close() {
+		uiStore.closeDialog();
+	}
 
-		const canBack = $derived($dialogStackDepth > 0);
+	const canBack = $derived($dialogStackDepth > 0);
 
-		function back() {
-			uiStore.dialogBack();
-		}
-	</script>
+	function back() {
+		uiStore.dialogBack();
+	}
+</script>
 
-	<MoreInfoShell
-		open={isOpen}
-		{style}
-		{side}
-		{title}
-		variant={shellVariant}
-		onclose={close}
-		canBack={canBack}
-		onback={back}
-	>
+<!-- ── Dialog Content Routing ─────────────────────────────────────────────── -->
+<MoreInfoShell
+	open={isOpen}
+	{style}
+	{side}
+	{title}
+	variant={shellVariant}
+	onclose={close}
+	canBack={canBack}
+	onback={back}
+>
 	{#if tileType === 'map' && selectedTile}
 		<MapTileMoreInfo tile={selectedTile} {entity} />
 	{:else if (tileType === 'history' || tileType === 'gauge' || tileType === 'statistic') && selectedTile}

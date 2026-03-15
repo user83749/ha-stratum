@@ -1,4 +1,7 @@
 <script lang="ts">
+	// ── ShellNav ──────────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { generateId } from '$lib/utils/uuid';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore, activePageId } from '$lib/stores/ui';
@@ -14,6 +17,7 @@
 	import type { Page } from '$lib/types/dashboard';
 	import { VISIBLE_ALL } from '$lib/types/dashboard';
 
+	// ── Domain icon map ───────────────────────────────────────────────────────
 	const DOMAIN_ICONS: Record<string, string> = {
 		light: 'lightbulb', switch: 'toggle-right', sensor: 'activity',
 		binary_sensor: 'radio', climate: 'thermometer', media_player: 'music',
@@ -24,6 +28,7 @@
 		weather: 'cloud-sun', alarm_control_panel: 'shield', update: 'download',
 	};
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const cfg       = $derived($dashboardStore);
 	const nav       = $derived(cfg.nav);
 	const settings  = $derived(cfg.settings);
@@ -37,10 +42,10 @@
 		}))
 	);
 
-	// Build the ordered list of items to render
+	// ── Ordered nav items ───────────────────────────────────────────────
 	const orderedItems = $derived.by(() => {
 		if (nav.order.length === 0) {
-			// No custom order — pages in array order, extras appended
+			// Default order: pages first, then extras.
 			return [
 				...pages.map((p) => ({ type: 'page' as const, id: p.id })),
 				...nav.extras.map((e) => ({ type: 'extra' as const, id: e.id }))
@@ -52,18 +57,18 @@
 	const pageMap  = $derived(new Map(pages.map((p) => [p.id, p])));
 	const extraMap = $derived(new Map(nav.extras.map((e) => [e.id, e])));
 
-	// Badge map: pageId → entity state (resolved separately in a real impl via entities store)
-	// For now just expose the config so the template can render the badge dot
+	// ── Badge config map ────────────────────────────────────────────────
 	const badgeMap = $derived(new Map(nav.badges.map((b) => [b.pageId, b])));
 
 	const currentPageId = $derived($activePageId);
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function navigate(pageId: string) {
 		haptic('selection');
 		uiStore.navigateTo(pageId);
 	}
 
-	// Connection status dot
+	// ── Connection Status ─────────────────────────────────────────────────────
 	const connStatus = $derived($connectionStatus);
 
 	const iconSizeMap = { sm: 16, md: 20, lg: 24 } as const;
@@ -127,7 +132,7 @@
 	class="ha-nav"
 	aria-label="Dashboard navigation"
 >
-	<!-- ── Clock + collapse button ──────────────────────────────────────── -->
+	<!-- ── Clock ────────────────────────────────────────────────────────── -->
 	<div class="ha-nav__clock" aria-live="off">
 		<span class="ha-nav__clock-time">{clockDisplay.time}</span>
 		<div class="ha-nav__clock-sub">

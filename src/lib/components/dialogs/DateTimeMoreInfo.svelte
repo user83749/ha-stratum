@@ -1,11 +1,17 @@
 <script lang="ts">
+	// ── DateTimeMoreInfo ──────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { inputDatetimeService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
+
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
@@ -14,6 +20,7 @@
 	let localDate = $state('');
 	let localTime = $state('');
 
+	// ── Local State Sync ──────────────────────────────────────────────────────
 	$effect(() => {
 		const raw = (entity?.state as string | undefined) ?? '';
 		if (!raw || raw === 'unknown' || raw === 'unavailable') {
@@ -32,6 +39,7 @@
 		}
 	});
 
+	// ── Actions ───────────────────────────────────────────────────────────────
 	function save() {
 		if (isUnavail) return;
 		if (optimisticPreviewEnabled) {

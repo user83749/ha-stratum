@@ -1,18 +1,23 @@
 <script lang="ts">
+	// ── LightMoreInfo ─────────────────────────────────────────────────────────
+
+	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { lightService } from '$lib/ha/services';
 	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
+	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { entityId: string; }
 	const { entityId }: Props = $props();
 
+	// ── Derived State ─────────────────────────────────────────────────────────
 	const entity    = $derived($optimisticEntities[entityId] ?? null);
 	const isOn      = $derived(entity?.state === 'on');
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const optimisticPreviewEnabled = false;
 
-	// ─── Brightness ───────────────────────────────────────────────────────────
+	// ── Brightness ────────────────────────────────────────────────────────────
 
 	const brightnessPct = $derived(Math.round(((entity?.attributes.brightness as number | undefined) ?? 0) / 255 * 100));
 	let localBrightness = $state(50);
@@ -62,7 +67,7 @@
 		}, 120);
 	}
 
-	// ─── Color (RGB) ──────────────────────────────────────────────────────────
+	// ── Color (RGB) ───────────────────────────────────────────────────────────
 
 	const supportsColor = $derived(
 		Array.isArray(entity?.attributes.supported_color_modes)
@@ -140,7 +145,7 @@
 		});
 	}
 
-	// ─── Color Temperature ────────────────────────────────────────────────────
+	// ── Color Temperature ─────────────────────────────────────────────────────
 
 	const supportsColorTemp = $derived(
 		Array.isArray(entity?.attributes.supported_color_modes)
@@ -187,7 +192,7 @@
 		}, 120);
 	}
 
-	// ─── Effects ──────────────────────────────────────────────────────────────
+	// ── Effects ───────────────────────────────────────────────────────────────
 
 	const effectList    = $derived((entity?.attributes.effect_list as string[] | undefined) ?? []);
 	const currentEffect = $derived(entity?.attributes.effect as string | undefined);
@@ -198,7 +203,7 @@
 		else lightService.setEffect(entityId, effect).catch(() => {});
 	}
 
-	// ─── Toggle ───────────────────────────────────────────────────────────────
+	// ── Toggle ────────────────────────────────────────────────────────────────
 
 	let toggling = $state(false);
 	async function toggle() {
@@ -213,9 +218,7 @@
 	const rgbCss    = $derived(rgb ? `rgb(${rgb[0]},${rgb[1]},${rgb[2]})` : null);
 	const glowColor = $derived(rgbCss ?? (isOn ? '#ffd580' : 'transparent'));
 
-	// ─── Drag-based vertical slider ───────────────────────────────────────────
-	// We implement our own vertical slider so it looks like a HomeKit dimmer:
-	// a tall pill track; dragging up = brighter, dragging down = dimmer.
+	// ── Drag Handlers ─────────────────────────────────────────────────────────
 
 	let trackEl = $state<HTMLElement | null>(null);
 	let dragging = $state(false);
@@ -226,9 +229,8 @@
 		if (!trackEl) return localBrightness;
 		const rect = trackEl.getBoundingClientRect();
 		const relY = e.clientY - rect.top;
-		// top = 100%, bottom = 0% (invert)
 		const pct = 1 - Math.max(0, Math.min(1, relY / rect.height));
-		return Math.round(pct * 99) + 1; // clamp to 1-100
+		return Math.round(pct * 99) + 1;
 	}
 
 	function onTrackPointerDown(e: PointerEvent) {
