@@ -240,6 +240,7 @@
 			['showLabels',           'Show labels',           'Show page names next to icons (desktop)'],
 			['showLabelsOnMobile',   'Show labels on mobile', mobileStyle === 'bottom-bar' ? 'Show page names in the mobile bottom bar' : 'Show page names in the mobile drawer'],
 			['showMobileClock',      'Mobile header clock',   'Show the large time (clock) line at the top of the page on mobile'],
+			['showMobileAlertsButton','Mobile alerts button', 'Show Alerts button in the mobile navigation controls'],
 			['showConnectionStatus', 'Connection status',     'Show HA connection indicator'],
 		] as [key, label, desc]}
 			<div class="ns__toggle-row">

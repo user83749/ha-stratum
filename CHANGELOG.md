@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.55] - 2026-03-15
+
+### Added
+- **Notification Badge System**: New `notificationBadge` store for persistent alert tracking across domains (alerts, updates, binary sensors, alarm panels).
+- Added support for configurable alert state mapping in settings.
+
+### Changed
+- **Mobile Layout Refinements**: Improved bottom-bar insets and navigation behavior on mobile devices.
+- **Pinned Sections**: Refined handling of bottom-pinned chip rows for better visual integration.
+- **Component Consistency**: Updated `AppHeader`, `PageView`, `SectionHorizontalChipRow`, and `SectionList` for improved layout predictability.
+- **Dialogs**: Refined `CameraMoreInfo` dialog behavior.
+- **Settings**: Enhanced `AlertsSettings` and `NavSettings` panels.
+
 ## [1.0.54] - 2026-03-15
 
 ### Changed

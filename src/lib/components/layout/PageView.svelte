@@ -4,6 +4,7 @@
 	// ── Imports ─────────────────────────────────────────────────────────────
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { activePageId, currentBreakpoint, uiStore } from '$lib/stores/ui';
+	import { notificationBadgeCount } from '$lib/stores/notificationBadge';
 	import { isEditing, editMode } from '$lib/stores/editMode';
 	import { clockNow } from '$lib/stores/clock';
 	import SectionList from './SectionList.svelte';
@@ -43,6 +44,7 @@
 	const currentPageId = $derived($activePageId);
 	const breakpoint    = $derived($currentBreakpoint);
 	const editing       = $derived($isEditing);
+	const alertCount    = $derived($notificationBadgeCount);
 
 	const activePage = $derived(
 		pages.find((p) => p.id === currentPageId) ?? pages[0] ?? null
@@ -344,8 +346,13 @@
 								<div class="page-view__content">
 									{#if !editing}
 										<div class="page-view__actions">
-											<button class="page-view__btn" onclick={() => uiStore.toggleNotifications()} title="Notifications">
+											<button class="page-view__btn page-view__btn--notif" onclick={() => uiStore.toggleNotifications()} title="Notifications">
 												<Icon name="bell" size={18} />
+												{#if alertCount > 0}
+													<span class="page-view__notif-badge" aria-label={`${alertCount} alerts`}>
+														{alertCount > 99 ? '99+' : alertCount}
+													</span>
+												{/if}
 											</button>
 											<button class="page-view__btn" onclick={() => editMode.toggle()} title="Edit dashboard">
 												<Icon name="pencil" size={18} />
@@ -636,6 +643,25 @@
 		background-color: var(--hover);
 		color: var(--fg);
 		opacity: 1;
+	}
+	.page-view__btn--notif {
+		position: relative;
+	}
+	.page-view__notif-badge {
+		position: absolute;
+		top: -3px;
+		right: -3px;
+		min-width: 16px;
+		height: 16px;
+		padding: 0 4px;
+		border-radius: 999px;
+		background: #8b3333;
+		color: #d6d6d6;
+		font-size: 0.62rem;
+		font-weight: 700;
+		line-height: 16px;
+		text-align: center;
+		border: 1px solid color-mix(in srgb, var(--surface) 80%, transparent);
 	}
 
 

@@ -3,7 +3,8 @@
 
 	// ── Imports ───────────────────────────────────────────────────────────────
 	import { dashboardStore } from '$lib/stores/dashboard';
-	import { uiStore, activePageId, isMobileNavOpen } from '$lib/stores/ui';
+	import { uiStore, activePageId, isMobileNavOpen, isNotificationsOpen } from '$lib/stores/ui';
+	import { notificationBadgeCount } from '$lib/stores/notificationBadge';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { haptic } from '$lib/utils/haptics';
 
@@ -13,12 +14,14 @@
 
 	const currentPageId  = $derived($activePageId);
 	const drawerOpen     = $derived($isMobileNavOpen);
+	const notificationsOpen = $derived($isNotificationsOpen);
+	const alertCount = $derived($notificationBadgeCount);
 
 	// Visible pages only (sm breakpoint)
 	const visiblePages = $derived(pages.filter((p) => p.navVisibility.sm));
 
-	// For bottom-bar: show at most 5 tabs; overflow goes into drawer
-	const MAX_TABS = 5;
+	// For bottom-bar: show at most 6 tabs; overflow goes into drawer
+	const MAX_TABS = 6;
 	const tabPages    = $derived(visiblePages.slice(0, MAX_TABS));
 	const hasOverflow = $derived(visiblePages.length > MAX_TABS);
 
@@ -27,6 +30,11 @@
 		haptic('selection');
 		uiStore.navigateTo(pageId);
 		uiStore.closeMobileNav();
+	}
+
+	function openAlerts() {
+		haptic('selection');
+		uiStore.openNotifications();
 	}
 
 	const iconSizeMap = { sm: 20, md: 24, lg: 28 } as const;
@@ -65,6 +73,25 @@
 			</button>
 		{/if}
 
+		{#if nav.showMobileAlertsButton}
+			<button
+				class="mob-bar__tab mob-bar__tab--alerts"
+				class:mob-bar__tab--active={notificationsOpen}
+				onclick={openAlerts}
+				aria-label="Alerts"
+			>
+				<Icon name="bell" size={iconSize} />
+				{#if alertCount > 0}
+					<span class="mob-bar__badge" aria-label={`${alertCount} alerts`}>
+						{alertCount > 99 ? '99+' : alertCount}
+					</span>
+				{/if}
+				{#if nav.showLabelsOnMobile}
+					<span class="mob-bar__label">Alerts</span>
+				{/if}
+			</button>
+		{/if}
+
 		<button
 			class="mob-bar__tab"
 			onclick={() => { uiStore.openSettings(); }}
@@ -89,6 +116,21 @@
 		>
 			<Icon name="menu" size={22} />
 		</button>
+		{#if nav.showMobileAlertsButton}
+			<button
+				class="mob-dock__btn mob-dock__btn--alerts"
+				class:mob-dock__btn--active={notificationsOpen}
+				onclick={openAlerts}
+				aria-label="Alerts"
+			>
+				<Icon name="bell" size={20} />
+				{#if alertCount > 0}
+					<span class="mob-dock__badge" aria-label={`${alertCount} alerts`}>
+						{alertCount > 99 ? '99+' : alertCount}
+					</span>
+				{/if}
+			</button>
+		{/if}
 		<button
 			class="mob-dock__btn"
 			onclick={() => { uiStore.openSettings(); }}
@@ -200,8 +242,26 @@
 		min-width: 0;
 		padding: 6px 4px;
 	}
+	.mob-bar__tab--alerts {
+		position: relative;
+	}
 	.mob-bar__tab:hover     { color: var(--fg-muted); }
 	.mob-bar__tab--active   { color: var(--accent); }
+	.mob-bar__badge {
+		position: absolute;
+		top: 4px;
+		right: calc(50% - 16px);
+		min-width: 16px;
+		height: 16px;
+		padding: 0 4px;
+		border-radius: 999px;
+		background: #8b3333;
+		color: #d6d6d6;
+		font-size: 0.62rem;
+		font-weight: 700;
+		line-height: 16px;
+		text-align: center;
+	}
 
 	.mob-bar__label {
 		font-size: 0.625rem;
@@ -237,6 +297,25 @@
 		backdrop-filter: blur(var(--blur-amount));
 		-webkit-backdrop-filter: blur(var(--blur-amount));
 		box-shadow: var(--shadow-md);
+	}
+	.mob-dock__btn--alerts {
+		position: relative;
+	}
+	.mob-dock__badge {
+		position: absolute;
+		top: -5px;
+		right: -5px;
+		min-width: 16px;
+		height: 16px;
+		padding: 0 4px;
+		border-radius: 999px;
+		background: #8b3333;
+		color: #d6d6d6;
+		font-size: 0.62rem;
+		font-weight: 700;
+		line-height: 16px;
+		text-align: center;
+		border: 1px solid color-mix(in srgb, var(--surface) 90%, transparent);
 	}
 
 	.mob-dock__btn--active {

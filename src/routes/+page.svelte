@@ -61,8 +61,25 @@
 	const showMobileNav = $derived(isMobile && navCfg.mobileStyle !== 'hidden');
 	const useIntegratedDesktopNav = $derived(navCfg.position === 'left' && !isMobile);
 	const suppressShellSidebar = $derived(isMobile || useIntegratedDesktopNav);
+	const currentBreakpoint = $derived.by(() => (windowWidth < 640 ? 'sm' : windowWidth < 1024 ? 'md' : 'lg') as 'sm' | 'md' | 'lg');
+	const activePage = $derived.by(() =>
+		cfg.pages.find((page) => page.id === ($activePageId ?? cfg.pages[0]?.id)) ?? cfg.pages[0] ?? null
+	);
+	const hasVisibleBottomPinnedChipRow = $derived.by(() => {
+		if (!activePage) return false;
+		return activePage.sections.some(
+			(section) =>
+				section.layoutMode === 'horizontal_chip_row' &&
+				section.pinMode === 'bottom' &&
+				section.visibility[currentBreakpoint]
+		);
+	});
 	const mobileBottomInsetPx = $derived(
-		showMobileNav && navCfg.mobileStyle === 'bottom-bar' ? 48 : 0
+		showMobileNav && navCfg.mobileStyle === 'bottom-bar'
+			? hasVisibleBottomPinnedChipRow
+				? 44
+				: 48
+			: 0
 	);
 	const pageBottomPadding = $derived(
 		showMobileNav && navCfg.mobileStyle === 'bottom-bar'

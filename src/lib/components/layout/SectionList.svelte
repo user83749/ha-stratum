@@ -33,12 +33,16 @@
 
 	// ── Local State ─────────────────────────────────────────────────────────────
 	let gridEl = $state<HTMLElement | null>(null);
+	const hasBottomPinnedChipRow = $derived(
+		sections.some((section) => section.layoutMode === 'horizontal_chip_row' && section.pinMode === 'bottom')
+	);
 </script>
 
 <!-- ── Section Grid ───────────────────────────────────────────────────────────── -->
 <div
 	bind:this={gridEl}
 	class="page-sections-grid"
+	class:page-sections-grid--with-mobile-tail-gap={!hasBottomPinnedChipRow}
 	class:sections-dragging={!!sectionDragId}
 	role="presentation"
 	onpointermove={(event) => {
@@ -103,6 +107,9 @@
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 			column-gap: calc(var(--custom-layout-card-padding) * 1.7);
 			row-gap: calc(var(--custom-layout-card-padding) * 1.45);
+		}
+		.page-sections-grid--with-mobile-tail-gap {
+			padding-bottom: 8px;
 		}
 	}
 

@@ -702,8 +702,5 @@
 		.chiprow__list {
 			row-gap: calc(0.8vw * var(--chip-row-scale-phone));
 		}
-		.chiprow[data-pin-mode="bottom"] .chiprow__list-wrap {
-			padding-bottom: calc(48px + env(safe-area-inset-bottom) + var(--chip-row-padding-top-phone));
-		}
 	}
 </style>

@@ -38,7 +38,7 @@
 		{ id: 'connection', icon: 'plug',             label: 'Connection'   },
 		{ id: 'theme',      icon: 'palette',          label: 'Appearance'   },
 		{ id: 'nav',        icon: 'layout-dashboard', label: 'Navigation'   },
-		{ id: 'alerts',     icon: 'triangle-alert',   label: 'Alerts'       },
+		{ id: 'alerts',     icon: 'bell',             label: 'Alerts'       },
 		{ id: 'dialog',     icon: 'panel-right',      label: 'Dialog'       },
 		{ id: 'profiles',   icon: 'users',            label: 'Profiles'     },
 		{ id: 'shortcuts',  icon: 'keyboard',         label: 'Shortcuts'    },

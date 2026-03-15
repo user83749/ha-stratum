@@ -5,6 +5,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore, activePageId } from '$lib/stores/ui';
+	import { notificationBadgeCount } from '$lib/stores/notificationBadge';
 	import { editMode, isEditing } from '$lib/stores/editMode';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { goto } from '$app/navigation';
@@ -42,6 +43,7 @@
 
 	const currentPageId = $derived($activePageId);
 	const editing       = $derived($isEditing);
+	const alertCount    = $derived($notificationBadgeCount);
 	let isMac = $state(false);
 
 	const activePage = $derived(
@@ -112,8 +114,13 @@
 			{/if}
 
 			{#if header.showNotifications}
-				<button class="ha-header__btn" onclick={handleNotificationsClick} aria-label="Notifications" title="Notifications">
+				<button class="ha-header__btn ha-header__btn--notif" onclick={handleNotificationsClick} aria-label="Notifications" title="Notifications">
 					<Icon name="bell" size={18} />
+					{#if alertCount > 0}
+						<span class="ha-header__notif-badge" aria-label={`${alertCount} alerts`}>
+							{alertCount > 99 ? '99+' : alertCount}
+						</span>
+					{/if}
 				</button>
 			{/if}
 
@@ -222,6 +229,25 @@
 	.ha-header__btn-label {
 		font-size: 0.8125rem;
 		font-weight: 700;
+	}
+	.ha-header__btn--notif {
+		position: relative;
+	}
+	.ha-header__notif-badge {
+		position: absolute;
+		top: -3px;
+		right: -3px;
+		min-width: 16px;
+		height: 16px;
+		padding: 0 4px;
+		border-radius: 999px;
+		background: #8b3333;
+		color: #d6d6d6;
+		font-size: 0.62rem;
+		font-weight: 700;
+		line-height: 16px;
+		text-align: center;
+		border: 1px solid color-mix(in srgb, var(--bg-elevated) 85%, transparent);
 	}
 
 	/* ── Search pill ─────────────────────────────────────────────────────── */

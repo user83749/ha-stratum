@@ -577,6 +577,7 @@ export interface NavConfig {
 	showLabels: boolean;
 	showLabelsOnMobile: boolean;
 	showMobileClock: boolean; // show the clock block above sections in mobile view
+	showMobileAlertsButton: boolean; // show alerts button in mobile bottom bar / dock
 
 	showHeader: boolean;
 	headerTitle?: string;
@@ -743,13 +744,25 @@ export interface DisplayConfig {
 // ─── Notifications ───────────────────────────────────────────────────────────
 
 export type NotificationPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+export type NotificationAlertDomain = 'alert' | 'update' | 'binary_sensor' | 'alarm_control_panel';
+
+export interface NotificationAlertStateMap {
+	alert: string[];
+	update: string[];
+	binary_sensor: string[];
+	alarm_control_panel: string[];
+}
 
 export interface NotificationConfig {
 	enabled: boolean;
 	showPersistent: boolean;     // persistent_notification.*
 	showAlerts: boolean;         // real alerts feed
 	includeAlertDomainEntities: boolean; // include alert.* entities
+	includeUpdateDomainEntities: boolean; // include update.* entities
+	includeBinarySensorDomainEntities: boolean; // include binary_sensor.* entities
+	includeAlarmControlPanelDomainEntities: boolean; // include alarm_control_panel.* entities
 	alertEntityIds: string[];    // explicit entity IDs to monitor as alerts
+	alertStateMap: NotificationAlertStateMap; // active-state mapping per domain
 	sound: boolean;
 	position: NotificationPosition;
 	duration: number;            // ms; 0 = stay until dismissed
@@ -866,6 +879,7 @@ export const DEFAULT_NAV: NavConfig = {
 	showLabels: true,
 	showLabelsOnMobile: false,
 	showMobileClock: false,
+	showMobileAlertsButton: true,
 	showHeader: false,
 	showConnectionStatus: true,
 	mobileBreakpoint: 800,
@@ -972,7 +986,16 @@ export const DEFAULT_NOTIFICATIONS: NotificationConfig = {
 	showPersistent: true,
 	showAlerts: true,
 	includeAlertDomainEntities: true,
+	includeUpdateDomainEntities: false,
+	includeBinarySensorDomainEntities: false,
+	includeAlarmControlPanelDomainEntities: false,
 	alertEntityIds: [],
+	alertStateMap: {
+		alert: ['on'],
+		update: ['on'],
+		binary_sensor: ['on'],
+		alarm_control_panel: ['triggered', 'pending', 'arming', 'disarming']
+	},
 	sound: false,
 	position: 'bottom-right',
 	duration: 5000
@@ -1117,6 +1140,7 @@ export function migrateConfig(raw: unknown): DashboardConfig {
 			showLabels: rawNav.showLabels ?? DEFAULT_NAV.showLabels,
 			showLabelsOnMobile: rawNav.showLabelsOnMobile ?? DEFAULT_NAV.showLabelsOnMobile,
 			showMobileClock: rawNav.showMobileClock ?? DEFAULT_NAV.showMobileClock,
+			showMobileAlertsButton: rawNav.showMobileAlertsButton ?? DEFAULT_NAV.showMobileAlertsButton,
 			showHeader: rawNav.showHeader ?? DEFAULT_NAV.showHeader,
 			headerTitle: rawNav.headerTitle ?? DEFAULT_NAV.headerTitle,
 			headerIcon: rawNav.headerIcon ?? DEFAULT_NAV.headerIcon,
@@ -1153,7 +1177,14 @@ export function migrateConfig(raw: unknown): DashboardConfig {
 		favorites: { ...DEFAULT_FAVORITES, ...(input.favorites ?? {}) },
 		weather: { ...DEFAULT_WEATHER, ...(input.weather ?? {}) },
 		search: { ...DEFAULT_SEARCH, ...(input.search ?? {}) },
-		notifications: { ...DEFAULT_NOTIFICATIONS, ...(input.notifications ?? {}) },
+		notifications: {
+			...DEFAULT_NOTIFICATIONS,
+			...(input.notifications ?? {}),
+			alertStateMap: {
+				...DEFAULT_NOTIFICATIONS.alertStateMap,
+				...(input.notifications?.alertStateMap ?? {})
+			}
+		},
 		resources: { ...(input.resources ?? {}) },
 		pages: (input.pages ?? [defaultPage()]).map(migratePageV5),
 		profiles: migratedProfiles,

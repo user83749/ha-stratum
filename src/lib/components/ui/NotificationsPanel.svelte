@@ -2,12 +2,14 @@
 	// ── NotificationsPanel ────────────────────────────────────────────────────
 
 	// ── Imports ───────────────────────────────────────────────────────────────
+	import { browser } from '$app/environment';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore } from '$lib/stores/ui';
 	import { callService, persistentNotificationService } from '$lib/ha/services';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { entities } from '$lib/ha/websocket';
-	import { getEntityName, getDomain } from '$lib/ha/entities';
+	import { getDomain } from '$lib/ha/entities';
+	import type { NotificationAlertDomain } from '$lib/types/dashboard';
 
 	interface Props {
 		open: boolean;
@@ -19,8 +21,22 @@
 
 	const cfg           = $derived($dashboardStore);
 	const notifCfg      = $derived(cfg.notifications);
+	const navCfg        = $derived(cfg.nav);
 	let clearingAll = $state(false);
 	let dismissedAlertEntityIds = $state<string[]>([]);
+	let clearInfoMessage = $state('');
+	let windowWidth = $state(1280);
+
+	$effect(() => {
+		if (!browser) return;
+		windowWidth = window.innerWidth;
+		const onResize = () => { windowWidth = window.innerWidth; };
+		window.addEventListener('resize', onResize);
+		return () => window.removeEventListener('resize', onResize);
+	});
+	const mobileNavContext = $derived(
+		windowWidth <= navCfg.mobileBreakpoint && navCfg.mobileStyle !== 'hidden'
+	);
 
 	// ── Derived State ─────────────────────────────────────────────────────────
 	// Gather persistent_notification entities.
@@ -30,67 +46,108 @@
 			: []
 	);
 
-	function isAlertEntityActive(entity: { entity_id: string; state: string; attributes: Record<string, unknown> }): boolean {
-		const domain = getDomain(entity.entity_id);
-		const value = String(entity.state ?? '').trim().toLowerCase();
-		if (!value) return false;
+	type AlertSource =
+		| 'alert-domain'
+		| 'update-domain'
+		| 'binary-sensor-domain'
+		| 'alarm-panel-domain'
+		| 'tracked';
 
-		if (value === 'unavailable' || value === 'unknown') return false;
-
-		if (domain === 'alert') {
-			// Alert entities are active when "on" (firing).
-			return value === 'on';
-		}
-
-		if (domain === 'binary_sensor') {
-			return value === 'on';
-		}
-
-		if (domain === 'alarm_control_panel') {
-			// Treat truly alarming/transitional states as active alerts.
-			return ['triggered', 'pending', 'arming', 'disarming'].includes(value);
-		}
-
-		if (domain === 'update') {
-			// update.* commonly uses "on" when an update is available.
-			return value === 'on';
-		}
-		// No generic fallback: avoid heuristic "made up" alerts from arbitrary entities.
-		return false;
+	interface AlertItem {
+		entity: { entity_id: string; state: string; attributes: Record<string, unknown> };
+		source: AlertSource;
 	}
 
-	const domainAlertEntities = $derived(
-		open && notifCfg.showAlerts && notifCfg.includeAlertDomainEntities
-			? Object.values($entities).filter((e) => e.entity_id.startsWith('alert.') && isAlertEntityActive(e))
-			: []
-	);
+	function normalizedDomainStates(domain: NotificationAlertDomain): string[] {
+		const raw = notifCfg.alertStateMap?.[domain] ?? [];
+		return raw
+			.map((value) => String(value).trim().toLowerCase())
+			.filter((value, idx, arr) => value.length > 0 && arr.indexOf(value) === idx);
+	}
 
-	const trackedAlertEntities = $derived.by(() => {
+	function resolveAlertDomain(entityId: string): NotificationAlertDomain | null {
+		if (entityId.startsWith('alert.')) return 'alert';
+		if (entityId.startsWith('update.')) return 'update';
+		if (entityId.startsWith('binary_sensor.')) return 'binary_sensor';
+		if (entityId.startsWith('alarm_control_panel.')) return 'alarm_control_panel';
+		return null;
+	}
+
+	function isEntityActiveForDomain(
+		entity: { entity_id: string; state: string; attributes: Record<string, unknown> },
+		domain: NotificationAlertDomain
+	): boolean {
+		const value = String(entity.state ?? '').trim().toLowerCase();
+		if (!value || value === 'unavailable' || value === 'unknown') return false;
+		return normalizedDomainStates(domain).includes(value);
+	}
+
+	const domainAlertItems = $derived.by(() => {
+		if (!open || !notifCfg.showAlerts) return [] as AlertItem[];
+		const all = Object.values($entities);
+		const items: AlertItem[] = [];
+		if (notifCfg.includeAlertDomainEntities) {
+			for (const entity of all) {
+				if (!entity.entity_id.startsWith('alert.')) continue;
+				if (isEntityActiveForDomain(entity, 'alert')) items.push({ entity, source: 'alert-domain' });
+			}
+		}
+		if (notifCfg.includeUpdateDomainEntities) {
+			for (const entity of all) {
+				if (!entity.entity_id.startsWith('update.')) continue;
+				if (isEntityActiveForDomain(entity, 'update')) items.push({ entity, source: 'update-domain' });
+			}
+		}
+		if (notifCfg.includeBinarySensorDomainEntities) {
+			for (const entity of all) {
+				if (!entity.entity_id.startsWith('binary_sensor.')) continue;
+				if (isEntityActiveForDomain(entity, 'binary_sensor')) items.push({ entity, source: 'binary-sensor-domain' });
+			}
+		}
+		if (notifCfg.includeAlarmControlPanelDomainEntities) {
+			for (const entity of all) {
+				if (!entity.entity_id.startsWith('alarm_control_panel.')) continue;
+				if (isEntityActiveForDomain(entity, 'alarm_control_panel')) items.push({ entity, source: 'alarm-panel-domain' });
+			}
+		}
+		return items;
+	});
+
+	const trackedAlertItems = $derived.by(() => {
 		if (!open || !notifCfg.showAlerts) return [];
 		const ids = notifCfg.alertEntityIds ?? [];
 		return ids
 			.map((id) => $entities[id])
 			.filter((entity): entity is NonNullable<typeof entity> => !!entity)
-			.filter((entity) => isAlertEntityActive(entity));
+			.filter((entity) => {
+				const domain = resolveAlertDomain(entity.entity_id);
+				return domain ? isEntityActiveForDomain(entity, domain) : false;
+			})
+			.map((entity) => ({ entity, source: 'tracked' as const }));
 	});
 
-	const alertEntities = $derived.by(() => {
-		const merged = new Map<string, (typeof domainAlertEntities)[number]>();
-		for (const entity of domainAlertEntities) merged.set(entity.entity_id, entity);
-		for (const entity of trackedAlertEntities) merged.set(entity.entity_id, entity);
+	const alertItems = $derived.by(() => {
+		const merged = new Map<string, AlertItem>();
+		for (const item of domainAlertItems) merged.set(item.entity.entity_id, item);
+		for (const item of trackedAlertItems) {
+			if (!merged.has(item.entity.entity_id)) merged.set(item.entity.entity_id, item);
+		}
 		return [...merged.values()];
 	});
 	const activeAlertEntityIds = $derived(
-		new Set(alertEntities.map((entity) => entity.entity_id))
+		new Set(alertItems.map((item) => item.entity.entity_id))
 	);
-	const visibleAlertEntities = $derived(
-		alertEntities.filter((entity) => !dismissedAlertEntityIds.includes(entity.entity_id))
+	const visibleAlertItems = $derived(
+		alertItems.filter((item) => !dismissedAlertEntityIds.includes(item.entity.entity_id))
 	);
 	const clearableAlertEntities = $derived(
-		visibleAlertEntities.filter((entity) => getDomain(entity.entity_id) === 'alert')
+		visibleAlertItems
+			.map((item) => item.entity)
+			.filter((entity) => getDomain(entity.entity_id) === 'alert')
 	);
+	const nonClearableAlertCount = $derived(visibleAlertItems.length - clearableAlertEntities.length);
 
-	const totalCount = $derived(persistentNotifs.length + visibleAlertEntities.length);
+	const totalCount = $derived(persistentNotifs.length + visibleAlertItems.length);
 
 	$effect(() => {
 		// Keep dismissals only for currently-active alerts.
@@ -111,9 +168,24 @@
 		return entity.state;
 	}
 
+	function alertEntityLabel(entity: { entity_id: string; attributes: Record<string, unknown> }): string {
+		const friendly = entity.attributes?.friendly_name;
+		if (typeof friendly === 'string' && friendly.trim()) return friendly.trim();
+		return entity.entity_id;
+	}
+
+	function alertSourceLabel(source: AlertSource): string {
+		if (source === 'alert-domain') return 'alert.*';
+		if (source === 'update-domain') return 'update.*';
+		if (source === 'binary-sensor-domain') return 'binary_sensor.*';
+		if (source === 'alarm-panel-domain') return 'alarm_control_panel.*';
+		return 'tracked';
+	}
+
 	async function clearNotifications() {
 		if (clearingAll) return;
-		if (persistentNotifs.length === 0 && visibleAlertEntities.length === 0) return;
+		if (persistentNotifs.length === 0 && visibleAlertItems.length === 0) return;
+		clearInfoMessage = '';
 		clearingAll = true;
 		try {
 			const ops: Promise<unknown>[] = [];
@@ -124,10 +196,13 @@
 				ops.push(callService('alert', 'turn_off', {}, { entity_id: entity.entity_id }));
 			}
 			await Promise.allSettled(ops);
-			// Also clear non-service-clearable tracked alerts from panel view.
+			// Keep non-service-clearable items from persisting in panel state.
 			dismissedAlertEntityIds = Array.from(
-				new Set([...dismissedAlertEntityIds, ...visibleAlertEntities.map((entity) => entity.entity_id)])
+				new Set([...dismissedAlertEntityIds, ...visibleAlertItems.map((item) => item.entity.entity_id)])
 			);
+			if (nonClearableAlertCount > 0) {
+				clearInfoMessage = `${nonClearableAlertCount} non-clearable alerts were dismissed from view.`;
+			}
 		} catch (error) {
 			console.error('[notifications] Failed to clear notifications:', error);
 		} finally {
@@ -150,6 +225,7 @@
 <aside
 	class="np-panel"
 	class:np-panel--open={open}
+	class:np-panel--mobile-nav={mobileNavContext}
 	aria-label="Notifications"
 	aria-hidden={!open}
 >
@@ -164,9 +240,9 @@
 					class="np-clear"
 					type="button"
 					onclick={clearNotifications}
-					disabled={clearingAll || (persistentNotifs.length === 0 && visibleAlertEntities.length === 0)}
+					disabled={clearingAll || (persistentNotifs.length === 0 && visibleAlertItems.length === 0)}
 					aria-label="Clear notifications"
-					title={persistentNotifs.length === 0 && visibleAlertEntities.length === 0 ? 'No notifications to clear' : 'Clear notifications'}
+					title={persistentNotifs.length === 0 && visibleAlertItems.length === 0 ? 'No notifications to clear' : 'Clear notifications'}
 				>
 					Clear
 				</button>
@@ -214,20 +290,27 @@
 					{/each}
 				{/if}
 
-				{#if visibleAlertEntities.length > 0}
+				{#if visibleAlertItems.length > 0}
 					<div class="np-section-label">Alerts</div>
-					{#each visibleAlertEntities as entity (entity.entity_id)}
-						<button class="np-item np-item--clickable np-item--warning" onclick={() => { openNotifDetails(entity.entity_id); onclose(); }}>
+					{#each visibleAlertItems as item (item.entity.entity_id)}
+						<button class="np-item np-item--clickable np-item--warning" onclick={() => { openNotifDetails(item.entity.entity_id); onclose(); }}>
 							<span class="np-item__icon"><Icon name="triangle-alert" size={14} /></span>
 							<div class="np-item__body">
-								<span class="np-item__title">{getEntityName(entity)}</span>
-								<span class="np-item__desc">{alertDescription(entity)}</span>
+								<span class="np-item__title">
+									{alertEntityLabel(item.entity)}
+									<span class="np-item__source">{alertSourceLabel(item.source)}</span>
+								</span>
+								<span class="np-item__desc">{alertDescription(item.entity)}</span>
 							</div>
 							<span class="np-item__action">
 								<Icon name="chevron-right" size={13} />
 							</span>
 						</button>
 					{/each}
+				{/if}
+
+				{#if clearInfoMessage}
+					<div class="np-note">{clearInfoMessage}</div>
 				{/if}
 			{/if}
 		</div>
@@ -259,6 +342,9 @@
 	}
 
 	.np-panel--open { transform: translateX(0); }
+	.np-panel--mobile-nav {
+		width: min(380px, 96vw);
+	}
 
 	/* ── Header ──────────────────────────────────────────────────────────── */
 	.np-header {
@@ -401,9 +487,21 @@
 		font-size: 0.8125rem;
 		font-weight: 500;
 		color: var(--fg);
-		white-space: nowrap;
+		display: flex;
+		align-items: center;
+		gap: 6px;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+
+	.np-item__source {
+		font-size: 0.625rem;
+		font-weight: 600;
+		color: var(--fg-subtle);
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		padding: 1px 6px;
+		flex-shrink: 0;
 	}
 
 	.np-item__desc {
@@ -429,4 +527,14 @@
 		cursor: pointer;
 	}
 	.np-item__action:hover { background: var(--hover); color: var(--fg); }
+
+	.np-note {
+		margin: 6px 4px 2px;
+		padding: 8px 10px;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--border);
+		font-size: 0.72rem;
+		color: var(--fg-subtle);
+		background: var(--surface);
+	}
 </style>

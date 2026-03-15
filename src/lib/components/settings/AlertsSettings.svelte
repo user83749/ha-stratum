@@ -7,13 +7,22 @@
 	import { getEntityName } from '$lib/ha/entities';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import Toggle from '$lib/components/ui/Toggle.svelte';
-	import type { NotificationConfig } from '$lib/types/dashboard';
+	import type { NotificationAlertDomain, NotificationConfig } from '$lib/types/dashboard';
 
 	// ── Derived State ─────────────────────────────────────────────────────────
 	const root = $derived($dashboardStore);
 	const cfg = $derived(root.notifications);
 	const allEntities = $derived(Object.values($entities));
-	const knownEntityIds = $derived(new Set(Object.keys($entities)));
+	const SUPPORTED_ALERT_DOMAINS = new Set(['alert', 'update', 'binary_sensor', 'alarm_control_panel']);
+
+	function isSupportedAlertEntityId(entityId: string): boolean {
+		const domain = entityId.split('.')[0] ?? '';
+		return SUPPORTED_ALERT_DOMAINS.has(domain);
+	}
+
+	function isUnsupportedTracked(entityId: string): boolean {
+		return !isSupportedAlertEntityId(entityId);
+	}
 
 	let search = $state('');
 	const hasQuery = $derived(search.trim().length > 0);
@@ -21,6 +30,7 @@
 		if (!hasQuery) return [];
 		const q = search.trim().toLowerCase();
 		return allEntities
+			.filter((e) => isSupportedAlertEntityId(e.entity_id))
 			.filter((e) => e.entity_id.toLowerCase().includes(q) || getEntityName(e).toLowerCase().includes(q))
 			.slice(0, 100);
 	});
@@ -28,6 +38,24 @@
 	// ── Actions ───────────────────────────────────────────────────────────────
 	function setNotif(patch: Partial<NotificationConfig>) {
 		dashboardStore.setNotifications(patch);
+	}
+
+	function formatStateMap(domain: NotificationAlertDomain): string {
+		return (cfg.alertStateMap?.[domain] ?? [])
+			.join(', ');
+	}
+
+	function setStateMap(domain: NotificationAlertDomain, raw: string) {
+		const nextStates = raw
+			.split(',')
+			.map((s) => s.trim().toLowerCase())
+			.filter((s, i, arr) => s.length > 0 && arr.indexOf(s) === i);
+		setNotif({
+			alertStateMap: {
+				...cfg.alertStateMap,
+				[domain]: nextStates
+			}
+		});
 	}
 
 	function isTracked(entityId: string): boolean {
@@ -40,19 +68,9 @@
 			setNotif({ alertEntityIds: current.filter((id) => id !== entityId) });
 			return;
 		}
+		if (!isSupportedAlertEntityId(entityId)) return;
 		setNotif({ alertEntityIds: [...current, entityId] });
 	}
-
-	// ── Cleanup ───────────────────────────────────────────────────────────────
-	$effect(() => {
-		const tracked = cfg.alertEntityIds ?? [];
-		if (tracked.length === 0) return;
-		if (knownEntityIds.size === 0) return;
-		const filtered = tracked.filter((id) => knownEntityIds.has(id));
-		if (filtered.length !== tracked.length) {
-			setNotif({ alertEntityIds: filtered });
-		}
-	});
 </script>
 
 <div class="as">
@@ -78,7 +96,7 @@
 		<div class="as__toggle-row">
 			<div class="as__toggle-info">
 				<span class="as__toggle-label">Real alerts feed</span>
-				<span class="as__toggle-desc">Show alerts from `alert.*` entities and your tracked alert entities</span>
+				<span class="as__toggle-desc">Show alerts from enabled domains and your tracked alert entities</span>
 			</div>
 			<Toggle checked={cfg.showAlerts} onchange={(v) => setNotif({ showAlerts: v })} label="Real alerts feed" />
 		</div>
@@ -87,23 +105,89 @@
 	{#if cfg.showAlerts}
 		<div class="as__group">
 			<span class="s-label">Alert sources</span>
+			<p class="as__section-note">
+				Select which domains should auto-populate alerts. Active states for each domain are configured below.
+			</p>
 
-			<div class="as__toggle-row">
-				<div class="as__toggle-info">
-					<span class="as__toggle-label">Include `alert.*` entities</span>
-					<span class="as__toggle-desc">Automatically include active entities from the Home Assistant Alert integration</span>
+			<div class="as__source-grid">
+				<div class="as__source-tile">
+					<span class="as__source-title">`alert.*`</span>
+					<Toggle
+						checked={cfg.includeAlertDomainEntities}
+						onchange={(v) => setNotif({ includeAlertDomainEntities: v })}
+						label="Include alert entities"
+					/>
 				</div>
-				<Toggle
-					checked={cfg.includeAlertDomainEntities}
-					onchange={(v) => setNotif({ includeAlertDomainEntities: v })}
-					label="Include alert entities"
-				/>
+				<div class="as__source-tile">
+					<span class="as__source-title">`update.*`</span>
+					<Toggle
+						checked={cfg.includeUpdateDomainEntities}
+						onchange={(v) => setNotif({ includeUpdateDomainEntities: v })}
+						label="Include update entities"
+					/>
+				</div>
+				<div class="as__source-tile">
+					<span class="as__source-title">`binary_sensor.*`</span>
+					<Toggle
+						checked={cfg.includeBinarySensorDomainEntities}
+						onchange={(v) => setNotif({ includeBinarySensorDomainEntities: v })}
+						label="Include binary_sensor entities"
+					/>
+				</div>
+				<div class="as__source-tile">
+					<span class="as__source-title">`alarm_control_panel.*`</span>
+					<Toggle
+						checked={cfg.includeAlarmControlPanelDomainEntities}
+						onchange={(v) => setNotif({ includeAlarmControlPanelDomainEntities: v })}
+						label="Include alarm_control_panel entities"
+					/>
+				</div>
+			</div>
+
+			<div class="as__map-grid">
+				<div class="as__map-item">
+					<span class="as__map-label">`alert.*` active states</span>
+					<input
+						class="as__map-input"
+						type="text"
+						value={formatStateMap('alert')}
+						onchange={(e) => setStateMap('alert', (e.target as HTMLInputElement).value)}
+					/>
+				</div>
+				<div class="as__map-item">
+					<span class="as__map-label">`update.*` active states</span>
+					<input
+						class="as__map-input"
+						type="text"
+						value={formatStateMap('update')}
+						onchange={(e) => setStateMap('update', (e.target as HTMLInputElement).value)}
+					/>
+				</div>
+				<div class="as__map-item">
+					<span class="as__map-label">`binary_sensor.*` active states</span>
+					<input
+						class="as__map-input"
+						type="text"
+						value={formatStateMap('binary_sensor')}
+						onchange={(e) => setStateMap('binary_sensor', (e.target as HTMLInputElement).value)}
+					/>
+				</div>
+				<div class="as__map-item">
+					<span class="as__map-label">`alarm_control_panel.*` active states</span>
+					<input
+						class="as__map-input"
+						type="text"
+						value={formatStateMap('alarm_control_panel')}
+						onchange={(e) => setStateMap('alarm_control_panel', (e.target as HTMLInputElement).value)}
+					/>
+				</div>
+				<p class="as__map-help">Comma-separated states. Example: <code>on, pending</code></p>
 			</div>
 
 			{#if cfg.alertEntityIds.length > 0}
 				<div class="as__chips">
 					{#each cfg.alertEntityIds as id}
-						<span class="as__chip">
+						<span class="as__chip" class:as__chip--warn={isUnsupportedTracked(id)}>
 							{id}
 							<button class="as__chip-remove" onclick={() => toggleTracked(id)} aria-label={`Remove ${id}`}>
 								<Icon name="x" size={11} />
@@ -111,6 +195,11 @@
 						</span>
 					{/each}
 				</div>
+				{#if cfg.alertEntityIds.some((id) => isUnsupportedTracked(id))}
+					<p class="as__warn">
+						Unsupported tracked domains are ignored. Supported: <code>alert.*</code>, <code>update.*</code>, <code>binary_sensor.*</code>, <code>alarm_control_panel.*</code>.
+					</p>
+				{/if}
 			{/if}
 
 			<div class="as__search-wrap">
@@ -132,7 +221,7 @@
 				{#if !hasQuery}
 					<div class="as__empty">
 						<Icon name="search" size={18} />
-						<span>Type to search entities.</span>
+						<span>Type to search supported alert entities.</span>
 					</div>
 				{:else if allEntities.length === 0}
 					<div class="as__empty">
@@ -209,6 +298,40 @@
 		line-height: 1.4;
 	}
 
+	.as__section-note {
+		margin: 0;
+		font-size: 0.72rem;
+		color: var(--fg-subtle);
+		line-height: 1.45;
+	}
+
+	.as__source-grid {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 8px;
+	}
+
+	.as__source-tile {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		align-items: center;
+		gap: 8px;
+		padding: 9px 10px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		background: var(--surface);
+	}
+
+	.as__source-title {
+		font-size: 0.74rem;
+		font-weight: 600;
+		color: var(--fg);
+		min-width: 0;
+		white-space: normal;
+		overflow-wrap: anywhere;
+	}
+
 	.as__chips {
 		display: flex;
 		flex-wrap: wrap;
@@ -226,6 +349,10 @@
 		font-size: 0.7rem;
 		color: var(--fg-muted);
 		max-width: 100%;
+	}
+	.as__chip--warn {
+		border-color: color-mix(in srgb, #d4a04a 60%, var(--border));
+		background: color-mix(in srgb, #d4a04a 14%, var(--hover));
 	}
 
 	.as__chip-remove {
@@ -362,5 +489,52 @@
 		color: var(--accent);
 		border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 		background: color-mix(in srgb, var(--accent) 10%, transparent);
+	}
+
+	.as__map-grid {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 6px 0 2px;
+	}
+
+	.as__map-item {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.as__map-label {
+		font-size: 0.72rem;
+		font-weight: 600;
+		color: var(--fg-subtle);
+	}
+
+	.as__map-input {
+		width: 100%;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		background: var(--surface);
+		color: var(--fg);
+		font: inherit;
+		font-size: 0.75rem;
+		padding: 7px 9px;
+	}
+
+	.as__map-help {
+		margin: 0;
+		font-size: 0.7rem;
+		color: var(--fg-subtle);
+	}
+
+	.as__map-help code {
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	}
+
+	.as__warn {
+		margin: 0;
+		font-size: 0.72rem;
+		color: #d4a04a;
+		line-height: 1.4;
 	}
 </style>
