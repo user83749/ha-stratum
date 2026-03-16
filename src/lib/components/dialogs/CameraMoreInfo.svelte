@@ -185,18 +185,19 @@
 	}
 
 	$effect(() => {
-		const feed = activeFeed;
+		const feedId = activeFeedId;
 		const el = videoEl;
-		if (!feed || !el) return;
-		if (activeStreamFeedId === feed.id) return;
-		activeStreamFeedId = feed.id;
+		if (!feedId || !el) return;
+		if (activeStreamFeedId === feedId) return;
+		const feed = feeds.find((f) => f.id === feedId);
+		if (!feed) return;
+		activeStreamFeedId = feedId;
 		const token = { cancelled: false };
 
 		startHls(feed, el, token);
 
 		return () => {
 			token.cancelled = true;
-			activeStreamFeedId = '';
 			teardown();
 		};
 	});

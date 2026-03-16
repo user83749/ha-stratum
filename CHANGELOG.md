@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.61] - 2026-03-16
+
+### Changed
+- **Camera Dialog**: Refined stream coordination logic to ensure smoother transitions when switching between multiple camera feeds.
+- **Internal State**: Improved effect cleanup handling for asynchronous streaming requests.
+
 ## [1.0.60] - 2026-03-16
 
 ### Fixed
