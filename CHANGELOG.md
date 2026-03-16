@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.60] - 2026-03-16
+
+### Fixed
+- **Camera Streaming**: Fixed HLS stream URL resolution to correctly handle relative paths returned by some Home Assistant configurations.
+
+### Changed
+- **UI Refinement**: Simplified the `CameraMoreInfo` dialog by removing the loading spinner overlay for a faster, cleaner feel.
+
 ## [1.0.59] - 2026-03-16
 
 ### Changed

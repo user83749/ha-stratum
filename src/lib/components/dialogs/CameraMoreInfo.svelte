@@ -3,6 +3,7 @@
 
 	import { optimisticEntities } from '$lib/ha/optimistic';
 	import { connection } from '$lib/ha/websocket';
+	import { configStore } from '$lib/stores/config';
 	import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 	import { haptic } from '$lib/utils/haptics';
 	import Icon from '$lib/components/ui/Icon.svelte';
@@ -137,18 +138,21 @@
 		setFeedStreamState(feed.id, { status: 'loading' });
 
 		try {
-			const result = await conn.sendMessagePromise<{ url?: string }>({
+			const result = await (conn as any).sendMessagePromise({
 				type: 'camera/stream',
 				entity_id: feed.entityId,
 				format: 'hls',
-			});
+			}) as { url?: string };
+
 			if (signal.cancelled) return;
 
-			const url = result.url;
-			if (!url) throw new Error('No URL returned');
+			const rawUrl = result.url;
+			if (!rawUrl) throw new Error('No URL returned');
+
+			const hassUrl = String($configStore.hassUrl ?? '').trim().replace(/\/+$/, '');
+			const url = rawUrl.startsWith('http') ? rawUrl : `${hassUrl}${rawUrl}`;
 
 			if (el.canPlayType('application/vnd.apple.mpegurl')) {
-				// Safari — native HLS
 				el.src = url;
 				el.play().catch(() => {});
 				if (signal.cancelled) return;
@@ -246,11 +250,7 @@
 			playsinline
 		></video>
 
-		{#if activeStreamState?.status === 'loading'}
-			<div class="cammi__overlay">
-				<Icon name="loader-2" size={28} class="cammi__spinner" />
-			</div>
-		{:else if activeStreamState?.status === 'error'}
+		{#if activeStreamState?.status === 'error'}
 			<div class="cammi__overlay">
 				<Icon name="video-off" size={28} />
 				<span>{activeStreamState.message}</span>
@@ -335,8 +335,4 @@
 		color: var(--fg-subtle);
 		font-size: 0.84rem;
 	}
-	.cammi__overlay :global(.cammi__spinner) {
-		animation: spin 1s linear infinite;
-	}
-	@keyframes spin { to { transform: rotate(360deg); } }
 </style>
