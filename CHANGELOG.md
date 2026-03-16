@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.57] - 2026-03-16
+
+### Changed
+- **WebRTC Stability**: Added connection state validation for camera streaming to prevent errors during network transitions.
+- **UI/UX Refinements**: Introduced subtle hover scaling and brightness effects for interactive chips in horizontal rows.
+- **Type Safety**: Improved type Definitions for camera WebSocket service calls.
+
 ## [1.0.56] - 2026-03-15
 
 ### Changed

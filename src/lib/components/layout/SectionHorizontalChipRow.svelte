@@ -564,7 +564,12 @@
 		padding-bottom: var(--chip-row-card-pad-bottom) !important;
 		box-shadow: none !important;
 		overflow: hidden !important;
-		transition: none !important;
+		transition:
+			box-shadow var(--transition),
+			background-color var(--transition),
+			transform var(--transition-hover, var(--transition)),
+			filter var(--transition-hover, var(--transition)),
+			opacity var(--transition) !important;
 		color: var(--chip-row-label-color) !important;
 	}
 
@@ -576,6 +581,8 @@
 
 	.chiprow__item :global(.tile-wrapper.interactive:hover) {
 		background: var(--chip-row-bg) !important;
+		transform: scale(1.02);
+		filter: brightness(1.1);
 	}
 
 	.chiprow__item :global(.tile-wrapper.interactive:active) {
@@ -682,6 +689,10 @@
 		.chiprow__item :global(.tile-wrapper.interactive:hover),
 		.chiprow__item :global(.tile-wrapper.interactive:active) {
 			background: var(--chip-row-bg-phone) !important;
+		}
+		.chiprow__item :global(.tile-wrapper.interactive:hover) {
+			transform: scale(1.02);
+			filter: brightness(1.1);
 		}
 		.chiprow__chip-label {
 			font-size: calc(var(--chip-row-font-size) * var(--chip-row-scale-phone));

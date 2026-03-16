@@ -1,9 +1,9 @@
 <script lang="ts">
 	// ── CameraMoreInfo ────────────────────────────────────────────────────────
 
-	import { optimisticEntities } from '$lib/ha/optimistic';
-	import { connection } from '$lib/ha/websocket';
-	import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
+import { optimisticEntities } from '$lib/ha/optimistic';
+import { connection } from '$lib/ha/websocket';
+import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 	import { haptic } from '$lib/utils/haptics';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
@@ -123,6 +123,11 @@
 			setFeedStreamState(feed.id, { status: 'error', message: 'URL-type feeds do not support streaming.' });
 			return;
 		}
+		const conn = $connection;
+		if (!conn) {
+			setFeedStreamState(feed.id, { status: 'error', message: 'No connection.' });
+			return;
+		}
 
 		teardown();
 		setFeedStreamState(feed.id, { status: 'loading' });
@@ -143,7 +148,7 @@
 			const offer = await pc.createOffer();
 			await pc.setLocalDescription(offer);
 
-			const result = await (connection as any).sendMessagePromise({
+			const result = await conn.sendMessagePromise<{ answer: string }>({
 				type: 'camera/web_rtc_offer',
 				entity_id: feed.entityId,
 				offer: offer.sdp,
