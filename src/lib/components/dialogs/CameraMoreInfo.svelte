@@ -8,8 +8,7 @@
 	import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 	import { haptic } from '$lib/utils/haptics';
 	import Icon from '$lib/components/ui/Icon.svelte';
-	import Hls from 'hls.js';
-	import type { ErrorData } from 'hls.js';
+	import type Hls from 'hls.js';
 
 	// ── Props ─────────────────────────────────────────────────────────────
 	interface Props {
@@ -26,6 +25,10 @@
 		label: string;
 		sourceType: 'entity' | 'url';
 		entityId: string | null;
+	}
+
+	interface HaConnection {
+		sendMessagePromise<T = unknown>(message: Record<string, unknown>): Promise<T>;
 	}
 
 	// ── Feed Resolution ────────────────────────────────────────────────────
@@ -90,14 +93,22 @@
 		return next;
 	});
 
-	// ── HLS Stream ────────────────────────────────────────────────────────
+	// ── URL Helpers ────────────────────────────────────────────────────────
+	function absolutizeUrl(url: string): string {
+		if (!url) return '';
+		if (/^https?:\/\//i.test(url)) return url;
+		return url;
+	}
+
+	// ── Stream State ──────────────────────────────────────────────────────
 	type StreamState =
 		| { status: 'loading' }
 		| { status: 'ready' }
 		| { status: 'error'; message: string };
 
 	let streamStateByFeed = $state<Record<string, StreamState>>({});
-	let hlsInstance: Hls | null = null;
+	let hlsInstance: InstanceType<typeof Hls> | null = null;
+	let peerConnection: RTCPeerConnection | null = null;
 	let videoEl = $state<HTMLVideoElement | null>(null);
 	let activeStreamFeedId = '';
 
@@ -112,41 +123,150 @@
 	}
 
 	function teardown() {
+		// HLS
 		if (hlsInstance) {
 			hlsInstance.destroy();
 			hlsInstance = null;
 		}
+		// WebRTC
+		if (peerConnection) {
+			peerConnection.close();
+			peerConnection = null;
+		}
+		// Video element
 		if (videoEl) {
 			videoEl.pause();
+			videoEl.srcObject = null;
 			videoEl.src = '';
 			videoEl.load();
 		}
 	}
 
-	function resolveHlsUrl(rawUrl: string): string {
-		if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
-		const ingressMatch = window.location.pathname.match(/^(\/api\/hassio_ingress\/[^/]+)/);
-		const ingressPrefix = ingressMatch ? ingressMatch[1] : '';
-		if (ingressPrefix && rawUrl.startsWith('/api/')) {
-			return `${ingressPrefix}${rawUrl}`;
-		}
-		const hassUrl = String($configStore.hassUrl ?? '').trim().replace(/\/+$/, '');
-		if (hassUrl && rawUrl.startsWith('/')) {
-			return `${hassUrl}${rawUrl}`;
-		}
-		if (rawUrl.startsWith('/')) {
-			return `${window.location.origin}${rawUrl}`;
-		}
-		return rawUrl;
+	// ── WebRTC ────────────────────────────────────────────────────────────
+	async function startWebRtc(
+		feed: ResolvedCameraFeed,
+		el: HTMLVideoElement,
+		signal: { cancelled: boolean },
+		conn: HaConnection
+	): Promise<void> {
+		const pc = new RTCPeerConnection();
+		peerConnection = pc;
+
+		pc.createDataChannel('dataSendChannel');
+		pc.addTransceiver('audio', { direction: 'recvonly' });
+		pc.addTransceiver('video', { direction: 'recvonly' });
+
+		const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+		await pc.setLocalDescription(offer);
+
+		// wait for all ICE candidates before sending
+		await new Promise<void>((resolve) => {
+			pc.addEventListener('icecandidate', (event) => {
+				if (!event.candidate) resolve();
+			});
+		});
+
+		if (signal.cancelled) { pc.close(); peerConnection = null; return; }
+
+		const response = await conn.sendMessagePromise<{ answer: string }>({
+			type: 'camera/web_rtc_offer',
+			entity_id: feed.entityId!,
+			offer: pc.localDescription!.sdp
+		});
+
+		if (signal.cancelled) { pc.close(); peerConnection = null; return; }
+
+		const remoteStream = new MediaStream();
+		pc.addEventListener('track', (event) => {
+			remoteStream.addTrack(event.track);
+			el.srcObject = remoteStream;
+		});
+
+		await pc.setRemoteDescription(
+			new RTCSessionDescription({ type: 'answer', sdp: response.answer })
+		);
+
+		setFeedStreamState(feed.id, { status: 'ready' });
 	}
 
-	async function startHls(feed: ResolvedCameraFeed, el: HTMLVideoElement, signal: { cancelled: boolean }) {
+	// ── HLS ───────────────────────────────────────────────────────────────
+	async function startHls(
+		feed: ResolvedCameraFeed,
+		el: HTMLVideoElement,
+		signal: { cancelled: boolean },
+		conn: HaConnection
+	): Promise<void> {
+		const response = await conn.sendMessagePromise<{ url: string }>({
+			type: 'camera/stream',
+			entity_id: feed.entityId!
+		});
+
+		if (signal.cancelled) return;
+
+		const url = absolutizeUrl(response.url);
+		if (!url) throw new Error('No URL returned');
+
+		const { default: HlsLib } = await import('hls.js');
+		if (signal.cancelled) return;
+
+		if (HlsLib.isSupported()) {
+			hlsInstance = new HlsLib({
+				backBufferLength: 60,
+				fragLoadingTimeOut: 30000,
+				manifestLoadingTimeOut: 30000,
+				levelLoadingTimeOut: 30000,
+				maxLiveSyncPlaybackRate: 2,
+				lowLatencyMode: true
+			});
+			hlsInstance.loadSource(url);
+			hlsInstance.attachMedia(el);
+			hlsInstance.on(HlsLib.Events.MANIFEST_PARSED, () => {
+				if (signal.cancelled) return;
+				el.play().catch(() => {});
+				setFeedStreamState(feed.id, { status: 'ready' });
+			});
+			hlsInstance.on(HlsLib.Events.ERROR, (_event, data) => {
+				if (signal.cancelled) return;
+				if (data.fatal) {
+					switch (data.type) {
+						case HlsLib.ErrorTypes.MEDIA_ERROR:
+							hlsInstance?.recoverMediaError();
+							break;
+						case HlsLib.ErrorTypes.NETWORK_ERROR:
+							teardown();
+							setFeedStreamState(feed.id, { status: 'error', message: 'Network error.' });
+							break;
+						default:
+							teardown();
+							setFeedStreamState(feed.id, { status: 'error', message: 'Stream error.' });
+							break;
+					}
+				}
+			});
+		} else if (el.canPlayType('application/vnd.apple.mpegurl')) {
+			el.src = url;
+			el.addEventListener('loadedmetadata', () => {
+				if (signal.cancelled) return;
+				el.play().catch(() => {});
+				setFeedStreamState(feed.id, { status: 'ready' });
+			}, { once: true });
+		} else {
+			setFeedStreamState(feed.id, { status: 'error', message: 'HLS not supported in this browser.' });
+		}
+	}
+
+	// ── Start Stream ──────────────────────────────────────────────────────
+	async function startStream(
+		feed: ResolvedCameraFeed,
+		el: HTMLVideoElement,
+		signal: { cancelled: boolean }
+	) {
 		if (!feed.entityId) {
 			setFeedStreamState(feed.id, { status: 'error', message: 'URL-type feeds do not support streaming.' });
 			return;
 		}
 
-		const conn = $connection;
+		const conn = $connection as HaConnection | null;
 		if (!conn) {
 			setFeedStreamState(feed.id, { status: 'error', message: 'No connection.' });
 			return;
@@ -156,51 +276,34 @@
 		setFeedStreamState(feed.id, { status: 'loading' });
 
 		try {
-			const result = await conn.sendMessagePromise<{ url?: string }>({
-				type: 'camera/stream',
-				entity_id: feed.entityId,
-				format: 'hls',
-			});
+			const sourceEntity = $optimisticEntities[feed.entityId];
+			const streamType = (sourceEntity?.attributes?.frontend_stream_type as string | undefined) ?? 'hls';
 
-			if (signal.cancelled) return;
-
-			const rawUrl = result.url;
-			if (!rawUrl) throw new Error('No URL returned');
-
-			const url = resolveHlsUrl(rawUrl);
-
-			if (el.canPlayType('application/vnd.apple.mpegurl')) {
-				el.src = url;
-				el.play().catch(() => {});
-				if (signal.cancelled) return;
-				setFeedStreamState(feed.id, { status: 'ready' });
-			} else if (Hls.isSupported()) {
-				hlsInstance = new Hls({ enableWorker: true });
-				hlsInstance.loadSource(url);
-				hlsInstance.attachMedia(el);
-				hlsInstance.once(Hls.Events.MANIFEST_PARSED, () => {
+			if (streamType === 'web_rtc') {
+				try {
+					await startWebRtc(feed, el, signal, conn);
+				} catch {
+					// WebRTC failed — fall back to HLS
 					if (signal.cancelled) return;
-					el.play().catch(() => {});
-					setFeedStreamState(feed.id, { status: 'ready' });
-				});
-				hlsInstance.once(Hls.Events.ERROR, (_event: string, data: ErrorData) => {
-					if (signal.cancelled) return;
-					if (data.fatal) {
-						teardown();
-						setFeedStreamState(feed.id, { status: 'error', message: 'Stream error.' });
-					}
-				});
+					teardown();
+					await startHls(feed, el, signal, conn);
+				}
 			} else {
-				setFeedStreamState(feed.id, { status: 'error', message: 'HLS not supported in this browser.' });
+				await startHls(feed, el, signal, conn);
 			}
-
-		} catch {
+		} catch (error: unknown) {
 			if (signal.cancelled) return;
-			teardown();
-			setFeedStreamState(feed.id, { status: 'error', message: 'Stream unavailable.' });
+			const code = (error as { code?: string })?.code;
+			if (code === 'start_stream_failed') {
+				setFeedStreamState(feed.id, { status: 'error', message: 'Camera does not support streaming.' });
+			} else {
+				teardown();
+				setFeedStreamState(feed.id, { status: 'error', message: 'Stream unavailable.' });
+			}
 		}
 	}
 
+	// ── Effect ────────────────────────────────────────────────────────────
 	$effect(() => {
 		const feedId = activeFeedId;
 		const el = videoEl;
@@ -211,7 +314,7 @@
 		activeStreamFeedId = feedId;
 		const token = { cancelled: false };
 
-		startHls(feed, el, token);
+		startStream(feed, el, token);
 
 		return () => {
 			token.cancelled = true;

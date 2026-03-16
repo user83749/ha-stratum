@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.64] - 2026-03-16
+
+### Added
+- **Hybrid Camera Streaming**: Re-introduced **WebRTC** support with an automatic **HLS** fallback. The system now dynamically detects the preferred stream type from Home Assistant and coordinates the transition between protocols for the best balance of latency and compatibility.
+
+### Changed
+- **Stream Coordination**: Improved internal state management and teardown logic to handle high-latency or failing connection attempts gracefully during fast feed switching.
+
 ## [1.0.63] - 2026-03-16
 
 ### Fixed
