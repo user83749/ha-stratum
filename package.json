@@ -1,7 +1,7 @@
 {
 	"name": "ha-stratum",
 	"private": true,
-	"version": "1.0.57",
+	"version": "1.0.58",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -28,6 +28,7 @@
 		"@iconify/svelte": "^5.2.1",
 		"dotenv": "^17.3.1",
 		"express": "^5.2.1",
+		"hls.js": "^1.6.15",
 		"home-assistant-js-websocket": "^9.6.0",
 		"http-proxy-middleware": "^3.0.5",
 		"lucide-svelte": "^0.577.0",

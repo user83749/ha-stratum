@@ -1,11 +1,13 @@
 <script lang="ts">
 	// ── CameraMoreInfo ────────────────────────────────────────────────────────
 
-import { optimisticEntities } from '$lib/ha/optimistic';
-import { connection } from '$lib/ha/websocket';
-import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
+	import { optimisticEntities } from '$lib/ha/optimistic';
+	import { connection } from '$lib/ha/websocket';
+	import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 	import { haptic } from '$lib/utils/haptics';
 	import Icon from '$lib/components/ui/Icon.svelte';
+	import Hls from 'hls.js';
+	import type { ErrorData } from 'hls.js';
 
 	// ── Props ─────────────────────────────────────────────────────────────
 	interface Props {
@@ -86,15 +88,16 @@ import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 		return next;
 	});
 
-	// ── WebRTC Stream ──────────────────────────────────────────────────────
+	// ── HLS Stream ────────────────────────────────────────────────────────
 	type StreamState =
 		| { status: 'loading' }
 		| { status: 'ready' }
 		| { status: 'error'; message: string };
 
 	let streamStateByFeed = $state<Record<string, StreamState>>({});
-	let peerConnection: RTCPeerConnection | null = null;
+	let hlsInstance: Hls | null = null;
 	let videoEl = $state<HTMLVideoElement | null>(null);
+	let activeStreamFeedId = $state('');
 
 	function setFeedStreamState(feedId: string, next: StreamState) {
 		const prev = streamStateByFeed[feedId];
@@ -102,27 +105,28 @@ import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 			prev &&
 			prev.status === next.status &&
 			(prev.status !== 'error' || (next.status === 'error' && prev.message === next.message))
-		) {
-			return;
-		}
+		) return;
 		streamStateByFeed = { ...streamStateByFeed, [feedId]: next };
 	}
 
 	function teardown() {
-		if (peerConnection) {
-			peerConnection.close();
-			peerConnection = null;
+		if (hlsInstance) {
+			hlsInstance.destroy();
+			hlsInstance = null;
 		}
 		if (videoEl) {
-			videoEl.srcObject = null;
+			videoEl.pause();
+			videoEl.src = '';
+			videoEl.load();
 		}
 	}
 
-	async function startWebRtc(feed: ResolvedCameraFeed, el: HTMLVideoElement) {
+	async function startHls(feed: ResolvedCameraFeed, el: HTMLVideoElement, signal: { cancelled: boolean }) {
 		if (!feed.entityId) {
 			setFeedStreamState(feed.id, { status: 'error', message: 'URL-type feeds do not support streaming.' });
 			return;
 		}
+
 		const conn = $connection;
 		if (!conn) {
 			setFeedStreamState(feed.id, { status: 'error', message: 'No connection.' });
@@ -133,35 +137,44 @@ import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 		setFeedStreamState(feed.id, { status: 'loading' });
 
 		try {
-			const pc = new RTCPeerConnection();
-			peerConnection = pc;
-
-			pc.addTransceiver('video', { direction: 'recvonly' });
-			pc.addTransceiver('audio', { direction: 'recvonly' });
-
-			pc.ontrack = (event) => {
-				if (event.streams[0]) {
-					el.srcObject = event.streams[0];
-				}
-			};
-
-			const offer = await pc.createOffer();
-			await pc.setLocalDescription(offer);
-
-			const result = await conn.sendMessagePromise<{ answer: string }>({
-				type: 'camera/web_rtc_offer',
+			const result = await conn.sendMessagePromise<{ url?: string }>({
+				type: 'camera/stream',
 				entity_id: feed.entityId,
-				offer: offer.sdp,
+				format: 'hls',
 			});
+			if (signal.cancelled) return;
 
-			await pc.setRemoteDescription(
-				new RTCSessionDescription({ type: 'answer', sdp: result.answer })
-			);
+			const url = result.url;
+			if (!url) throw new Error('No URL returned');
 
-			el.play().catch(() => {});
-			setFeedStreamState(feed.id, { status: 'ready' });
+			if (el.canPlayType('application/vnd.apple.mpegurl')) {
+				// Safari — native HLS
+				el.src = url;
+				el.play().catch(() => {});
+				if (signal.cancelled) return;
+				setFeedStreamState(feed.id, { status: 'ready' });
+			} else if (Hls.isSupported()) {
+				hlsInstance = new Hls({ enableWorker: true });
+				hlsInstance.loadSource(url);
+				hlsInstance.attachMedia(el);
+				hlsInstance.once(Hls.Events.MANIFEST_PARSED, () => {
+					if (signal.cancelled) return;
+					el.play().catch(() => {});
+					setFeedStreamState(feed.id, { status: 'ready' });
+				});
+				hlsInstance.once(Hls.Events.ERROR, (_event: string, data: ErrorData) => {
+					if (signal.cancelled) return;
+					if (data.fatal) {
+						teardown();
+						setFeedStreamState(feed.id, { status: 'error', message: 'Stream error.' });
+					}
+				});
+			} else {
+				setFeedStreamState(feed.id, { status: 'error', message: 'HLS not supported in this browser.' });
+			}
 
-		} catch (e) {
+		} catch {
+			if (signal.cancelled) return;
 			teardown();
 			setFeedStreamState(feed.id, { status: 'error', message: 'Stream unavailable.' });
 		}
@@ -171,10 +184,17 @@ import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 		const feed = activeFeed;
 		const el = videoEl;
 		if (!feed || !el) return;
+		if (activeStreamFeedId === feed.id) return;
+		activeStreamFeedId = feed.id;
+		const token = { cancelled: false };
 
-		startWebRtc(feed, el);
+		startHls(feed, el, token);
 
-		return () => teardown();
+		return () => {
+			token.cancelled = true;
+			activeStreamFeedId = '';
+			teardown();
+		};
 	});
 
 	const activeStreamState = $derived(

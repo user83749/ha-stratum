@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.58] - 2026-03-16
+
+### Changed
+- **Camera Streaming**: Switched back to HLS streaming for broader device compatibility.
+- **Improved Reactivity**: Implemented request cancellation and more robust state tracking in `CameraMoreInfo` to prevent race conditions during feed switching.
+
 ## [1.0.57] - 2026-03-16
 
 ### Changed
