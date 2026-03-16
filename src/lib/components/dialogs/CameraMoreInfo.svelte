@@ -82,6 +82,14 @@
 	});
 
 	const activeFeed = $derived(feeds.find((f) => f.id === activeFeedId) ?? null);
+	const activeFeedEntity = $derived(
+		activeFeed?.entityId ? ($optimisticEntities[activeFeed.entityId] ?? null) : null
+	);
+	const activeProxyStreamUrl = $derived.by(() => {
+		const picture = String(activeFeedEntity?.attributes?.entity_picture ?? '');
+		if (!picture) return '';
+		return picture.replace('/camera_proxy/', '/camera_proxy_stream/');
+	});
 
 	const orderedFeeds = $derived.by(() => {
 		if (!activeFeedId) return feeds;
@@ -177,16 +185,20 @@
 		if (signal.cancelled) { pc.close(); peerConnection = null; return; }
 
 		const remoteStream = new MediaStream();
+		let started = false;
 		pc.addEventListener('track', (event) => {
 			remoteStream.addTrack(event.track);
 			el.srcObject = remoteStream;
+			el.play().catch(() => {});
+			if (!started) {
+				started = true;
+				setFeedStreamState(feed.id, { status: 'ready' });
+			}
 		});
 
 		await pc.setRemoteDescription(
 			new RTCSessionDescription({ type: 'answer', sdp: response.answer })
 		);
-
-		setFeedStreamState(feed.id, { status: 'ready' });
 	}
 
 	// ── HLS ───────────────────────────────────────────────────────────────
@@ -372,15 +384,24 @@
 			playsinline
 		></video>
 
-		{#if activeStreamState?.status === 'error'}
-			<div class="cammi__overlay">
-				<Icon name="video-off" size={28} />
-				<span>{activeStreamState.message}</span>
-			</div>
-		{:else if activeStreamState?.status === 'ready'}
-			<span class="cammi__live-badge" aria-label="Live stream active">LIVE</span>
-		{/if}
-	</div>
+			{#if activeStreamState?.status === 'error'}
+				{#if activeProxyStreamUrl}
+					<img
+						class="cammi__proxy"
+						src={activeProxyStreamUrl}
+						alt="Camera stream"
+						draggable="false"
+					/>
+				{:else}
+					<div class="cammi__overlay">
+						<Icon name="video-off" size={28} />
+						<span>{activeStreamState.message}</span>
+					</div>
+				{/if}
+			{:else if activeStreamState?.status === 'ready'}
+				<span class="cammi__live-badge" aria-label="Live stream active">LIVE</span>
+			{/if}
+		</div>
 
 </div>
 
@@ -421,6 +442,12 @@
 		overflow: hidden;
 	}
 	.cammi__video {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+	}
+	.cammi__proxy {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;

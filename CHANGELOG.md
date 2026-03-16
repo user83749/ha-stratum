@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.65] - 2026-03-16
+
+### Added
+- **Stream Status Feedback**: Added visual state indicators including a "LIVE" badge and status-specific overlays to provide immediate feedback during stream initialization or connection failures.
+- **Improved Proxy Scaling**: Added specialized layout handling for camera proxy views to ensure consistent aspect ratio and coverage.
+
 ## [1.0.64] - 2026-03-16
 
 ### Added
