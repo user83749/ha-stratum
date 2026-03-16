@@ -97,7 +97,7 @@
 	let streamStateByFeed = $state<Record<string, StreamState>>({});
 	let hlsInstance: Hls | null = null;
 	let videoEl = $state<HTMLVideoElement | null>(null);
-	let activeStreamFeedId = $state('');
+	let activeStreamFeedId = '';
 
 	function setFeedStreamState(feedId: string, next: StreamState) {
 		const prev = streamStateByFeed[feedId];

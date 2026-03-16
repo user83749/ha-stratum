@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.59] - 2026-03-16
+
+### Changed
+- **Internal Optimization**: Refactored camera stream tracking to use non-reactive state for better internal coordination and reduced overhead.
+
 ## [1.0.58] - 2026-03-16
 
 ### Changed
