@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.63] - 2026-03-16
+
+### Fixed
+- **Camera Streaming**: Improved HLS URL resolution to correctly handle ingress path prefixing and relative URLs across various Home Assistant installation types.
+
 ## [1.0.62] - 2026-03-16
 
 ### Changed

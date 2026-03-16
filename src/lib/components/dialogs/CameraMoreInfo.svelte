@@ -123,6 +123,23 @@
 		}
 	}
 
+	function resolveHlsUrl(rawUrl: string): string {
+		if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+		const ingressMatch = window.location.pathname.match(/^(\/api\/hassio_ingress\/[^/]+)/);
+		const ingressPrefix = ingressMatch ? ingressMatch[1] : '';
+		if (ingressPrefix && rawUrl.startsWith('/api/')) {
+			return `${ingressPrefix}${rawUrl}`;
+		}
+		const hassUrl = String($configStore.hassUrl ?? '').trim().replace(/\/+$/, '');
+		if (hassUrl && rawUrl.startsWith('/')) {
+			return `${hassUrl}${rawUrl}`;
+		}
+		if (rawUrl.startsWith('/')) {
+			return `${window.location.origin}${rawUrl}`;
+		}
+		return rawUrl;
+	}
+
 	async function startHls(feed: ResolvedCameraFeed, el: HTMLVideoElement, signal: { cancelled: boolean }) {
 		if (!feed.entityId) {
 			setFeedStreamState(feed.id, { status: 'error', message: 'URL-type feeds do not support streaming.' });
@@ -139,19 +156,18 @@
 		setFeedStreamState(feed.id, { status: 'loading' });
 
 		try {
-			const result = await (conn as any).sendMessagePromise({
+			const result = await conn.sendMessagePromise<{ url?: string }>({
 				type: 'camera/stream',
 				entity_id: feed.entityId,
 				format: 'hls',
-			}) as { url?: string };
+			});
 
 			if (signal.cancelled) return;
 
 			const rawUrl = result.url;
 			if (!rawUrl) throw new Error('No URL returned');
 
-			const hassUrl = String($configStore.hassUrl ?? '').trim().replace(/\/+$/, '');
-			const url = rawUrl.startsWith('http') ? rawUrl : `${hassUrl}${rawUrl}`;
+			const url = resolveHlsUrl(rawUrl);
 
 			if (el.canPlayType('application/vnd.apple.mpegurl')) {
 				el.src = url;
