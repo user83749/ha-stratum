@@ -199,6 +199,7 @@
 
 		return () => {
 			token.cancelled = true;
+			activeStreamFeedId = '';
 			teardown();
 		};
 	});
