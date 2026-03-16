@@ -1,6 +1,7 @@
 <script lang="ts">
 	// ── CameraMoreInfo ────────────────────────────────────────────────────────
 
+	import { untrack } from 'svelte';
 	import { optimisticEntities } from '$lib/ha/optimistic';
 	import { connection } from '$lib/ha/websocket';
 	import { configStore } from '$lib/stores/config';
@@ -189,7 +190,7 @@
 		const el = videoEl;
 		if (!feedId || !el) return;
 		if (activeStreamFeedId === feedId) return;
-		const feed = feeds.find((f) => f.id === feedId);
+		const feed = untrack(() => feeds.find((f) => f.id === feedId));
 		if (!feed) return;
 		activeStreamFeedId = feedId;
 		const token = { cancelled: false };

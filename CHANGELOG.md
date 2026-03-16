@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.62] - 2026-03-16
+
+### Changed
+- **Performance Optimization**: Integrated Svelte `untrack` in the camera dialog to prevent unnecessary effect re-runs when feed data remains static.
+
 ## [1.0.61] - 2026-03-16
 
 ### Changed
