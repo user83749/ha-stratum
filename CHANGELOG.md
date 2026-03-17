@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.9] - 2026-03-17
+
+### Fixed
+- **URL Sanitization**: Improved `CameraTile` snapshot logic to proactively strip access tokens from entity picture URLs, relying entirely on the relay server's secure authorization injection.
+
+
 ## [1.1.8] - 2026-03-17
 
 ### Added

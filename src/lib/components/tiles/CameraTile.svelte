@@ -24,7 +24,15 @@
 	const snapshotUrl = $derived.by(() => {
 		const picture = String(entity?.attributes.entity_picture ?? '').trim();
 		if (!picture) return '';
-		return picture.startsWith('/') ? picture : `/${picture}`;
+		// Strip the token query param — relay injects Authorization server-side
+		const path = picture.startsWith('/') ? picture : `/${picture}`;
+		try {
+			const url = new URL(path, 'http://localhost');
+			url.searchParams.delete('token');
+			return url.pathname + (url.search ? url.search : '');
+		} catch {
+			return path.split('?')[0];
+		}
 	});
 
 	const motionDetected     = $derived(entity?.attributes.motion_detection as boolean | undefined);
