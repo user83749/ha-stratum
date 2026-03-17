@@ -2,7 +2,6 @@
 	// ── CameraMoreInfo ────────────────────────────────────────────────────────
 
 	import { untrack } from 'svelte';
-	import type { Connection } from 'home-assistant-js-websocket';
 	import { optimisticEntities } from '$lib/ha/optimistic';
 	import { connection } from '$lib/ha/websocket';
 	import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
@@ -155,9 +154,11 @@
 		feed: ResolvedCameraFeed,
 		el: HTMLVideoElement,
 		signal: { cancelled: boolean },
-		conn: Connection
+		conn: NonNullable<typeof $connection>
 	): Promise<void> {
-		const pc = new RTCPeerConnection();
+		const pc = new RTCPeerConnection({
+			iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+		});
 		peerConnection = pc;
 
 		pc.addTransceiver('audio', { direction: 'recvonly' });
@@ -179,16 +180,17 @@
 				if (settled) return;
 				settled = true;
 				clearTimeout(timer);
+				cleanup();
 				resolve();
 			};
 			const fail = (msg: string) => {
 				if (settled) return;
 				settled = true;
 				clearTimeout(timer);
+				cleanup();
 				reject(new Error(msg));
 			};
 
-			// send local ICE candidates as they arrive
 			const onIceCandidate = (event: RTCPeerConnectionIceEvent) => {
 				if (!event.candidate || !sessionId || signal.cancelled) return;
 				conn.sendMessagePromise({
@@ -199,14 +201,12 @@
 				}).catch(() => {});
 			};
 
-			// watch for failed connection
 			const onConnectionStateChange = () => {
 				if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
 					fail(`WebRTC ${pc.connectionState}`);
 				}
 			};
 
-			// wait for video track before marking ready
 			const remoteStream = new MediaStream();
 			const onTrack = (event: RTCTrackEvent) => {
 				if (event.track.kind !== 'video') return;
@@ -220,19 +220,18 @@
 					.catch((err: Error) => fail(err.message));
 			};
 
-			pc.addEventListener('icecandidate', onIceCandidate);
-			pc.addEventListener('connectionstatechange', onConnectionStateChange);
-			pc.addEventListener('track', onTrack);
-
 			const cleanup = () => {
 				pc.removeEventListener('icecandidate', onIceCandidate);
 				pc.removeEventListener('connectionstatechange', onConnectionStateChange);
 				pc.removeEventListener('track', onTrack);
 			};
 
-			// subscribe to HA signaling — store unsub immediately to avoid race
-			conn.subscribeMessage<WebRtcEvent>(
-				(event) => {
+			pc.addEventListener('icecandidate', onIceCandidate);
+			pc.addEventListener('connectionstatechange', onConnectionStateChange);
+			pc.addEventListener('track', onTrack);
+
+			(conn as any).subscribeMessage(
+				(event: WebRtcEvent) => {
 					if (signal.cancelled || settled) return;
 					if (event.type === 'session') {
 						sessionId = event.session_id;
@@ -261,8 +260,7 @@
 					entity_id: feed.entityId!,
 					offer: offer.sdp ?? ''
 				}
-			).then((unsub) => {
-				// store immediately — if already cancelled/torn down, unsub right away
+			).then((unsub: () => Promise<void>) => {
 				if (signal.cancelled || settled) {
 					void unsub().catch(() => {});
 				} else {
@@ -271,12 +269,6 @@
 			}).catch((err: Error) => {
 				fail(err.message);
 			});
-
-			// clean up listeners when settled
-			Promise.race([
-				new Promise<void>((r) => { const orig = resolve; resolve = () => { r(); orig(); }; }),
-				new Promise<void>((_, r) => { const orig = reject; reject = (...a) => { r(); orig(...a); }; })
-			]).finally(cleanup).catch(() => {});
 		});
 	}
 
@@ -285,7 +277,7 @@
 		feed: ResolvedCameraFeed,
 		el: HTMLVideoElement,
 		signal: { cancelled: boolean },
-		conn: Connection
+		conn: NonNullable<typeof $connection>
 	): Promise<void> {
 		const response = await conn.sendMessagePromise<{ url: string }>({
 			type: 'camera/stream',
@@ -411,6 +403,9 @@
 				} catch {
 					if (signal.cancelled) return;
 					teardown();
+					// let browser settle video element state after WebRTC teardown
+					await new Promise<void>((r) => setTimeout(r, 50));
+					if (signal.cancelled) return;
 					if (streamTypes.includes('hls')) {
 						await startHls(feed, el, signal, conn);
 					} else {

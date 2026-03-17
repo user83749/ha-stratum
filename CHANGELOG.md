@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.6] - 2026-03-17
+
+### Added
+- **WebRTC Connectivity**: Integrated Google STUN servers to improve NAT traversal and connection reliability.
+- **Improved Fallback Logic**: Added a "settle" period between failed WebRTC attempts and HLS fallbacks for more stable transitions.
+
+### Fixed
+- **State Cleanup**: Refined and unified listener cleanup across WebRTC connection states and track management to prevent resource leaks.
+
+
 ## [1.1.5] - 2026-03-17
 
 ### Added
