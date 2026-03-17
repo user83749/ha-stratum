@@ -155,11 +155,21 @@
 	let activeProxyUrl = $state('');
 	let activeProxyFeedId = $state('');
 	let proxyStartupTimer: ReturnType<typeof setTimeout> | null = null;
+	let proxyRequestSeq = 0;
 
 	function clearProxyStartupTimer() {
 		if (proxyStartupTimer) {
 			clearTimeout(proxyStartupTimer);
 			proxyStartupTimer = null;
+		}
+	}
+
+	function urlsEqual(a: string, b: string): boolean {
+		try {
+			const base = browser ? window.location.href : 'http://localhost/';
+			return new URL(a, base).toString() === new URL(b, base).toString();
+		} catch {
+			return a === b;
 		}
 	}
 
@@ -235,7 +245,6 @@
 		const pc = new RTCPeerConnection(rtcConfig);
 		peerConnection = pc;
 
-		pc.createDataChannel('dataSendChannel');
 		pc.addTransceiver('audio', { direction: 'recvonly' });
 		pc.addTransceiver('video', { direction: 'recvonly' });
 		const remoteStream = new MediaStream();
@@ -268,11 +277,7 @@
 				}
 			};
 				const fail = (reason: string) => {
-					if (settled) {
-						teardown();
-						setFeedStreamState(feed.id, { status: 'error', message: reason });
-						return;
-					}
+					if (settled) return;
 					settled = true;
 					clearTimeout(timer);
 					cleanup();
@@ -461,7 +466,7 @@
 		if (signal.cancelled) return;
 
 		if (HlsLib.isSupported()) {
-			hlsInstance = new HlsLib({
+			const localHls = new HlsLib({
 				backBufferLength: 60,
 				fragLoadingTimeOut: 30000,
 				manifestLoadingTimeOut: 30000,
@@ -469,8 +474,9 @@
 				maxLiveSyncPlaybackRate: 2,
 				lowLatencyMode: true
 			});
-			hlsInstance.loadSource(url);
-			hlsInstance.attachMedia(el);
+			hlsInstance = localHls;
+			localHls.loadSource(url);
+			localHls.attachMedia(el);
 
 			// wait for manifest with timeout
 			await new Promise<void>((resolve, reject) => {
@@ -478,8 +484,8 @@
 				const timer = setTimeout(() => fail('HLS manifest timeout'), STREAM_TIMEOUT_MS);
 				const cleanup = () => {
 					clearTimeout(timer);
-					hlsInstance?.off(HlsLib.Events.MANIFEST_PARSED, onParsed);
-					hlsInstance?.off(HlsLib.Events.ERROR, onStartupError);
+					localHls.off(HlsLib.Events.MANIFEST_PARSED, onParsed);
+					localHls.off(HlsLib.Events.ERROR, onStartupError);
 				};
 				const succeed = () => {
 					if (settled) return;
@@ -494,27 +500,30 @@
 					reject(new Error(reason));
 				};
 				const onParsed = () => {
+					if (hlsInstance !== localHls) return;
 					if (signal.cancelled) return;
 					playAndMarkReady(feed.id, el, signal)
 						.then(() => succeed())
 						.catch((err) => fail(err instanceof Error ? err.message : String(err)));
 				};
 				const onStartupError = (_event: string, data: { fatal: boolean; type?: string }) => {
+					if (hlsInstance !== localHls) return;
 					if (signal.cancelled) return;
 					if (!data.fatal) return;
 					fail(data.type ? `HLS ${data.type}` : 'HLS startup fatal error');
 				};
-				hlsInstance!.on(HlsLib.Events.MANIFEST_PARSED, onParsed);
-				hlsInstance!.on(HlsLib.Events.ERROR, onStartupError);
+				localHls.on(HlsLib.Events.MANIFEST_PARSED, onParsed);
+				localHls.on(HlsLib.Events.ERROR, onStartupError);
 			});
 
 			// post-start fatal error handler
-			hlsInstance.on(HlsLib.Events.ERROR, (_event, data) => {
+			localHls.on(HlsLib.Events.ERROR, (_event, data) => {
+				if (hlsInstance !== localHls) return;
 				if (signal.cancelled) return;
 				if (data.fatal) {
 					switch (data.type) {
 						case HlsLib.ErrorTypes.MEDIA_ERROR:
-							hlsInstance?.recoverMediaError();
+							localHls.recoverMediaError();
 							break;
 						case HlsLib.ErrorTypes.NETWORK_ERROR:
 							teardown();
@@ -576,7 +585,7 @@
 			if (signal.cancelled) return;
 
 			if (HlsLib.isSupported()) {
-				hlsInstance = new HlsLib({
+				const localHls = new HlsLib({
 					backBufferLength: 60,
 					fragLoadingTimeOut: 30000,
 					manifestLoadingTimeOut: 30000,
@@ -584,16 +593,18 @@
 					maxLiveSyncPlaybackRate: 2,
 					lowLatencyMode: true
 				});
-				hlsInstance.loadSource(url);
-				hlsInstance.attachMedia(el);
+				hlsInstance = localHls;
+				localHls.loadSource(url);
+				localHls.attachMedia(el);
 				await new Promise<void>((resolve, reject) => {
 					const timer = setTimeout(() => reject(new Error('HLS manifest timeout')), STREAM_TIMEOUT_MS);
 					const cleanup = () => {
 						clearTimeout(timer);
-						hlsInstance?.off(HlsLib.Events.MANIFEST_PARSED, onParsed);
-						hlsInstance?.off(HlsLib.Events.ERROR, onErr);
+						localHls.off(HlsLib.Events.MANIFEST_PARSED, onParsed);
+						localHls.off(HlsLib.Events.ERROR, onErr);
 					};
 					const onParsed = () => {
+						if (hlsInstance !== localHls) return;
 						cleanup();
 						if (signal.cancelled) return;
 							playAndMarkReady(feed.id, el, signal)
@@ -601,12 +612,13 @@
 								.catch((err) => reject(err));
 					};
 					const onErr = (_event: string, data: { fatal: boolean; type?: string }) => {
+						if (hlsInstance !== localHls) return;
 						if (!data.fatal) return;
 						cleanup();
 						reject(new Error(data.type ? `HLS ${data.type}` : 'HLS stream error'));
 					};
-					hlsInstance?.on(HlsLib.Events.MANIFEST_PARSED, onParsed);
-					hlsInstance?.on(HlsLib.Events.ERROR, onErr);
+					localHls.on(HlsLib.Events.MANIFEST_PARSED, onParsed);
+					localHls.on(HlsLib.Events.ERROR, onErr);
 				});
 				return;
 			}
@@ -671,13 +683,15 @@
 	): Promise<void> {
 		if (signal.cancelled) return;
 		const url = proxyStreamUrlForFeed(feed);
+		const requestId = ++proxyRequestSeq;
 		clearProxyStartupTimer();
 		activeMediaMode = 'proxy';
-		activeProxyFeedId = feed.id;
+		activeProxyFeedId = `${feed.id}::${requestId}`;
 		activeProxyUrl = url;
 		proxyStartupTimer = setTimeout(() => {
 			if (signal.cancelled) return;
-			if (activeMediaMode !== 'proxy' || activeProxyFeedId !== feed.id) return;
+			if (activeMediaMode !== 'proxy') return;
+			if (activeProxyFeedId !== `${feed.id}::${requestId}`) return;
 			setFeedStreamState(feed.id, { status: 'error', message: 'Proxy stream timeout.' });
 		}, STREAM_TIMEOUT_MS);
 	}
@@ -876,15 +890,21 @@
 				src={activeProxyUrl}
 				alt=""
 				draggable="false"
-				onload={() => {
-					if (!activeProxyFeedId) return;
+				onload={(event) => {
+					const currentSrc = (event.currentTarget as HTMLImageElement).currentSrc || (event.currentTarget as HTMLImageElement).src;
+					if (!activeProxyFeedId || !urlsEqual(currentSrc, activeProxyUrl)) return;
 					clearProxyStartupTimer();
-					setFeedStreamState(activeProxyFeedId, { status: 'ready' });
+					const feedId = activeProxyFeedId.split('::')[0] ?? '';
+					if (!feedId) return;
+					setFeedStreamState(feedId, { status: 'ready' });
 				}}
-				onerror={() => {
-					if (!activeProxyFeedId) return;
+				onerror={(event) => {
+					const currentSrc = (event.currentTarget as HTMLImageElement).currentSrc || (event.currentTarget as HTMLImageElement).src;
+					if (!activeProxyFeedId || !urlsEqual(currentSrc, activeProxyUrl)) return;
 					clearProxyStartupTimer();
-					setFeedStreamState(activeProxyFeedId, { status: 'error', message: 'Proxy stream failed.' });
+					const feedId = activeProxyFeedId.split('::')[0] ?? '';
+					if (!feedId) return;
+					setFeedStreamState(feedId, { status: 'error', message: 'Proxy stream failed.' });
 				}}
 			/>
 		{/if}

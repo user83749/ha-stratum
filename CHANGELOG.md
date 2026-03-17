@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.3] - 2026-03-17
+
+### Fixed
+- **Proxy Stream Reliability**: Fixed a bug in the error reconciliation logic for proxy streams and added source-equivalence checks to prevent incorrect error state assignment during rapid feed transitions.
+
+
 ## [1.1.2] - 2026-03-17
 
 ### Added
