@@ -4,7 +4,7 @@
 	import { untrack } from 'svelte';
 	import { browser } from '$app/environment';
 	import { optimisticEntities } from '$lib/ha/optimistic';
-	import { connection } from '$lib/ha/websocket';
+	import { connection, entities as liveEntities } from '$lib/ha/websocket';
 	import { configStore } from '$lib/stores/config';
 	import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 	import { haptic } from '$lib/utils/haptics';
@@ -148,8 +148,20 @@
 	let peerConnection: RTCPeerConnection | null = null;
 	let webRtcUnsubscribe: (() => Promise<void>) | null = null;
 	let videoEl = $state<HTMLVideoElement | null>(null);
+	let proxyImgEl = $state<HTMLImageElement | null>(null);
 	let activeStreamFeedId = '';
 	let attachedVideoEl: HTMLVideoElement | null = null;
+	let activeMediaMode = $state<'video' | 'proxy'>('video');
+	let activeProxyUrl = $state('');
+	let activeProxyFeedId = $state('');
+	let proxyStartupTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function clearProxyStartupTimer() {
+		if (proxyStartupTimer) {
+			clearTimeout(proxyStartupTimer);
+			proxyStartupTimer = null;
+		}
+	}
 
 	function setFeedStreamState(feedId: string, next: StreamState) {
 		const prev = streamStateByFeed[feedId];
@@ -193,6 +205,13 @@
 			videoEl.src = '';
 			videoEl.load();
 		}
+		if (proxyImgEl) {
+			proxyImgEl.src = '';
+		}
+		clearProxyStartupTimer();
+		activeMediaMode = 'video';
+		activeProxyUrl = '';
+		activeProxyFeedId = '';
 	}
 
 	// ── WebRTC ────────────────────────────────────────────────────────────
@@ -621,6 +640,48 @@
 		});
 	}
 
+	// ── Proxy MJPEG Fallback ───────────────────────────────────────────────
+	function proxyStreamUrlForFeed(feed: ResolvedCameraFeed): string {
+		if (!feed.entityId) throw new Error('No camera entity for proxy stream.');
+		const source = $optimisticEntities[feed.entityId] ?? $liveEntities[feed.entityId];
+		const entityPicture = String(source?.attributes?.entity_picture ?? '').trim();
+		if (entityPicture) {
+			const proxied = entityPicture
+				.replace('/api/camera_proxy/', '/api/camera_proxy_stream/')
+				.replace('/camera_proxy/', '/camera_proxy_stream/');
+			if (
+				proxied !== entityPicture ||
+				proxied.includes('/camera_proxy_stream/')
+			) {
+				return absolutizeUrl(proxied);
+			}
+		}
+		const basePath = `/api/camera_proxy_stream/${encodeURIComponent(feed.entityId)}`;
+		const token = String(source?.attributes?.access_token ?? '').trim();
+		return absolutizeUrl(
+			token
+				? `${basePath}?token=${encodeURIComponent(token)}`
+				: basePath
+		);
+	}
+
+	async function startProxyStream(
+		feed: ResolvedCameraFeed,
+		signal: { cancelled: boolean }
+	): Promise<void> {
+		if (signal.cancelled) return;
+		const url = proxyStreamUrlForFeed(feed);
+		clearProxyStartupTimer();
+		activeMediaMode = 'proxy';
+		activeProxyFeedId = feed.id;
+		activeProxyUrl = url;
+		proxyStartupTimer = setTimeout(() => {
+			if (signal.cancelled) return;
+			if (activeMediaMode !== 'proxy' || activeProxyFeedId !== feed.id) return;
+			setFeedStreamState(feed.id, { status: 'error', message: 'Proxy stream timeout.' });
+		}, STREAM_TIMEOUT_MS);
+	}
+
 	// ── Start Stream ──────────────────────────────────────────────────────
 	async function startStream(
 		feed: ResolvedCameraFeed,
@@ -634,6 +695,7 @@
 				return;
 			}
 			teardown();
+			activeMediaMode = 'video';
 			setFeedStreamState(feed.id, { status: 'loading' });
 			try {
 				await startDirectUrl(feed, el, signal, directUrl);
@@ -653,11 +715,18 @@
 
 		const conn = $connection as HaConnection | null;
 		if (!conn) {
-			setFeedStreamState(feed.id, { status: 'error', message: 'No connection.' });
+			try {
+				teardown();
+				setFeedStreamState(feed.id, { status: 'loading' });
+				await startProxyStream(feed, signal);
+			} catch {
+				setFeedStreamState(feed.id, { status: 'error', message: 'No connection.' });
+			}
 			return;
 		}
 
 		teardown();
+		activeMediaMode = 'video';
 		setFeedStreamState(feed.id, { status: 'loading' });
 
 		try {
@@ -710,6 +779,14 @@
 			if (signal.cancelled) return;
 			const code = (error as { code?: string })?.code;
 			const message = (error as { message?: string })?.message;
+			try {
+				teardown();
+				setFeedStreamState(feed.id, { status: 'loading' });
+				await startProxyStream(feed, signal);
+				return;
+			} catch {
+				// Keep original command error handling below if proxy fallback fails.
+			}
 			if (code === 'start_stream_failed') {
 				setFeedStreamState(feed.id, { status: 'error', message: 'Camera does not support streaming.' });
 			} else if (code === 'unknown_command') {
@@ -787,11 +864,30 @@
 			<video
 				bind:this={videoEl}
 				class="cammi__video"
-				class:cammi__video--hidden={activeStreamState?.status !== 'ready'}
+				class:cammi__video--hidden={activeMediaMode !== 'video' || activeStreamState?.status !== 'ready'}
 				autoplay
 				muted
 				playsinline
 			></video>
+		{#if activeMediaMode === 'proxy' && activeProxyUrl}
+			<img
+				bind:this={proxyImgEl}
+				class="cammi__proxy-stream"
+				src={activeProxyUrl}
+				alt=""
+				draggable="false"
+				onload={() => {
+					if (!activeProxyFeedId) return;
+					clearProxyStartupTimer();
+					setFeedStreamState(activeProxyFeedId, { status: 'ready' });
+				}}
+				onerror={() => {
+					if (!activeProxyFeedId) return;
+					clearProxyStartupTimer();
+					setFeedStreamState(activeProxyFeedId, { status: 'error', message: 'Proxy stream failed.' });
+				}}
+			/>
+		{/if}
 
 		{#if activeStreamState?.status === 'error'}
 			<div class="cammi__overlay">
@@ -842,6 +938,16 @@
 		overflow: hidden;
 	}
 	.cammi__video {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+	}
+	.cammi__proxy-stream {
+		position: absolute;
+		inset: 0;
 		width: 100%;
 		height: 100%;
 		object-fit: cover;

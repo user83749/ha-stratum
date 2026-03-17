@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.2] - 2026-03-17
+
+### Added
+- **Proxy Stream Support**: Re-introduced and improved specialized handling for `camera_proxy_stream` endpoints, providing more robust static image fallbacks and streaming options for certain camera configurations.
+- **Enhanced Error Handling**: Added detailed error reporting for proxy stream startup failures and connection timeouts.
+
+### Fixed
+- **State Management**: Refined the cleanup of internal timers and transition states during fast camera feed switching to ensure a smoother UI experience.
+
+
 ## [1.1.1] - 2026-03-17
 
 ### Fixed
