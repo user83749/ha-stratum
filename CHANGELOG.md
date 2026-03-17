@@ -1,32 +1,10 @@
 # Changelog
 
-## [1.1.0] - 2026-03-17
-
-### Added
-- **Stream Resilience**: Enhanced WebRTC connection state monitoring to detect networking failures early and trigger HLS fallbacks.
-- **Improved Stream Reliability**: Implemented hard 15-second timeouts for WebRTC ICE gathering and HLS manifest loading to prevent infinite "loading" states.
-- **Advanced Diagnostics**: Added descriptive error messages for common streaming failures like missing permissions or unsupported commands.
-- **Enhanced WebRTC Logic**: Added explicit tracking and verification of incoming video tracks before marking a stream as ready.
-- **Visual Feedback**: Integrated "LIVE" badges and status-specific overlays to provide immediate connection feedback.
+## [1.1.1] - 2026-03-17
 
 ### Fixed
-- **Cleanup**: Removed legacy camera proxy fallback logic and associated CSS for a leaner component.
-- **Component Stability**: Improved video element attachment tracking to prevent stream double-initialization on rapid feed switches.
-
-
-## [1.1.0] - 2026-03-17
-
-### Added
-- **Stream Resilience**: Enhanced WebRTC connection state monitoring to detect networking failures early and trigger HLS fallbacks.
-- **Improved Stream Reliability**: Implemented hard 15-second timeouts for WebRTC ICE gathering and HLS manifest loading to prevent infinite "loading" states.
-- **Advanced Diagnostics**: Added descriptive error messages for common streaming failures like missing permissions or unsupported commands.
-- **Enhanced WebRTC Logic**: Added explicit tracking and verification of incoming video tracks before marking a stream as ready.
-- **Visual Feedback**: Integrated "LIVE" badges and status-specific overlays to provide immediate connection feedback.
-
-### Fixed
-- **Cleanup**: Removed legacy camera proxy fallback logic and associated CSS for a leaner component.
-- **Component Stability**: Improved video element attachment tracking to prevent stream double-initialization on rapid feed switches.
-
+- **Camera Streaming**: Fixed an issue where relative HLS stream URLs would fail to load in non-ingress environments by resolving them against the explicitly configured Home Assistant base URL.
+- **WebRTC Initialization**: Secured the WebRTC pipeline by properly verifying Home Assistant's camera backend capabilities before attempting peer connection setup, preventing unnecessary connection timeouts.
 
 ## [1.0.64] - 2026-03-16
 
