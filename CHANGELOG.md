@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.4] - 2026-03-17
+
+### Changed
+- **Component Cleanup**: Further refactoring of the `CameraMoreInfo` component to optimize internal state handling and styles.
+- **Improved Stream Logic**: Refined the camera feed reconciliation for more reliable stream initialization and state updates.
+
+
 ## [1.1.3] - 2026-03-17
 
 ### Fixed

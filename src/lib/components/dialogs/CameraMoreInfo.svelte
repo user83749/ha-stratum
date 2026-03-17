@@ -2,10 +2,8 @@
 	// ── CameraMoreInfo ────────────────────────────────────────────────────────
 
 	import { untrack } from 'svelte';
-	import { browser } from '$app/environment';
 	import { optimisticEntities } from '$lib/ha/optimistic';
-	import { connection, entities as liveEntities } from '$lib/ha/websocket';
-	import { configStore } from '$lib/stores/config';
+	import { connection } from '$lib/ha/websocket';
 	import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 	import { haptic } from '$lib/utils/haptics';
 	import Icon from '$lib/components/ui/Icon.svelte';
@@ -26,30 +24,23 @@
 		label: string;
 		sourceType: 'entity' | 'url';
 		entityId: string | null;
-		url?: string;
 	}
 
 	interface HaConnection {
 		sendMessagePromise<T = unknown>(message: Record<string, unknown>): Promise<T>;
 		subscribeMessage<T = unknown>(
 			callback: (result: T) => void,
-			subscribeMessage: Record<string, unknown>,
-			options?: { resubscribe?: boolean; preCheck?: () => boolean | Promise<boolean> }
+			subscribeMessage: Record<string, unknown>
 		): Promise<() => Promise<void>>;
 	}
 
 	type StreamType = 'hls' | 'web_rtc';
-	interface CameraCapabilities {
-		frontend_stream_types?: StreamType[];
-	}
-	type WebRtcOfferEvent =
+
+	type WebRtcEvent =
 		| { type: 'session'; session_id: string }
 		| { type: 'answer'; answer: string }
 		| { type: 'candidate'; candidate: RTCIceCandidateInit }
 		| { type: 'error'; code: string; message: string };
-	interface WebRtcClientConfiguration {
-		configuration?: RTCConfiguration;
-	}
 
 	// ── Feed Resolution ────────────────────────────────────────────────────
 	const feeds = $derived.by<ResolvedCameraFeed[]>(() => {
@@ -62,8 +53,7 @@
 					id: feed.id,
 					label: feed.label?.trim() || 'Custom feed',
 					sourceType: 'url' as const,
-					entityId: null,
-					url: feed.url?.trim() || ''
+					entityId: null
 				};
 			}
 			const sourceEntityId = feed.entity_id?.trim() || entityId;
@@ -103,7 +93,6 @@
 	});
 
 	const activeFeed = $derived(feeds.find((f) => f.id === activeFeedId) ?? null);
-	const configuredHassUrl = $derived(String($configStore.hassUrl ?? '').trim().replace(/\/+$/, ''));
 
 	const orderedFeeds = $derived.by(() => {
 		if (!activeFeedId) return feeds;
@@ -119,19 +108,6 @@
 	function absolutizeUrl(url: string): string {
 		if (!url) return '';
 		if (/^https?:\/\//i.test(url)) return url;
-
-		// Keep relative URLs relative in ingress, so they resolve against the
-		// ingress origin/prefix instead of a standalone HA base URL.
-		if (
-			browser &&
-			/^\/api\/hassio_ingress\/[^/]+/.test(window.location.pathname)
-		) {
-			return url;
-		}
-
-		if (configuredHassUrl) {
-			return `${configuredHassUrl}${url.startsWith('/') ? '' : '/'}${url}`;
-		}
 		return url; // leave relative — browser resolves against current origin
 	}
 
@@ -146,32 +122,9 @@
 	let streamStateByFeed = $state<Record<string, StreamState>>({});
 	let hlsInstance: InstanceType<typeof Hls> | null = null;
 	let peerConnection: RTCPeerConnection | null = null;
-	let webRtcUnsubscribe: (() => Promise<void>) | null = null;
+	let webRtcUnsub: (() => Promise<void>) | null = null;
 	let videoEl = $state<HTMLVideoElement | null>(null);
-	let proxyImgEl = $state<HTMLImageElement | null>(null);
 	let activeStreamFeedId = '';
-	let attachedVideoEl: HTMLVideoElement | null = null;
-	let activeMediaMode = $state<'video' | 'proxy'>('video');
-	let activeProxyUrl = $state('');
-	let activeProxyFeedId = $state('');
-	let proxyStartupTimer: ReturnType<typeof setTimeout> | null = null;
-	let proxyRequestSeq = 0;
-
-	function clearProxyStartupTimer() {
-		if (proxyStartupTimer) {
-			clearTimeout(proxyStartupTimer);
-			proxyStartupTimer = null;
-		}
-	}
-
-	function urlsEqual(a: string, b: string): boolean {
-		try {
-			const base = browser ? window.location.href : 'http://localhost/';
-			return new URL(a, base).toString() === new URL(b, base).toString();
-		} catch {
-			return a === b;
-		}
-	}
 
 	function setFeedStreamState(feedId: string, next: StreamState) {
 		const prev = streamStateByFeed[feedId];
@@ -183,23 +136,10 @@
 		streamStateByFeed = { ...streamStateByFeed, [feedId]: next };
 	}
 
-	async function playAndMarkReady(feedId: string, el: HTMLVideoElement, signal: { cancelled: boolean }): Promise<void> {
-		try {
-			await el.play();
-			if (signal.cancelled) return;
-			setFeedStreamState(feedId, { status: 'ready' });
-		} catch (error: unknown) {
-			if (signal.cancelled) return;
-			const message = error instanceof Error ? error.message : String(error);
-			setFeedStreamState(feedId, { status: 'error', message: `Playback failed: ${message}` });
-			throw error instanceof Error ? error : new Error(message);
-		}
-	}
-
 	function teardown() {
-		if (webRtcUnsubscribe) {
-			void webRtcUnsubscribe().catch(() => {});
-			webRtcUnsubscribe = null;
+		if (webRtcUnsub) {
+			void webRtcUnsub().catch(() => {});
+			webRtcUnsub = null;
 		}
 		if (hlsInstance) {
 			hlsInstance.destroy();
@@ -215,234 +155,107 @@
 			videoEl.src = '';
 			videoEl.load();
 		}
-		if (proxyImgEl) {
-			proxyImgEl.src = '';
-		}
-		clearProxyStartupTimer();
-		activeMediaMode = 'video';
-		activeProxyUrl = '';
-		activeProxyFeedId = '';
 	}
 
-	// ── WebRTC ────────────────────────────────────────────────────────────
+	// ── WebRTC (new async signaling API, HA 2024.11+) ─────────────────────
 	async function startWebRtc(
 		feed: ResolvedCameraFeed,
 		el: HTMLVideoElement,
 		signal: { cancelled: boolean },
 		conn: HaConnection
 	): Promise<void> {
-		let rtcConfig: RTCConfiguration | undefined;
-		try {
-			const config = await conn.sendMessagePromise<WebRtcClientConfiguration>({
-				type: 'camera/webrtc/get_client_config',
-				entity_id: feed.entityId!
-			});
-			rtcConfig = config?.configuration;
-		} catch {
-			rtcConfig = undefined;
-		}
-
-		const pc = new RTCPeerConnection(rtcConfig);
+		const pc = new RTCPeerConnection();
 		peerConnection = pc;
 
 		pc.addTransceiver('audio', { direction: 'recvonly' });
 		pc.addTransceiver('video', { direction: 'recvonly' });
-		const remoteStream = new MediaStream();
-		let settled = false;
-		let sessionId: string | null = null;
-		const queuedLocalCandidates: RTCIceCandidateInit[] = [];
-		const queuedRemoteCandidates: RTCIceCandidateInit[] = [];
-		let remoteDescriptionSet = false;
-		let onConnectionStateChange: (() => void) | null = null;
-		let onTrack: ((event: RTCTrackEvent) => void) | null = null;
-		let onIceCandidate: ((event: RTCPeerConnectionIceEvent) => void) | null = null;
 
-		const result = await new Promise<void>((resolve, reject) => {
-			const cleanup = () => {
-				if (onConnectionStateChange) {
-					pc.removeEventListener('connectionstatechange', onConnectionStateChange);
-					onConnectionStateChange = null;
-				}
-				if (onTrack) {
-					pc.removeEventListener('track', onTrack);
-					onTrack = null;
-				}
-				if (onIceCandidate) {
-					pc.removeEventListener('icecandidate', onIceCandidate);
-					onIceCandidate = null;
-				}
-				if (webRtcUnsubscribe) {
-					void webRtcUnsubscribe().catch(() => {});
-					webRtcUnsubscribe = null;
-				}
-			};
-				const fail = (reason: string) => {
-					if (settled) return;
-					settled = true;
-					clearTimeout(timer);
-					cleanup();
-					reject(new Error(reason));
-				};
-			const succeed = () => {
-				if (settled) return;
-				settled = true;
-				clearTimeout(timer);
-				resolve();
-			};
-			const sendCandidate = async (candidate: RTCIceCandidateInit) => {
-				if (!sessionId || signal.cancelled) return;
-				await conn.sendMessagePromise({
+		const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+		await pc.setLocalDescription(offer);
+
+		if (signal.cancelled) { pc.close(); peerConnection = null; return; }
+
+		await new Promise<void>((resolve, reject) => {
+			const timer = setTimeout(() => reject(new Error('WebRTC timeout')), STREAM_TIMEOUT_MS);
+			let sessionId: string | null = null;
+			let remoteDescSet = false;
+			const pendingRemoteCandidates: RTCIceCandidateInit[] = [];
+
+			// send local ICE candidates as they arrive
+			pc.addEventListener('icecandidate', (event) => {
+				if (!event.candidate || !sessionId || signal.cancelled) return;
+				void conn.sendMessagePromise({
 					type: 'camera/webrtc/candidate',
 					entity_id: feed.entityId!,
 					session_id: sessionId,
-					candidate
-				});
-			};
-			const flushCandidates = async () => {
-				if (!sessionId || queuedLocalCandidates.length === 0) return;
-				while (queuedLocalCandidates.length > 0) {
-					const candidate = queuedLocalCandidates.shift();
-					if (!candidate) continue;
-					try {
-						await sendCandidate(candidate);
-					} catch (error: unknown) {
-						fail(
-							`WebRTC candidate send failed: ${
-								error instanceof Error ? error.message : String(error)
-							}`
-						);
-						return;
-					}
-				}
-			};
-			const flushRemoteCandidates = async () => {
-				if (!remoteDescriptionSet || queuedRemoteCandidates.length === 0) return;
-				while (queuedRemoteCandidates.length > 0) {
-					const candidate = queuedRemoteCandidates.shift();
-					if (!candidate) continue;
-					try {
-						await pc.addIceCandidate(candidate);
-					} catch (error: unknown) {
-						fail(
-							`WebRTC remote candidate failed: ${
-								error instanceof Error ? error.message : String(error)
-							}`
-						);
-						return;
-					}
-				}
-			};
+					candidate: event.candidate.toJSON()
+				}).catch(() => {});
+			});
 
-				const timer = setTimeout(() => fail('WebRTC track timeout'), STREAM_TIMEOUT_MS);
-				onConnectionStateChange = () => {
-					if (signal.cancelled) return;
-					if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-						fail(`WebRTC ${pc.connectionState}`);
-					}
-				};
-			onTrack = (event: RTCTrackEvent) => {
+			// watch for failed connection
+			pc.addEventListener('connectionstatechange', () => {
+				if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+					clearTimeout(timer);
+					reject(new Error(`WebRTC ${pc.connectionState}`));
+				}
+			});
+
+			// wait for video track before marking ready
+			const remoteStream = new MediaStream();
+			pc.addEventListener('track', (event) => {
 				if (event.track.kind !== 'video') return;
 				remoteStream.addTrack(event.track);
 				el.srcObject = remoteStream;
-				playAndMarkReady(feed.id, el, signal)
+				el.play()
 					.then(() => {
-						succeed();
+						clearTimeout(timer);
+						if (!signal.cancelled) setFeedStreamState(feed.id, { status: 'ready' });
+						resolve();
 					})
 					.catch((err) => {
-						fail(err instanceof Error ? err.message : String(err));
+						clearTimeout(timer);
+						reject(err);
 					});
-			};
-			onIceCandidate = (event: RTCPeerConnectionIceEvent) => {
-				if (signal.cancelled || !event.candidate) return;
-				const candidate = event.candidate.toJSON();
-				if (!sessionId) {
-					queuedLocalCandidates.push(candidate);
-					return;
-				}
-				void sendCandidate(candidate).catch((error) => {
-					fail(
-						`WebRTC candidate send failed: ${
-							error instanceof Error ? error.message : String(error)
-						}`
-					);
-				});
-			};
-			pc.addEventListener('connectionstatechange', onConnectionStateChange);
-			pc.addEventListener('track', onTrack);
-			pc.addEventListener('icecandidate', onIceCandidate);
+			});
 
-			void (async () => {
-				const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
-				await pc.setLocalDescription(offer);
-				if (signal.cancelled) {
-					fail('cancelled');
-					return;
-				}
-
-				try {
-					webRtcUnsubscribe = await conn.subscribeMessage<WebRtcOfferEvent>(
-						(event) => {
-							if (signal.cancelled || settled) return;
-							if (event.type === 'session') {
-								sessionId = event.session_id;
-								void flushCandidates();
-								return;
-							}
-							if (event.type === 'answer') {
-								void pc.setRemoteDescription(
-									new RTCSessionDescription({ type: 'answer', sdp: event.answer })
-								)
-									.then(() => {
-										remoteDescriptionSet = true;
-										void flushRemoteCandidates();
-									})
-									.catch((error) => {
-										fail(
-											`WebRTC remote description failed: ${
-												error instanceof Error ? error.message : String(error)
-											}`
-										);
-									});
-								return;
-							}
-							if (event.type === 'candidate') {
-								if (!remoteDescriptionSet) {
-									queuedRemoteCandidates.push(event.candidate);
-									return;
-								}
-								void pc.addIceCandidate(event.candidate).catch((error) => {
-									fail(
-										`WebRTC remote candidate failed: ${
-											error instanceof Error ? error.message : String(error)
-										}`
-									);
-								});
-								return;
-							}
-							if (event.type === 'error') {
-								fail(`WebRTC ${event.code}: ${event.message}`);
-							}
-						},
-						{
-							type: 'camera/webrtc/offer',
-							entity_id: feed.entityId!,
-							offer: offer.sdp ?? ''
+			// subscribe to signaling events
+			conn.subscribeMessage<WebRtcEvent>(
+				async (event) => {
+					if (signal.cancelled) return;
+					if (event.type === 'session') {
+						sessionId = event.session_id;
+					} else if (event.type === 'answer') {
+						await pc.setRemoteDescription(
+							new RTCSessionDescription({ type: 'answer', sdp: event.answer })
+						);
+						remoteDescSet = true;
+						for (const c of pendingRemoteCandidates) {
+							await pc.addIceCandidate(c).catch(() => {});
 						}
-					);
-				} catch (error: unknown) {
-					fail(`WebRTC subscribe failed: ${error instanceof Error ? error.message : String(error)}`);
+						pendingRemoteCandidates.length = 0;
+					} else if (event.type === 'candidate') {
+						if (remoteDescSet) {
+							await pc.addIceCandidate(event.candidate).catch(() => {});
+						} else {
+							pendingRemoteCandidates.push(event.candidate);
+						}
+					} else if (event.type === 'error') {
+						clearTimeout(timer);
+						reject(new Error(`WebRTC error: ${event.code}`));
+					}
+				},
+				{
+					type: 'camera/webrtc/offer',
+					entity_id: feed.entityId!,
+					offer: offer.sdp ?? ''
 				}
-			})().catch((error: unknown) => {
-				fail(`WebRTC setup failed: ${error instanceof Error ? error.message : String(error)}`);
+			).then((unsub) => {
+				webRtcUnsub = unsub;
+			}).catch((err) => {
+				clearTimeout(timer);
+				reject(err);
 			});
 		});
-
-		if (signal.cancelled) {
-			pc.close();
-			peerConnection = null;
-			return;
-		}
-		return result;
 	}
 
 	// ── HLS ───────────────────────────────────────────────────────────────
@@ -478,89 +291,53 @@
 			localHls.loadSource(url);
 			localHls.attachMedia(el);
 
-			// wait for manifest with timeout
 			await new Promise<void>((resolve, reject) => {
-				let settled = false;
-				const timer = setTimeout(() => fail('HLS manifest timeout'), STREAM_TIMEOUT_MS);
+				const timer = setTimeout(() => reject(new Error('HLS manifest timeout')), STREAM_TIMEOUT_MS);
 				const cleanup = () => {
 					clearTimeout(timer);
 					localHls.off(HlsLib.Events.MANIFEST_PARSED, onParsed);
 					localHls.off(HlsLib.Events.ERROR, onStartupError);
 				};
-				const succeed = () => {
-					if (settled) return;
-					settled = true;
+				const onParsed = () => {
 					cleanup();
+					if (signal.cancelled) return;
+					el.play().catch(() => {});
+					setFeedStreamState(feed.id, { status: 'ready' });
 					resolve();
 				};
-				const fail = (reason: string) => {
-					if (settled) return;
-					settled = true;
-					cleanup();
-					reject(new Error(reason));
-				};
-				const onParsed = () => {
-					if (hlsInstance !== localHls) return;
-					if (signal.cancelled) return;
-					playAndMarkReady(feed.id, el, signal)
-						.then(() => succeed())
-						.catch((err) => fail(err instanceof Error ? err.message : String(err)));
-				};
-				const onStartupError = (_event: string, data: { fatal: boolean; type?: string }) => {
-					if (hlsInstance !== localHls) return;
-					if (signal.cancelled) return;
+				const onStartupError = (_: unknown, data: { fatal: boolean; type?: string }) => {
 					if (!data.fatal) return;
-					fail(data.type ? `HLS ${data.type}` : 'HLS startup fatal error');
+					cleanup();
+					reject(new Error(data.type ? `HLS ${data.type}` : 'HLS fatal error'));
 				};
 				localHls.on(HlsLib.Events.MANIFEST_PARSED, onParsed);
 				localHls.on(HlsLib.Events.ERROR, onStartupError);
 			});
 
-			// post-start fatal error handler
-			localHls.on(HlsLib.Events.ERROR, (_event, data) => {
-				if (hlsInstance !== localHls) return;
-				if (signal.cancelled) return;
-				if (data.fatal) {
-					switch (data.type) {
-						case HlsLib.ErrorTypes.MEDIA_ERROR:
-							localHls.recoverMediaError();
-							break;
-						case HlsLib.ErrorTypes.NETWORK_ERROR:
-							teardown();
-							setFeedStreamState(feed.id, { status: 'error', message: 'Network error.' });
-							break;
-						default:
-							teardown();
-							setFeedStreamState(feed.id, { status: 'error', message: 'Stream error.' });
-							break;
-					}
+			// post-start error handler
+			localHls.on(HlsLib.Events.ERROR, (_, data) => {
+				if (hlsInstance !== localHls || signal.cancelled || !data.fatal) return;
+				switch (data.type) {
+					case HlsLib.ErrorTypes.MEDIA_ERROR:
+						localHls.recoverMediaError();
+						break;
+					case HlsLib.ErrorTypes.NETWORK_ERROR:
+						teardown();
+						setFeedStreamState(feed.id, { status: 'error', message: 'Network error.' });
+						break;
+					default:
+						teardown();
+						setFeedStreamState(feed.id, { status: 'error', message: 'Stream error.' });
 				}
 			});
 
 		} else if (el.canPlayType('application/vnd.apple.mpegurl')) {
-			// Safari native HLS — with timeout and error handling
 			el.src = url;
 			await new Promise<void>((resolve, reject) => {
-				const timer = setTimeout(() => {
-					cleanup();
-					reject(new Error('Native HLS timeout'));
-				}, STREAM_TIMEOUT_MS);
-				const onLoaded = () => {
-					cleanup();
-					if (signal.cancelled) return;
-					playAndMarkReady(feed.id, el, signal)
-						.then(() => resolve())
-						.catch((err) => reject(err));
-				};
-				const onError = () => {
-					cleanup();
-					reject(new Error('Native HLS playback error'));
-				};
-				const cleanup = () => {
-					clearTimeout(timer);
-					el.removeEventListener('loadedmetadata', onLoaded);
-					el.removeEventListener('error', onError);
-				};
+				const timer = setTimeout(() => { cleanup(); reject(new Error('Native HLS timeout')); }, STREAM_TIMEOUT_MS);
+				const onLoaded = () => { cleanup(); if (signal.cancelled) return; el.play().catch(() => {}); setFeedStreamState(feed.id, { status: 'ready' }); resolve(); };
+				const onError = () => { cleanup(); reject(new Error('Native HLS error')); };
+				const cleanup = () => { clearTimeout(timer); el.removeEventListener('loadedmetadata', onLoaded); el.removeEventListener('error', onError); };
 				el.addEventListener('loadedmetadata', onLoaded, { once: true });
 				el.addEventListener('error', onError, { once: true });
 			});
@@ -569,245 +346,68 @@
 		}
 	}
 
-	// ── Direct URL ─────────────────────────────────────────────────────────
-	async function startDirectUrl(
-		feed: ResolvedCameraFeed,
-		el: HTMLVideoElement,
-		signal: { cancelled: boolean },
-		rawUrl: string
-	): Promise<void> {
-		const url = absolutizeUrl(rawUrl);
-		if (!url) throw new Error('No URL provided');
-
-		// Prefer hls.js for m3u8 URLs on non-Safari browsers.
-		if (/\.m3u8(\?|$)/i.test(url)) {
-			const { default: HlsLib } = await import('hls.js');
-			if (signal.cancelled) return;
-
-			if (HlsLib.isSupported()) {
-				const localHls = new HlsLib({
-					backBufferLength: 60,
-					fragLoadingTimeOut: 30000,
-					manifestLoadingTimeOut: 30000,
-					levelLoadingTimeOut: 30000,
-					maxLiveSyncPlaybackRate: 2,
-					lowLatencyMode: true
-				});
-				hlsInstance = localHls;
-				localHls.loadSource(url);
-				localHls.attachMedia(el);
-				await new Promise<void>((resolve, reject) => {
-					const timer = setTimeout(() => reject(new Error('HLS manifest timeout')), STREAM_TIMEOUT_MS);
-					const cleanup = () => {
-						clearTimeout(timer);
-						localHls.off(HlsLib.Events.MANIFEST_PARSED, onParsed);
-						localHls.off(HlsLib.Events.ERROR, onErr);
-					};
-					const onParsed = () => {
-						if (hlsInstance !== localHls) return;
-						cleanup();
-						if (signal.cancelled) return;
-							playAndMarkReady(feed.id, el, signal)
-								.then(() => resolve())
-								.catch((err) => reject(err));
-					};
-					const onErr = (_event: string, data: { fatal: boolean; type?: string }) => {
-						if (hlsInstance !== localHls) return;
-						if (!data.fatal) return;
-						cleanup();
-						reject(new Error(data.type ? `HLS ${data.type}` : 'HLS stream error'));
-					};
-					localHls.on(HlsLib.Events.MANIFEST_PARSED, onParsed);
-					localHls.on(HlsLib.Events.ERROR, onErr);
-				});
-				return;
-			}
-		}
-
-		// Fallback: direct video URL.
-		el.src = url;
-		await new Promise<void>((resolve, reject) => {
-			const timer = setTimeout(() => {
-				cleanup();
-				reject(new Error('Direct URL timeout'));
-			}, STREAM_TIMEOUT_MS);
-			const onLoaded = () => {
-				cleanup();
-				if (signal.cancelled) return;
-				playAndMarkReady(feed.id, el, signal)
-					.then(() => resolve())
-					.catch((err) => reject(err));
-			};
-			const onErr = () => {
-				cleanup();
-				reject(new Error('Direct URL playback error'));
-			};
-			const cleanup = () => {
-				clearTimeout(timer);
-				el.removeEventListener('loadedmetadata', onLoaded);
-				el.removeEventListener('error', onErr);
-			};
-			el.addEventListener('loadedmetadata', onLoaded, { once: true });
-			el.addEventListener('error', onErr, { once: true });
-		});
-	}
-
-	// ── Proxy MJPEG Fallback ───────────────────────────────────────────────
-	function proxyStreamUrlForFeed(feed: ResolvedCameraFeed): string {
-		if (!feed.entityId) throw new Error('No camera entity for proxy stream.');
-		const source = $optimisticEntities[feed.entityId] ?? $liveEntities[feed.entityId];
-		const entityPicture = String(source?.attributes?.entity_picture ?? '').trim();
-		if (entityPicture) {
-			const proxied = entityPicture
-				.replace('/api/camera_proxy/', '/api/camera_proxy_stream/')
-				.replace('/camera_proxy/', '/camera_proxy_stream/');
-			if (
-				proxied !== entityPicture ||
-				proxied.includes('/camera_proxy_stream/')
-			) {
-				return absolutizeUrl(proxied);
-			}
-		}
-		const basePath = `/api/camera_proxy_stream/${encodeURIComponent(feed.entityId)}`;
-		const token = String(source?.attributes?.access_token ?? '').trim();
-		return absolutizeUrl(
-			token
-				? `${basePath}?token=${encodeURIComponent(token)}`
-				: basePath
-		);
-	}
-
-	async function startProxyStream(
-		feed: ResolvedCameraFeed,
-		signal: { cancelled: boolean }
-	): Promise<void> {
-		if (signal.cancelled) return;
-		const url = proxyStreamUrlForFeed(feed);
-		const requestId = ++proxyRequestSeq;
-		clearProxyStartupTimer();
-		activeMediaMode = 'proxy';
-		activeProxyFeedId = `${feed.id}::${requestId}`;
-		activeProxyUrl = url;
-		proxyStartupTimer = setTimeout(() => {
-			if (signal.cancelled) return;
-			if (activeMediaMode !== 'proxy') return;
-			if (activeProxyFeedId !== `${feed.id}::${requestId}`) return;
-			setFeedStreamState(feed.id, { status: 'error', message: 'Proxy stream timeout.' });
-		}, STREAM_TIMEOUT_MS);
-	}
-
 	// ── Start Stream ──────────────────────────────────────────────────────
 	async function startStream(
 		feed: ResolvedCameraFeed,
 		el: HTMLVideoElement,
 		signal: { cancelled: boolean }
 	) {
-		if (feed.sourceType === 'url') {
-			const directUrl = String(feed.url ?? '').trim();
-			if (!directUrl) {
-				setFeedStreamState(feed.id, { status: 'error', message: 'URL feed is empty.' });
-				return;
-			}
-			teardown();
-			activeMediaMode = 'video';
-			setFeedStreamState(feed.id, { status: 'loading' });
-			try {
-				await startDirectUrl(feed, el, signal, directUrl);
-			} catch (error: unknown) {
-				if (signal.cancelled) return;
-				const message = (error as { message?: string })?.message;
-				teardown();
-				setFeedStreamState(feed.id, { status: 'error', message: message ? `Stream unavailable: ${message}` : 'Stream unavailable.' });
-			}
-			return;
-		}
-
 		if (!feed.entityId) {
-			setFeedStreamState(feed.id, { status: 'error', message: 'No camera entity selected.' });
+			setFeedStreamState(feed.id, { status: 'error', message: 'URL-type feeds do not support streaming.' });
 			return;
 		}
 
 		const conn = $connection as HaConnection | null;
 		if (!conn) {
-			try {
-				teardown();
-				setFeedStreamState(feed.id, { status: 'loading' });
-				await startProxyStream(feed, signal);
-			} catch {
-				setFeedStreamState(feed.id, { status: 'error', message: 'No connection.' });
-			}
+			setFeedStreamState(feed.id, { status: 'error', message: 'No connection.' });
 			return;
 		}
 
 		teardown();
-		activeMediaMode = 'video';
 		setFeedStreamState(feed.id, { status: 'loading' });
 
 		try {
-			let streamTypes: StreamType[] | null = null;
+			// use camera/capabilities (modern API, HA 2024.11+) to determine stream type
+			let streamTypes: StreamType[] = ['hls'];
 			try {
-				const capabilities = await conn.sendMessagePromise<CameraCapabilities>({
+				const caps = await conn.sendMessagePromise<{ frontend_stream_types?: StreamType[] }>({
 					type: 'camera/capabilities',
 					entity_id: feed.entityId
 				});
-				if (
-					Array.isArray(capabilities?.frontend_stream_types) &&
-					capabilities.frontend_stream_types.length > 0
-				) {
-					streamTypes = capabilities.frontend_stream_types;
+				if (Array.isArray(caps?.frontend_stream_types) && caps.frontend_stream_types.length > 0) {
+					streamTypes = caps.frontend_stream_types;
 				}
 			} catch {
-				streamTypes = null;
+				// capabilities not supported — default to HLS
 			}
 
-			if (!streamTypes) {
-				// Unknown capabilities: attempt modern WebRTC first, then HLS fallback.
+			if (signal.cancelled) return;
+
+			if (streamTypes.includes('web_rtc')) {
 				try {
 					await startWebRtc(feed, el, signal, conn);
 				} catch {
 					if (signal.cancelled) return;
 					teardown();
-					await startHls(feed, el, signal, conn);
+					// fall back to HLS if available
+					if (streamTypes.includes('hls')) {
+						await startHls(feed, el, signal, conn);
+					} else {
+						throw new Error('WebRTC failed and HLS not available.');
+					}
 				}
-				return;
-			}
-
-			const supportsWebRtc = streamTypes.includes('web_rtc');
-			const supportsHls = streamTypes.includes('hls');
-
-			if (supportsWebRtc) {
-				try {
-					await startWebRtc(feed, el, signal, conn);
-				} catch {
-					if (signal.cancelled) return;
-					if (!supportsHls) throw new Error('WebRTC failed and HLS is not supported for this camera.');
-					teardown();
-					await startHls(feed, el, signal, conn);
-				}
-			} else if (supportsHls) {
-				await startHls(feed, el, signal, conn);
 			} else {
-				throw new Error('Camera has no supported frontend stream type.');
+				await startHls(feed, el, signal, conn);
 			}
 		} catch (error: unknown) {
 			if (signal.cancelled) return;
 			const code = (error as { code?: string })?.code;
 			const message = (error as { message?: string })?.message;
-			try {
-				teardown();
-				setFeedStreamState(feed.id, { status: 'loading' });
-				await startProxyStream(feed, signal);
-				return;
-			} catch {
-				// Keep original command error handling below if proxy fallback fails.
-			}
+			teardown();
 			if (code === 'start_stream_failed') {
 				setFeedStreamState(feed.id, { status: 'error', message: 'Camera does not support streaming.' });
-			} else if (code === 'unknown_command') {
-				setFeedStreamState(feed.id, { status: 'error', message: 'HA does not support this camera stream command.' });
 			} else {
-				teardown();
-				setFeedStreamState(feed.id, { status: 'error', message: message ? `Stream unavailable: ${message}` : 'Stream unavailable.' });
+				setFeedStreamState(feed.id, { status: 'error', message: message ?? 'Stream unavailable.' });
 			}
 		}
 	}
@@ -817,11 +417,10 @@
 		const feedId = activeFeedId;
 		const el = videoEl;
 		if (!feedId || !el) return;
-		if (activeStreamFeedId === feedId && attachedVideoEl === el) return;
+		if (activeStreamFeedId === feedId) return;
 		const feed = untrack(() => feeds.find((f) => f.id === feedId));
 		if (!feed) return;
 		activeStreamFeedId = feedId;
-		attachedVideoEl = el;
 		const token = { cancelled: false };
 
 		startStream(feed, el, token);
@@ -829,7 +428,6 @@
 		return () => {
 			token.cancelled = true;
 			activeStreamFeedId = '';
-			attachedVideoEl = null;
 			teardown();
 		};
 	});
@@ -875,39 +473,13 @@
 	<!-- ── Video ────────────────────────────────────────────────────────────── -->
 	<div class="cammi__media">
 		<!-- svelte-ignore a11y_media_has_caption -->
-			<video
-				bind:this={videoEl}
-				class="cammi__video"
-				class:cammi__video--hidden={activeMediaMode !== 'video' || activeStreamState?.status !== 'ready'}
-				autoplay
-				muted
-				playsinline
-			></video>
-		{#if activeMediaMode === 'proxy' && activeProxyUrl}
-			<img
-				bind:this={proxyImgEl}
-				class="cammi__proxy-stream"
-				src={activeProxyUrl}
-				alt=""
-				draggable="false"
-				onload={(event) => {
-					const currentSrc = (event.currentTarget as HTMLImageElement).currentSrc || (event.currentTarget as HTMLImageElement).src;
-					if (!activeProxyFeedId || !urlsEqual(currentSrc, activeProxyUrl)) return;
-					clearProxyStartupTimer();
-					const feedId = activeProxyFeedId.split('::')[0] ?? '';
-					if (!feedId) return;
-					setFeedStreamState(feedId, { status: 'ready' });
-				}}
-				onerror={(event) => {
-					const currentSrc = (event.currentTarget as HTMLImageElement).currentSrc || (event.currentTarget as HTMLImageElement).src;
-					if (!activeProxyFeedId || !urlsEqual(currentSrc, activeProxyUrl)) return;
-					clearProxyStartupTimer();
-					const feedId = activeProxyFeedId.split('::')[0] ?? '';
-					if (!feedId) return;
-					setFeedStreamState(feedId, { status: 'error', message: 'Proxy stream failed.' });
-				}}
-			/>
-		{/if}
+		<video
+			bind:this={videoEl}
+			class="cammi__video"
+			class:cammi__video--hidden={activeStreamState?.status !== 'ready'}
+			muted
+			playsinline
+		></video>
 
 		{#if activeStreamState?.status === 'error'}
 			<div class="cammi__overlay">
@@ -958,16 +530,6 @@
 		overflow: hidden;
 	}
 	.cammi__video {
-		position: absolute;
-		inset: 0;
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-		display: block;
-	}
-	.cammi__proxy-stream {
-		position: absolute;
-		inset: 0;
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
