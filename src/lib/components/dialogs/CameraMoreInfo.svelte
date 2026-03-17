@@ -26,14 +26,6 @@
 		entityId: string | null;
 	}
 
-	type StreamType = 'hls' | 'web_rtc';
-
-	type WebRtcEvent =
-		| { type: 'session'; session_id: string }
-		| { type: 'answer'; answer: string }
-		| { type: 'candidate'; candidate: RTCIceCandidateInit }
-		| { type: 'error'; code: string; message: string };
-
 	// ── Feed Resolution ────────────────────────────────────────────────────
 	const feeds = $derived.by<ResolvedCameraFeed[]>(() => {
 		const configured = ((tile?.config.camera_feeds as CameraFeedConfig[] | undefined) ?? [])
@@ -100,7 +92,7 @@
 	function absolutizeUrl(url: string): string {
 		if (!url) return '';
 		if (/^https?:\/\//i.test(url)) return url;
-		return url; // leave relative — browser resolves against current origin
+		return url;
 	}
 
 	// ── Stream State ──────────────────────────────────────────────────────
@@ -113,8 +105,6 @@
 
 	let streamStateByFeed = $state<Record<string, StreamState>>({});
 	let hlsInstance: InstanceType<typeof Hls> | null = null;
-	let peerConnection: RTCPeerConnection | null = null;
-	let webRtcUnsub: (() => Promise<void>) | null = null;
 	let videoEl = $state<HTMLVideoElement | null>(null);
 	let activeStreamFeedId = '';
 
@@ -129,17 +119,9 @@
 	}
 
 	function teardown() {
-		if (webRtcUnsub) {
-			void webRtcUnsub().catch(() => {});
-			webRtcUnsub = null;
-		}
 		if (hlsInstance) {
 			hlsInstance.destroy();
 			hlsInstance = null;
-		}
-		if (peerConnection) {
-			peerConnection.close();
-			peerConnection = null;
 		}
 		if (videoEl) {
 			videoEl.pause();
@@ -147,129 +129,6 @@
 			videoEl.src = '';
 			videoEl.load();
 		}
-	}
-
-	// ── WebRTC (HA 2024.11+ async signaling API) ───────────────────────────
-	async function startWebRtc(
-		feed: ResolvedCameraFeed,
-		el: HTMLVideoElement,
-		signal: { cancelled: boolean },
-		conn: NonNullable<typeof $connection>
-	): Promise<void> {
-		const pc = new RTCPeerConnection({
-			iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-		});
-		peerConnection = pc;
-
-		pc.addTransceiver('audio', { direction: 'recvonly' });
-		pc.addTransceiver('video', { direction: 'recvonly' });
-
-		const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
-		await pc.setLocalDescription(offer);
-
-		if (signal.cancelled) { pc.close(); peerConnection = null; return; }
-
-		await new Promise<void>((resolve, reject) => {
-			const timer = setTimeout(() => reject(new Error('WebRTC timeout')), STREAM_TIMEOUT_MS);
-			let settled = false;
-			let sessionId: string | null = null;
-			let remoteDescSet = false;
-			const pendingRemoteCandidates: RTCIceCandidateInit[] = [];
-
-			const succeed = () => {
-				if (settled) return;
-				settled = true;
-				clearTimeout(timer);
-				cleanup();
-				resolve();
-			};
-			const fail = (msg: string) => {
-				if (settled) return;
-				settled = true;
-				clearTimeout(timer);
-				cleanup();
-				reject(new Error(msg));
-			};
-
-			const onIceCandidate = (event: RTCPeerConnectionIceEvent) => {
-				if (!event.candidate || !sessionId || signal.cancelled) return;
-				conn.sendMessagePromise({
-					type: 'camera/webrtc/candidate',
-					entity_id: feed.entityId!,
-					session_id: sessionId,
-					candidate: event.candidate.toJSON()
-				}).catch(() => {});
-			};
-
-			const onConnectionStateChange = () => {
-				if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-					fail(`WebRTC ${pc.connectionState}`);
-				}
-			};
-
-			const remoteStream = new MediaStream();
-			const onTrack = (event: RTCTrackEvent) => {
-				if (event.track.kind !== 'video') return;
-				remoteStream.addTrack(event.track);
-				el.srcObject = remoteStream;
-				el.play()
-					.then(() => {
-						if (!signal.cancelled) setFeedStreamState(feed.id, { status: 'ready' });
-						succeed();
-					})
-					.catch((err: Error) => fail(err.message));
-			};
-
-			const cleanup = () => {
-				pc.removeEventListener('icecandidate', onIceCandidate);
-				pc.removeEventListener('connectionstatechange', onConnectionStateChange);
-				pc.removeEventListener('track', onTrack);
-			};
-
-			pc.addEventListener('icecandidate', onIceCandidate);
-			pc.addEventListener('connectionstatechange', onConnectionStateChange);
-			pc.addEventListener('track', onTrack);
-
-			(conn as any).subscribeMessage(
-				(event: WebRtcEvent) => {
-					if (signal.cancelled || settled) return;
-					if (event.type === 'session') {
-						sessionId = event.session_id;
-					} else if (event.type === 'answer') {
-						pc.setRemoteDescription(
-							new RTCSessionDescription({ type: 'answer', sdp: event.answer })
-						).then(() => {
-							remoteDescSet = true;
-							for (const c of pendingRemoteCandidates) {
-								pc.addIceCandidate(c).catch(() => {});
-							}
-							pendingRemoteCandidates.length = 0;
-						}).catch((err: Error) => fail(err.message));
-					} else if (event.type === 'candidate') {
-						if (remoteDescSet) {
-							pc.addIceCandidate(event.candidate).catch(() => {});
-						} else {
-							pendingRemoteCandidates.push(event.candidate);
-						}
-					} else if (event.type === 'error') {
-						fail(`WebRTC error: ${event.code}`);
-					}
-				},
-				{
-					type: 'camera/webrtc/offer',
-					entity_id: feed.entityId!,
-					offer: offer.sdp ?? ''
-				}
-			).then((unsub: () => Promise<void>) => {
-				if (signal.cancelled || settled) {
-					void unsub().catch(() => {});
-				} else {
-					webRtcUnsub = unsub;
-				}
-			}).catch((err: Error) => {
-				fail(err.message);
-			});
-		});
 	}
 
 	// ── HLS ───────────────────────────────────────────────────────────────
@@ -381,40 +240,7 @@
 		setFeedStreamState(feed.id, { status: 'loading' });
 
 		try {
-			// use camera/capabilities (HA 2024.11+) to determine stream type
-			let streamTypes: StreamType[] = ['hls'];
-			try {
-				const caps = await conn.sendMessagePromise<{ frontend_stream_types?: StreamType[] }>({
-					type: 'camera/capabilities',
-					entity_id: feed.entityId
-				});
-				if (Array.isArray(caps?.frontend_stream_types) && caps.frontend_stream_types.length > 0) {
-					streamTypes = caps.frontend_stream_types;
-				}
-			} catch {
-				// capabilities not supported — default to HLS
-			}
-
-			if (signal.cancelled) return;
-
-			if (streamTypes.includes('web_rtc')) {
-				try {
-					await startWebRtc(feed, el, signal, conn);
-				} catch {
-					if (signal.cancelled) return;
-					teardown();
-					// let browser settle video element state after WebRTC teardown
-					await new Promise<void>((r) => setTimeout(r, 50));
-					if (signal.cancelled) return;
-					if (streamTypes.includes('hls')) {
-						await startHls(feed, el, signal, conn);
-					} else {
-						throw new Error('WebRTC failed and HLS not available.');
-					}
-				}
-			} else {
-				await startHls(feed, el, signal, conn);
-			}
+			await startHls(feed, el, signal, conn);
 		} catch (error: unknown) {
 			if (signal.cancelled) return;
 			const code = (error as { code?: string })?.code;

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.7] - 2026-03-17
+
+### Changed
+- **Stream Consolidation**: Streamlined the camera streaming logic by removing the experimental WebRTC implementation in favor of a simpler, more stable HLS-focused approach.
+- **Improved Performance**: Reduced component complexity and memory overhead by stripping away legacy signaling logic and peer connection management.
+
+
 ## [1.1.6] - 2026-03-17
 
 ### Added
