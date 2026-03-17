@@ -1,26 +1,19 @@
 # Changelog
 
+## [1.1.5] - 2026-03-17
+
+### Added
+- **Optimized WebRTC Signaling**: Switched to the official `subscribeMessage` from the Home Assistant library for more robust communication and signaling handling.
+- **Improved Type Safety**: Refactored the camera dialog to use standard library types for connections and subscriptions.
+
+### Fixed
+- **Cleanup and Reliability**: Enhanced the WebRTC signaling cleanup and race condition prevention for better stream initialization.
+
 ## [1.1.4] - 2026-03-17
 
 ### Changed
 - **Component Cleanup**: Further refactoring of the `CameraMoreInfo` component to optimize internal state handling and styles.
 - **Improved Stream Logic**: Refined the camera feed reconciliation for more reliable stream initialization and state updates.
-
-
-## [1.1.3] - 2026-03-17
-
-### Fixed
-- **Proxy Stream Reliability**: Fixed a bug in the error reconciliation logic for proxy streams and added source-equivalence checks to prevent incorrect error state assignment during rapid feed transitions.
-
-
-## [1.1.2] - 2026-03-17
-
-### Added
-- **Proxy Stream Support**: Re-introduced and improved specialized handling for `camera_proxy_stream` endpoints, providing more robust static image fallbacks and streaming options for certain camera configurations.
-- **Enhanced Error Handling**: Added detailed error reporting for proxy stream startup failures and connection timeouts.
-
-### Fixed
-- **State Management**: Refined the cleanup of internal timers and transition states during fast camera feed switching to ensure a smoother UI experience.
 
 
 ## [1.1.1] - 2026-03-17

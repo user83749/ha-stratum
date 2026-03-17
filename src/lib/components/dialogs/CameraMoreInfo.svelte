@@ -2,6 +2,7 @@
 	// ── CameraMoreInfo ────────────────────────────────────────────────────────
 
 	import { untrack } from 'svelte';
+	import type { Connection } from 'home-assistant-js-websocket';
 	import { optimisticEntities } from '$lib/ha/optimistic';
 	import { connection } from '$lib/ha/websocket';
 	import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
@@ -24,14 +25,6 @@
 		label: string;
 		sourceType: 'entity' | 'url';
 		entityId: string | null;
-	}
-
-	interface HaConnection {
-		sendMessagePromise<T = unknown>(message: Record<string, unknown>): Promise<T>;
-		subscribeMessage<T = unknown>(
-			callback: (result: T) => void,
-			subscribeMessage: Record<string, unknown>
-		): Promise<() => Promise<void>>;
 	}
 
 	type StreamType = 'hls' | 'web_rtc';
@@ -157,12 +150,12 @@
 		}
 	}
 
-	// ── WebRTC (new async signaling API, HA 2024.11+) ─────────────────────
+	// ── WebRTC (HA 2024.11+ async signaling API) ───────────────────────────
 	async function startWebRtc(
 		feed: ResolvedCameraFeed,
 		el: HTMLVideoElement,
 		signal: { cancelled: boolean },
-		conn: HaConnection
+		conn: Connection
 	): Promise<void> {
 		const pc = new RTCPeerConnection();
 		peerConnection = pc;
@@ -177,71 +170,90 @@
 
 		await new Promise<void>((resolve, reject) => {
 			const timer = setTimeout(() => reject(new Error('WebRTC timeout')), STREAM_TIMEOUT_MS);
+			let settled = false;
 			let sessionId: string | null = null;
 			let remoteDescSet = false;
 			const pendingRemoteCandidates: RTCIceCandidateInit[] = [];
 
+			const succeed = () => {
+				if (settled) return;
+				settled = true;
+				clearTimeout(timer);
+				resolve();
+			};
+			const fail = (msg: string) => {
+				if (settled) return;
+				settled = true;
+				clearTimeout(timer);
+				reject(new Error(msg));
+			};
+
 			// send local ICE candidates as they arrive
-			pc.addEventListener('icecandidate', (event) => {
+			const onIceCandidate = (event: RTCPeerConnectionIceEvent) => {
 				if (!event.candidate || !sessionId || signal.cancelled) return;
-				void conn.sendMessagePromise({
+				conn.sendMessagePromise({
 					type: 'camera/webrtc/candidate',
 					entity_id: feed.entityId!,
 					session_id: sessionId,
 					candidate: event.candidate.toJSON()
 				}).catch(() => {});
-			});
+			};
 
 			// watch for failed connection
-			pc.addEventListener('connectionstatechange', () => {
+			const onConnectionStateChange = () => {
 				if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-					clearTimeout(timer);
-					reject(new Error(`WebRTC ${pc.connectionState}`));
+					fail(`WebRTC ${pc.connectionState}`);
 				}
-			});
+			};
 
 			// wait for video track before marking ready
 			const remoteStream = new MediaStream();
-			pc.addEventListener('track', (event) => {
+			const onTrack = (event: RTCTrackEvent) => {
 				if (event.track.kind !== 'video') return;
 				remoteStream.addTrack(event.track);
 				el.srcObject = remoteStream;
 				el.play()
 					.then(() => {
-						clearTimeout(timer);
 						if (!signal.cancelled) setFeedStreamState(feed.id, { status: 'ready' });
-						resolve();
+						succeed();
 					})
-					.catch((err) => {
-						clearTimeout(timer);
-						reject(err);
-					});
-			});
+					.catch((err: Error) => fail(err.message));
+			};
 
-			// subscribe to signaling events
+			pc.addEventListener('icecandidate', onIceCandidate);
+			pc.addEventListener('connectionstatechange', onConnectionStateChange);
+			pc.addEventListener('track', onTrack);
+
+			const cleanup = () => {
+				pc.removeEventListener('icecandidate', onIceCandidate);
+				pc.removeEventListener('connectionstatechange', onConnectionStateChange);
+				pc.removeEventListener('track', onTrack);
+			};
+
+			// subscribe to HA signaling — store unsub immediately to avoid race
 			conn.subscribeMessage<WebRtcEvent>(
-				async (event) => {
-					if (signal.cancelled) return;
+				(event) => {
+					if (signal.cancelled || settled) return;
 					if (event.type === 'session') {
 						sessionId = event.session_id;
 					} else if (event.type === 'answer') {
-						await pc.setRemoteDescription(
+						pc.setRemoteDescription(
 							new RTCSessionDescription({ type: 'answer', sdp: event.answer })
-						);
-						remoteDescSet = true;
-						for (const c of pendingRemoteCandidates) {
-							await pc.addIceCandidate(c).catch(() => {});
-						}
-						pendingRemoteCandidates.length = 0;
+						).then(() => {
+							remoteDescSet = true;
+							for (const c of pendingRemoteCandidates) {
+								pc.addIceCandidate(c).catch(() => {});
+							}
+							pendingRemoteCandidates.length = 0;
+						}).catch((err: Error) => fail(err.message));
 					} else if (event.type === 'candidate') {
 						if (remoteDescSet) {
-							await pc.addIceCandidate(event.candidate).catch(() => {});
+							pc.addIceCandidate(event.candidate).catch(() => {});
 						} else {
 							pendingRemoteCandidates.push(event.candidate);
 						}
 					} else if (event.type === 'error') {
-						clearTimeout(timer);
-						reject(new Error(`WebRTC error: ${event.code}`));
+						fail(`WebRTC error: ${event.code}`);
 					}
 				},
 				{
@@ -250,11 +262,21 @@
 					offer: offer.sdp ?? ''
 				}
 			).then((unsub) => {
-				webRtcUnsub = unsub;
-			}).catch((err) => {
-				clearTimeout(timer);
-				reject(err);
+				// store immediately — if already cancelled/torn down, unsub right away
+				if (signal.cancelled || settled) {
+					void unsub().catch(() => {});
+				} else {
+					webRtcUnsub = unsub;
+				}
+			}).catch((err: Error) => {
+				fail(err.message);
 			});
+
+			// clean up listeners when settled
+			Promise.race([
+				new Promise<void>((r) => { const orig = resolve; resolve = () => { r(); orig(); }; }),
+				new Promise<void>((_, r) => { const orig = reject; reject = (...a) => { r(); orig(...a); }; })
+			]).finally(cleanup).catch(() => {});
 		});
 	}
 
@@ -263,7 +285,7 @@
 		feed: ResolvedCameraFeed,
 		el: HTMLVideoElement,
 		signal: { cancelled: boolean },
-		conn: HaConnection
+		conn: Connection
 	): Promise<void> {
 		const response = await conn.sendMessagePromise<{ url: string }>({
 			type: 'camera/stream',
@@ -357,7 +379,7 @@
 			return;
 		}
 
-		const conn = $connection as HaConnection | null;
+		const conn = $connection;
 		if (!conn) {
 			setFeedStreamState(feed.id, { status: 'error', message: 'No connection.' });
 			return;
@@ -367,7 +389,7 @@
 		setFeedStreamState(feed.id, { status: 'loading' });
 
 		try {
-			// use camera/capabilities (modern API, HA 2024.11+) to determine stream type
+			// use camera/capabilities (HA 2024.11+) to determine stream type
 			let streamTypes: StreamType[] = ['hls'];
 			try {
 				const caps = await conn.sendMessagePromise<{ frontend_stream_types?: StreamType[] }>({
@@ -389,7 +411,6 @@
 				} catch {
 					if (signal.cancelled) return;
 					teardown();
-					// fall back to HLS if available
 					if (streamTypes.includes('hls')) {
 						await startHls(feed, el, signal, conn);
 					} else {
