@@ -4,7 +4,6 @@
 	import { untrack } from 'svelte';
 	import { optimisticEntities } from '$lib/ha/optimistic';
 	import { connection } from '$lib/ha/websocket';
-	import { configStore } from '$lib/stores/config';
 	import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 	import { haptic } from '$lib/utils/haptics';
 	import Icon from '$lib/components/ui/Icon.svelte';
@@ -25,6 +24,7 @@
 		label: string;
 		sourceType: 'entity' | 'url';
 		entityId: string | null;
+		url?: string;
 	}
 
 	interface HaConnection {
@@ -42,7 +42,8 @@
 					id: feed.id,
 					label: feed.label?.trim() || 'Custom feed',
 					sourceType: 'url' as const,
-					entityId: null
+					entityId: null,
+					url: feed.url?.trim() || ''
 				};
 			}
 			const sourceEntityId = feed.entity_id?.trim() || entityId;
@@ -82,14 +83,6 @@
 	});
 
 	const activeFeed = $derived(feeds.find((f) => f.id === activeFeedId) ?? null);
-	const activeFeedEntity = $derived(
-		activeFeed?.entityId ? ($optimisticEntities[activeFeed.entityId] ?? null) : null
-	);
-	const activeProxyStreamUrl = $derived.by(() => {
-		const picture = String(activeFeedEntity?.attributes?.entity_picture ?? '');
-		if (!picture) return '';
-		return picture.replace('/camera_proxy/', '/camera_proxy_stream/');
-	});
 
 	const orderedFeeds = $derived.by(() => {
 		if (!activeFeedId) return feeds;
@@ -105,7 +98,7 @@
 	function absolutizeUrl(url: string): string {
 		if (!url) return '';
 		if (/^https?:\/\//i.test(url)) return url;
-		return url;
+		return url; // leave relative — browser resolves against current origin
 	}
 
 	// ── Stream State ──────────────────────────────────────────────────────
@@ -114,11 +107,14 @@
 		| { status: 'ready' }
 		| { status: 'error'; message: string };
 
+	const STREAM_TIMEOUT_MS = 15000;
+
 	let streamStateByFeed = $state<Record<string, StreamState>>({});
 	let hlsInstance: InstanceType<typeof Hls> | null = null;
 	let peerConnection: RTCPeerConnection | null = null;
 	let videoEl = $state<HTMLVideoElement | null>(null);
 	let activeStreamFeedId = '';
+	let attachedVideoEl: HTMLVideoElement | null = null;
 
 	function setFeedStreamState(feedId: string, next: StreamState) {
 		const prev = streamStateByFeed[feedId];
@@ -130,18 +126,26 @@
 		streamStateByFeed = { ...streamStateByFeed, [feedId]: next };
 	}
 
+	async function playAndMarkReady(feedId: string, el: HTMLVideoElement): Promise<void> {
+		try {
+			await el.play();
+			setFeedStreamState(feedId, { status: 'ready' });
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+			setFeedStreamState(feedId, { status: 'error', message: `Playback failed: ${message}` });
+			throw error instanceof Error ? error : new Error(message);
+		}
+	}
+
 	function teardown() {
-		// HLS
 		if (hlsInstance) {
 			hlsInstance.destroy();
 			hlsInstance = null;
 		}
-		// WebRTC
 		if (peerConnection) {
 			peerConnection.close();
 			peerConnection = null;
 		}
-		// Video element
 		if (videoEl) {
 			videoEl.pause();
 			videoEl.srcObject = null;
@@ -167,10 +171,14 @@
 		const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
 		await pc.setLocalDescription(offer);
 
-		// wait for all ICE candidates before sending
-		await new Promise<void>((resolve) => {
+		// wait for ICE gathering with timeout
+		await new Promise<void>((resolve, reject) => {
+			const timer = setTimeout(() => reject(new Error('ICE gathering timeout')), STREAM_TIMEOUT_MS);
 			pc.addEventListener('icecandidate', (event) => {
-				if (!event.candidate) resolve();
+				if (!event.candidate) {
+					clearTimeout(timer);
+					resolve();
+				}
 			});
 		});
 
@@ -184,21 +192,62 @@
 
 		if (signal.cancelled) { pc.close(); peerConnection = null; return; }
 
-		const remoteStream = new MediaStream();
-		let started = false;
-		pc.addEventListener('track', (event) => {
-			remoteStream.addTrack(event.track);
-			el.srcObject = remoteStream;
-			el.play().catch(() => {});
-			if (!started) {
-				started = true;
-				setFeedStreamState(feed.id, { status: 'ready' });
-			}
-		});
-
 		await pc.setRemoteDescription(
 			new RTCSessionDescription({ type: 'answer', sdp: response.answer })
 		);
+
+		// wait for video track specifically before marking ready
+		await new Promise<void>((resolve, reject) => {
+			let settled = false;
+			const remoteStream = new MediaStream();
+			let onConnectionStateChange: (() => void) | null = null;
+			let onTrack: ((event: RTCTrackEvent) => void) | null = null;
+			const cleanup = () => {
+				if (onConnectionStateChange) {
+					pc.removeEventListener('connectionstatechange', onConnectionStateChange);
+					onConnectionStateChange = null;
+				}
+				if (onTrack) {
+					pc.removeEventListener('track', onTrack);
+					onTrack = null;
+				}
+			};
+			const fail = (reason: string) => {
+				if (settled) return;
+				settled = true;
+				clearTimeout(timer);
+				cleanup();
+				reject(new Error(reason));
+			};
+			const succeed = () => {
+				if (settled) return;
+				settled = true;
+				clearTimeout(timer);
+				cleanup();
+				resolve();
+			};
+			const timer = setTimeout(() => fail('WebRTC track timeout'), STREAM_TIMEOUT_MS);
+			onConnectionStateChange = () => {
+				if (signal.cancelled) return;
+				if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+					fail(`WebRTC ${pc.connectionState}`);
+				}
+			};
+			onTrack = (event: RTCTrackEvent) => {
+				if (event.track.kind !== 'video') return; // ignore audio-only tracks
+				remoteStream.addTrack(event.track);
+				el.srcObject = remoteStream;
+				playAndMarkReady(feed.id, el)
+					.then(() => {
+						succeed();
+					})
+					.catch((err) => {
+						fail(err instanceof Error ? err.message : String(err));
+					});
+			};
+			pc.addEventListener('connectionstatechange', onConnectionStateChange);
+			pc.addEventListener('track', onTrack);
+		});
 	}
 
 	// ── HLS ───────────────────────────────────────────────────────────────
@@ -232,11 +281,44 @@
 			});
 			hlsInstance.loadSource(url);
 			hlsInstance.attachMedia(el);
-			hlsInstance.on(HlsLib.Events.MANIFEST_PARSED, () => {
-				if (signal.cancelled) return;
-				el.play().catch(() => {});
-				setFeedStreamState(feed.id, { status: 'ready' });
+
+			// wait for manifest with timeout
+			await new Promise<void>((resolve, reject) => {
+				let settled = false;
+				const timer = setTimeout(() => fail('HLS manifest timeout'), STREAM_TIMEOUT_MS);
+				const cleanup = () => {
+					clearTimeout(timer);
+					hlsInstance?.off(HlsLib.Events.MANIFEST_PARSED, onParsed);
+					hlsInstance?.off(HlsLib.Events.ERROR, onStartupError);
+				};
+				const succeed = () => {
+					if (settled) return;
+					settled = true;
+					cleanup();
+					resolve();
+				};
+				const fail = (reason: string) => {
+					if (settled) return;
+					settled = true;
+					cleanup();
+					reject(new Error(reason));
+				};
+				const onParsed = () => {
+					if (signal.cancelled) return;
+					playAndMarkReady(feed.id, el)
+						.then(() => succeed())
+						.catch((err) => fail(err instanceof Error ? err.message : String(err)));
+				};
+				const onStartupError = (_event: string, data: { fatal: boolean; type?: string }) => {
+					if (signal.cancelled) return;
+					if (!data.fatal) return;
+					fail(data.type ? `HLS ${data.type}` : 'HLS startup fatal error');
+				};
+				hlsInstance!.on(HlsLib.Events.MANIFEST_PARSED, onParsed);
+				hlsInstance!.on(HlsLib.Events.ERROR, onStartupError);
 			});
+
+			// post-start fatal error handler
 			hlsInstance.on(HlsLib.Events.ERROR, (_event, data) => {
 				if (signal.cancelled) return;
 				if (data.fatal) {
@@ -255,16 +337,117 @@
 					}
 				}
 			});
+
 		} else if (el.canPlayType('application/vnd.apple.mpegurl')) {
+			// Safari native HLS — with timeout and error handling
 			el.src = url;
-			el.addEventListener('loadedmetadata', () => {
-				if (signal.cancelled) return;
-				el.play().catch(() => {});
-				setFeedStreamState(feed.id, { status: 'ready' });
-			}, { once: true });
+			await new Promise<void>((resolve, reject) => {
+				const timer = setTimeout(() => {
+					cleanup();
+					reject(new Error('Native HLS timeout'));
+				}, STREAM_TIMEOUT_MS);
+				const onLoaded = () => {
+					cleanup();
+					if (signal.cancelled) return;
+					playAndMarkReady(feed.id, el)
+						.then(() => resolve())
+						.catch((err) => reject(err));
+				};
+				const onError = () => {
+					cleanup();
+					reject(new Error('Native HLS playback error'));
+				};
+				const cleanup = () => {
+					clearTimeout(timer);
+					el.removeEventListener('loadedmetadata', onLoaded);
+					el.removeEventListener('error', onError);
+				};
+				el.addEventListener('loadedmetadata', onLoaded, { once: true });
+				el.addEventListener('error', onError, { once: true });
+			});
 		} else {
 			setFeedStreamState(feed.id, { status: 'error', message: 'HLS not supported in this browser.' });
 		}
+	}
+
+	// ── Direct URL ─────────────────────────────────────────────────────────
+	async function startDirectUrl(
+		feed: ResolvedCameraFeed,
+		el: HTMLVideoElement,
+		signal: { cancelled: boolean },
+		rawUrl: string
+	): Promise<void> {
+		const url = absolutizeUrl(rawUrl);
+		if (!url) throw new Error('No URL provided');
+
+		// Prefer hls.js for m3u8 URLs on non-Safari browsers.
+		if (/\.m3u8(\?|$)/i.test(url)) {
+			const { default: HlsLib } = await import('hls.js');
+			if (signal.cancelled) return;
+
+			if (HlsLib.isSupported()) {
+				hlsInstance = new HlsLib({
+					backBufferLength: 60,
+					fragLoadingTimeOut: 30000,
+					manifestLoadingTimeOut: 30000,
+					levelLoadingTimeOut: 30000,
+					maxLiveSyncPlaybackRate: 2,
+					lowLatencyMode: true
+				});
+				hlsInstance.loadSource(url);
+				hlsInstance.attachMedia(el);
+				await new Promise<void>((resolve, reject) => {
+					const timer = setTimeout(() => reject(new Error('HLS manifest timeout')), STREAM_TIMEOUT_MS);
+					const cleanup = () => {
+						clearTimeout(timer);
+						hlsInstance?.off(HlsLib.Events.MANIFEST_PARSED, onParsed);
+						hlsInstance?.off(HlsLib.Events.ERROR, onErr);
+					};
+					const onParsed = () => {
+						cleanup();
+						if (signal.cancelled) return;
+						playAndMarkReady(feed.id, el)
+							.then(() => resolve())
+							.catch((err) => reject(err));
+					};
+					const onErr = (_event: string, data: { fatal: boolean; type?: string }) => {
+						if (!data.fatal) return;
+						cleanup();
+						reject(new Error(data.type ? `HLS ${data.type}` : 'HLS stream error'));
+					};
+					hlsInstance?.on(HlsLib.Events.MANIFEST_PARSED, onParsed);
+					hlsInstance?.on(HlsLib.Events.ERROR, onErr);
+				});
+				return;
+			}
+		}
+
+		// Fallback: direct video URL.
+		el.src = url;
+		await new Promise<void>((resolve, reject) => {
+			const timer = setTimeout(() => {
+				cleanup();
+				reject(new Error('Direct URL timeout'));
+			}, STREAM_TIMEOUT_MS);
+			const onLoaded = () => {
+				cleanup();
+				if (signal.cancelled) return;
+				playAndMarkReady(feed.id, el)
+					.then(() => resolve())
+					.catch((err) => reject(err));
+			};
+			const onErr = () => {
+				cleanup();
+				reject(new Error('Direct URL playback error'));
+			};
+			const cleanup = () => {
+				clearTimeout(timer);
+				el.removeEventListener('loadedmetadata', onLoaded);
+				el.removeEventListener('error', onErr);
+			};
+			el.addEventListener('loadedmetadata', onLoaded, { once: true });
+			el.addEventListener('error', onErr, { once: true });
+		});
 	}
 
 	// ── Start Stream ──────────────────────────────────────────────────────
@@ -273,8 +456,27 @@
 		el: HTMLVideoElement,
 		signal: { cancelled: boolean }
 	) {
+		if (feed.sourceType === 'url') {
+			const directUrl = String(feed.url ?? '').trim();
+			if (!directUrl) {
+				setFeedStreamState(feed.id, { status: 'error', message: 'URL feed is empty.' });
+				return;
+			}
+			teardown();
+			setFeedStreamState(feed.id, { status: 'loading' });
+			try {
+				await startDirectUrl(feed, el, signal, directUrl);
+			} catch (error: unknown) {
+				if (signal.cancelled) return;
+				const message = (error as { message?: string })?.message;
+				teardown();
+				setFeedStreamState(feed.id, { status: 'error', message: message ? `Stream unavailable: ${message}` : 'Stream unavailable.' });
+			}
+			return;
+		}
+
 		if (!feed.entityId) {
-			setFeedStreamState(feed.id, { status: 'error', message: 'URL-type feeds do not support streaming.' });
+			setFeedStreamState(feed.id, { status: 'error', message: 'No camera entity selected.' });
 			return;
 		}
 
@@ -295,7 +497,6 @@
 				try {
 					await startWebRtc(feed, el, signal, conn);
 				} catch {
-					// WebRTC failed — fall back to HLS
 					if (signal.cancelled) return;
 					teardown();
 					await startHls(feed, el, signal, conn);
@@ -306,11 +507,14 @@
 		} catch (error: unknown) {
 			if (signal.cancelled) return;
 			const code = (error as { code?: string })?.code;
+			const message = (error as { message?: string })?.message;
 			if (code === 'start_stream_failed') {
 				setFeedStreamState(feed.id, { status: 'error', message: 'Camera does not support streaming.' });
+			} else if (code === 'unknown_command') {
+				setFeedStreamState(feed.id, { status: 'error', message: 'HA does not support this camera stream command.' });
 			} else {
 				teardown();
-				setFeedStreamState(feed.id, { status: 'error', message: 'Stream unavailable.' });
+				setFeedStreamState(feed.id, { status: 'error', message: message ? `Stream unavailable: ${message}` : 'Stream unavailable.' });
 			}
 		}
 	}
@@ -320,10 +524,11 @@
 		const feedId = activeFeedId;
 		const el = videoEl;
 		if (!feedId || !el) return;
-		if (activeStreamFeedId === feedId) return;
+		if (activeStreamFeedId === feedId && attachedVideoEl === el) return;
 		const feed = untrack(() => feeds.find((f) => f.id === feedId));
 		if (!feed) return;
 		activeStreamFeedId = feedId;
+		attachedVideoEl = el;
 		const token = { cancelled: false };
 
 		startStream(feed, el, token);
@@ -331,6 +536,7 @@
 		return () => {
 			token.cancelled = true;
 			activeStreamFeedId = '';
+			attachedVideoEl = null;
 			teardown();
 		};
 	});
@@ -384,24 +590,15 @@
 			playsinline
 		></video>
 
-			{#if activeStreamState?.status === 'error'}
-				{#if activeProxyStreamUrl}
-					<img
-						class="cammi__proxy"
-						src={activeProxyStreamUrl}
-						alt="Camera stream"
-						draggable="false"
-					/>
-				{:else}
-					<div class="cammi__overlay">
-						<Icon name="video-off" size={28} />
-						<span>{activeStreamState.message}</span>
-					</div>
-				{/if}
-			{:else if activeStreamState?.status === 'ready'}
-				<span class="cammi__live-badge" aria-label="Live stream active">LIVE</span>
-			{/if}
-		</div>
+		{#if activeStreamState?.status === 'error'}
+			<div class="cammi__overlay">
+				<Icon name="video-off" size={28} />
+				<span>{activeStreamState.message}</span>
+			</div>
+		{:else if activeStreamState?.status === 'ready'}
+			<span class="cammi__live-badge" aria-label="Live stream active">LIVE</span>
+		{/if}
+	</div>
 
 </div>
 
@@ -442,12 +639,6 @@
 		overflow: hidden;
 	}
 	.cammi__video {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-		display: block;
-	}
-	.cammi__proxy {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
