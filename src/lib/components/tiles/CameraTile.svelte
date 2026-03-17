@@ -4,7 +4,6 @@
 	// ── Imports ───────────────────────────────────────────────────────────────
 	import type { HassEntity } from 'home-assistant-js-websocket';
 	import type { Tile } from '$lib/types/dashboard';
-	import { configStore } from '$lib/stores/config';
 	import { getTileSizePreset } from '$lib/layout/tileSizing';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { isCustomIcon } from '$lib/icons/customIcons';
@@ -15,26 +14,23 @@
 	const sizePreset = $derived(getTileSizePreset(tile));
 
 	// ── Derived State ─────────────────────────────────────────────────────────
-	const name           = $derived((tile.config.name as string | undefined) ?? entity?.attributes.friendly_name ?? 'Camera');
-	const iconOverride   = $derived(((tile.config.icon as string | undefined) ?? '').trim() || undefined);
+	const name             = $derived((tile.config.name as string | undefined) ?? entity?.attributes.friendly_name ?? 'Camera');
+	const iconOverride     = $derived(((tile.config.icon as string | undefined) ?? '').trim() || undefined);
 	const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
+
+	// Use the entity_picture path as-is — the relay proxies /api/ with
+	// server-side auth. Never append access_token or absolutize the URL,
+	// doing so would embed credentials in the URL and expose them publicly.
 	const snapshotUrl = $derived.by(() => {
 		const picture = String(entity?.attributes.entity_picture ?? '').trim();
 		if (!picture) return '';
-		const accessToken = String(entity?.attributes.access_token ?? '').trim();
-		const absolute = /^https?:\/\//i.test(picture)
-			? picture
-			: (() => {
-				const base = String($configStore.hassUrl ?? '').trim().replace(/\/+$/, '');
-				return base ? `${base}${picture.startsWith('/') ? picture : `/${picture}`}` : picture;
-			})();
-		if (!accessToken || /[?&]token=/.test(absolute)) return absolute;
-		return `${absolute}${absolute.includes('?') ? '&' : '?'}token=${accessToken}`;
+		return picture.startsWith('/') ? picture : `/${picture}`;
 	});
-	const motionDetected = $derived(entity?.attributes.motion_detection as boolean | undefined);
-	const isRecording    = $derived(entity?.state === 'recording');
-	const isStreaming    = $derived(entity?.state === 'streaming' || entity?.state === 'idle');
-	const unavailable    = $derived(entity?.state === 'unavailable' || entity?.state === 'unknown');
+
+	const motionDetected     = $derived(entity?.attributes.motion_detection as boolean | undefined);
+	const isRecording        = $derived(entity?.state === 'recording');
+	const isStreaming        = $derived(entity?.state === 'streaming' || entity?.state === 'idle');
+	const unavailable        = $derived(entity?.state === 'unavailable' || entity?.state === 'unknown');
 
 	const stateLabel = $derived(
 		isRecording ? 'Recording' :
@@ -43,15 +39,15 @@
 		'Idle'
 	);
 
-	const showStreamBadge = $derived((sizePreset === 'lg' || sizePreset === 'xl') && motionDetected);
-	const showOverlayMeta = $derived(sizePreset !== 'sm');
+	const showStreamBadge  = $derived((sizePreset === 'lg' || sizePreset === 'xl') && motionDetected);
+	const showOverlayMeta  = $derived(sizePreset !== 'sm');
 	const showFallbackStatus = $derived(sizePreset !== 'sm');
 </script>
 
 <div class="camera-tile" class:unavailable data-size={sizePreset}>
 	{#if snapshotUrl && !unavailable}
 		<div class="stream-container">
-			<img src={snapshotUrl} alt="" class="stream-img" style="pointer-events: none;" />
+			<img src={snapshotUrl} alt="" class="stream-img" draggable="false" />
 
 			{#if isRecording}
 				<span class="rec-dot"></span>
@@ -77,11 +73,7 @@
 		<div class="no-stream">
 			<div class="no-stream-icon" class:recording={isRecording} class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
 				{#if iconOverride}
-					{#if overrideIsCustom}
-						<Icon name={iconOverride} entity={entity} size={32} />
-					{:else}
-						<Icon name={iconOverride} entity={entity} size={32} />
-					{/if}
+					<Icon name={iconOverride} entity={entity} size={32} />
 				{:else}
 					<Icon name="camera" size={32} />
 				{/if}
@@ -169,11 +161,6 @@
 		bottom: 0;
 		left: 0;
 		right: 0;
-		/* background: linear-gradient(
-			to top,
-			color-mix(in srgb, var(--bg) 75%, transparent) 0%,
-			transparent 100%
-		); */
 		padding: calc(var(--tile-padding-effective) * 1.8) calc(var(--tile-padding-effective) * 0.9) calc(var(--tile-padding-effective) * 0.72);
 		display: flex;
 		align-items: flex-end;
@@ -235,7 +222,6 @@
 		color: var(--color-danger);
 	}
 
-	/* If the user explicitly overrides the icon, remove the badge/chip behind it. */
 	.no-stream-icon.override {
 		background: transparent;
 	}

@@ -88,13 +88,6 @@
 		return next;
 	});
 
-	// ── URL Helpers ────────────────────────────────────────────────────────
-	function absolutizeUrl(url: string): string {
-		if (!url) return '';
-		if (/^https?:\/\//i.test(url)) return url;
-		return url;
-	}
-
 	// ── Stream State ──────────────────────────────────────────────────────
 	type StreamState =
 		| { status: 'loading' }
@@ -145,7 +138,7 @@
 
 		if (signal.cancelled) return;
 
-		const url = absolutizeUrl(response.url);
+		const url = response.url;
 		if (!url) throw new Error('No URL returned');
 
 		const { default: HlsLib } = await import('hls.js');
@@ -158,7 +151,12 @@
 				manifestLoadingTimeOut: 30000,
 				levelLoadingTimeOut: 30000,
 				maxLiveSyncPlaybackRate: 2,
-				lowLatencyMode: true
+				lowLatencyMode: true,
+				// withCredentials ensures HLS segment requests go through
+				// the ingress session — relay handles auth server-side
+				xhrSetup: (xhr) => {
+					xhr.withCredentials = true;
+				}
 			});
 			hlsInstance = localHls;
 			localHls.loadSource(url);
@@ -265,7 +263,7 @@
 		activeStreamFeedId = feedId;
 		const token = { cancelled: false };
 
-		startStream(feed, el, token);
+		untrack(() => startStream(feed, el, token));
 
 		return () => {
 			token.cancelled = true;

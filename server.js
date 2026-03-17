@@ -25,7 +25,7 @@ const app = express();
 
 const PORT = parseInt(process.env.PORT ?? '8099', 10);
 const ADDON = process.env.ADDON === 'true';
-const EXPOSED_PORT = process.env.EXPOSED_PORT ?? null; // set by run.sh when user enables the port
+const EXPOSED_PORT = process.env.EXPOSED_PORT ?? null;
 const CONFIG_PATH = ADDON
 	? '/data/stratum-config.json'
 	: join(__dirname, 'data', 'stratum-config.json');
@@ -71,7 +71,6 @@ process.on('unhandledRejection', (reason) => {
 	console.error('[Stratum] UNHANDLED REJECTION:', reason);
 });
 
-// Supervisor injects this when homeassistant_api is enabled.
 const SUPERVISOR_TOKEN = process.env.SUPERVISOR_TOKEN ?? '';
 const HASS_URL = process.env.HASS_URL
 	?? (ADDON ? 'http://supervisor/core' : 'http://homeassistant.local:8123');
@@ -81,23 +80,31 @@ const HASS_URL = process.env.HASS_URL
 const INTERNAL_API_PREFIXES = ['/api-stratum'];
 
 function resolveTarget(_req) {
-	// Add-on mode always proxies to supervisor/core.
 	if (ADDON) return HASS_URL;
-
-	// Standalone mode proxies to the configured HA URL when present, otherwise
-	// falls back to the env/default HASS_URL.
 	const cfg = readAuthConfig();
 	return cfg.hassUrl || HASS_URL;
+}
+
+function resolveToken() {
+	if (ADDON) return sanitizeToken(SUPERVISOR_TOKEN);
+	return sanitizeToken(readAuthConfig().token);
 }
 
 const haProxy = createProxyMiddleware({
 	router: resolveTarget,
 	changeOrigin: true,
-	ws: true,
-	headers: SUPERVISOR_TOKEN
-		? { Authorization: `Bearer ${SUPERVISOR_TOKEN}` }
-		: undefined,
+	// ws: true is intentionally omitted — all WebSocket upgrades are handled
+	// manually in server.on('upgrade') below to avoid double-handling
 	on: {
+		proxyReq: (proxyReq) => {
+			// Inject auth server-side for every proxied HTTP request.
+			// This covers /api/camera_proxy/, /api/hls/, and all other HA
+			// endpoints so tokens never need to appear in browser-visible URLs.
+			const token = resolveToken();
+			if (token) {
+				proxyReq.setHeader('Authorization', `Bearer ${token}`);
+			}
+		},
 		error: (err, req, res) => {
 			console.error(`[Stratum] Proxy error for ${req.method} ${req.url}:`, err.message);
 			if (res && typeof res.status === 'function') {
@@ -109,14 +116,11 @@ const haProxy = createProxyMiddleware({
 
 // ─── Middleware ─────────────────────────────────────────────────────────────
 
-// Request logger — every request visible in the addon log
 app.use((req, _res, next) => {
 	console.log(`[Stratum] ${req.method} ${req.url}`);
 	next();
 });
 
-// Global Ingress prefix stripper — ensures all internal routing and proxying
-// uses root-relative paths, regardless of the dynamic Ingress ID.
 app.use((req, _res, next) => {
 	if (ADDON && req.path.startsWith('/api/hassio_ingress/')) {
 		const parts = req.path.split('/');
@@ -128,13 +132,11 @@ app.use((req, _res, next) => {
 });
 
 function shouldProxy(pathname) {
-	// Never proxy our own internal API routes
 	const isInternalApi = INTERNAL_API_PREFIXES.some(
 		(prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
 	);
 	if (isInternalApi) return false;
 
-	// Proxy all other HA-specific endpoints
 	return (
 		pathname === '/api' ||
 		pathname.startsWith('/api/') ||
@@ -143,7 +145,6 @@ function shouldProxy(pathname) {
 	);
 }
 
-// Proxy match for HA endpoints
 app.use((req, res, next) => {
 	if (!shouldProxy(req.path)) return next();
 	haProxy(req, res, next);
@@ -160,7 +161,6 @@ app.get('/api-stratum/ha/info', (_req, res) => {
 	});
 });
 
-// Read persisted auth config (hassUrl + token)
 app.get('/api-stratum/auth-config', (_req, res) => {
 	try {
 		res.json(readAuthConfig());
@@ -170,7 +170,6 @@ app.get('/api-stratum/auth-config', (_req, res) => {
 	}
 });
 
-// Persist auth config to disk (hassUrl + token — separate from dashboard config)
 app.post('/api-stratum/auth-config', express.json(), (req, res) => {
 	try {
 		const { hassUrl = '', token = '' } = req.body ?? {};
@@ -191,7 +190,6 @@ app.post('/api-stratum/auth-config', express.json(), (req, res) => {
 	}
 });
 
-// Test a user-supplied HA URL + token by probing /api/ on their instance
 app.post('/api-stratum/ha/test', express.json(), async (req, res) => {
 	const { url, token } = req.body ?? {};
 	const cleanUrl = normalizeBaseUrl(url);
@@ -245,17 +243,11 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 });
 
 // ─── WebSocket Relay ─────────────────────────────────────────────────────────
-// Browser connects to ws://our-server/api-stratum/ws
-// Server opens ws://<HA>/api/websocket and rewrites the browser auth payload
-// with either SUPERVISOR_TOKEN (addon mode) or persisted LLAT (standalone).
-// This keeps browser-origin issues out of the HA websocket auth flow.
 
 const wss = new WebSocketServer({ noServer: true });
 
 wss.on('connection', (browserWs) => {
 	const standaloneAuth = ADDON ? null : readAuthConfig();
-	// Add-on mode must preserve the /core path in HASS_URL (e.g. http://supervisor/core).
-	// Standalone mode should continue using normalized user-supplied base URL.
 	const relayHassUrl = ADDON
 		? String(HASS_URL ?? '').trim().replace(/\/$/, '')
 		: normalizeBaseUrl(standaloneAuth?.hassUrl);
@@ -283,17 +275,9 @@ wss.on('connection', (browserWs) => {
 	let pendingAuthPayload = null;
 	const pendingFromBrowser = [];
 
-	// ── Keepalive ping every 30s to prevent HA Ingress from killing idle WS ──
-	// HA Ingress reverse-proxy drops WebSocket connections that are idle for
-	// ~60s. Sending a ping frame keeps the TCP connection alive so the relay
-	// stays open indefinitely and service calls never get silently dropped.
 	const keepalive = setInterval(() => {
-		if (browserWs.readyState === WebSocket.OPEN) {
-			browserWs.ping();
-		}
-		if (haWs.readyState === WebSocket.OPEN) {
-			haWs.ping();
-		}
+		if (browserWs.readyState === WebSocket.OPEN) browserWs.ping();
+		if (haWs.readyState === WebSocket.OPEN) haWs.ping();
 	}, 30_000);
 
 	function cleanup() {
@@ -304,14 +288,9 @@ wss.on('connection', (browserWs) => {
 		let msg;
 		try { msg = JSON.parse(data.toString()); } catch { /* forward raw */ }
 
-		// HA requests auth. Mirror this frame to the browser so the client
-		// sees the normal sequence. When the browser sends {"type":"auth"},
-		// we rewrite access_token server-side and forward to HA.
 		if (msg?.type === 'auth_required') {
 			haAuthRequested = true;
 			if (browserWs.readyState === WebSocket.OPEN) {
-				// Forward HA text frames as text so browser JSON parsers do not
-				// receive Blob/ArrayBuffer during websocket auth phase.
 				browserWs.send(isBinary ? data : data.toString());
 			}
 			if (pendingAuthPayload && haWs.readyState === WebSocket.OPEN) {
@@ -321,15 +300,12 @@ wss.on('connection', (browserWs) => {
 			return;
 		}
 
-		// HA auth succeeded. Forward auth_ok exactly once (no synthetic duplicate
-		// auth_required/auth_ok burst) and then flush queued browser commands.
 		if (msg?.type === 'auth_ok') {
 			haReady = true;
 			haAuthRequested = false;
 			if (browserWs.readyState === WebSocket.OPEN) {
 				browserWs.send(isBinary ? data : data.toString());
 			}
-			// Flush any messages the browser sent before relay was ready
 			for (const queued of pendingFromBrowser) {
 				if (haWs.readyState === WebSocket.OPEN) haWs.send(queued);
 			}
@@ -338,7 +314,6 @@ wss.on('connection', (browserWs) => {
 			return;
 		}
 
-		// auth_invalid — close browser connection with a clear error
 		if (msg?.type === 'auth_invalid') {
 			console.error('[Stratum] WS relay: HA auth_invalid — relay token rejected');
 			browserWs.close(4401, 'HA auth_invalid');
@@ -346,19 +321,16 @@ wss.on('connection', (browserWs) => {
 			return;
 		}
 
-		// Log service call errors so they're visible in addon logs
 		if (msg?.type === 'result' && msg.success === false) {
 			console.error(`[Stratum] WS relay: HA returned error for id=${msg.id}:`, JSON.stringify(msg.error));
 		}
 
-		// All other messages — pass through to browser
 		if (browserWs.readyState === WebSocket.OPEN) {
 			browserWs.send(isBinary ? data : data.toString());
 		}
 	});
 
 	browserWs.on('message', (data, isBinary) => {
-		// Intercept browser auth messages and rewrite token server-side.
 		let msg;
 		try { msg = JSON.parse(data.toString()); } catch { /* non-JSON frames are relayed */ }
 		if (msg?.type === 'auth') {
@@ -374,10 +346,7 @@ wss.on('connection', (browserWs) => {
 			}
 			return;
 		}
-		// Forward browser text frames as text; HA websocket API expects JSON text.
 		const relayPayload = isBinary ? data : data.toString();
-
-		// Queue all non-auth messages until HA auth completes.
 		if (!haReady) {
 			pendingFromBrowser.push(relayPayload);
 			return;
@@ -413,17 +382,13 @@ wss.on('connection', (browserWs) => {
 
 // WebSocket upgrade handler
 server.on('upgrade', (req, socket, head) => {
-	// Strip the Ingress prefix (e.g. /api/hassio_ingress/{token}/...) so the
-	// pathname checks below work identically for both direct and Ingress access.
 	if (ADDON && req.url?.includes('/api/hassio_ingress/')) {
-		// parts: ['', 'api', 'hassio_ingress', '{token}', ...rest]
 		const parts = req.url.split('/');
 		req.url = '/' + parts.slice(4).join('/');
 	}
 
 	const pathname = req.url?.split('?')[0] ?? '';
 
-	// Our relay endpoint — no token needed from browser
 	if (pathname === '/api-stratum/ws') {
 		if (ADDON && !SUPERVISOR_TOKEN) {
 			socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
@@ -444,13 +409,11 @@ server.on('upgrade', (req, socket, head) => {
 		return;
 	}
 
-	// Proxy all other WS paths to HA (e.g. /api/websocket)
 	if (shouldProxy(pathname)) {
 		haProxy.upgrade(req, socket, head);
 		return;
 	}
 
-	// Unknown WS path
 	socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
 	socket.destroy();
 });

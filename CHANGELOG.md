@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.8] - 2026-03-17
+
+### Added
+- **Server-Side Auth Injection**: The relay server now injects Home Assistant Authorization headers server-side for all proxied HTTP requests. This eliminates the need to expose access tokens in client-side URLs.
+
+### Changed
+- **Stream Security**: Refactored camera snapshots and HLS stream segment loading to rely on server-side proxy auth, improving security and simplifying URL resolution.
+- **Relay Cleanup**: Significantly streamlined the relay server logic for better maintainability and performance.
+- **Improved HLS Stability**: Added `withCredentials` support to the video player for seamless segment fetching through protected ingress paths.
+
+
 ## [1.1.7] - 2026-03-17
 
 ### Changed
