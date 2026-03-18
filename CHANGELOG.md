@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.12] - 2026-03-18
+
+### Fixed
+- **Version Calibration**: Synchronized the `config.yaml` version with `package.json` to ensure Home Assistant correctly detects and notifies of updates within the add-on ecosystem.
+
 ## [1.1.11] - 2026-03-18
 
 ### Changed
