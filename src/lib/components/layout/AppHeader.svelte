@@ -114,7 +114,13 @@
 			{/if}
 
 			{#if header.showNotifications}
-				<button class="ha-header__btn ha-header__btn--notif" onclick={handleNotificationsClick} aria-label="Notifications" title="Notifications">
+				<button
+					class="ha-header__btn ha-header__btn--notif"
+					class:ha-header__btn--notif-active={alertCount > 0}
+					onclick={handleNotificationsClick}
+					aria-label="Notifications"
+					title="Notifications"
+				>
 					<Icon name="bell" size={18} />
 					{#if alertCount > 0}
 						<span class="ha-header__notif-badge" aria-label={`${alertCount} alerts`}>
@@ -232,6 +238,10 @@
 	}
 	.ha-header__btn--notif {
 		position: relative;
+	}
+	.ha-header__btn--notif-active {
+		color: var(--fg);
+		background-color: color-mix(in srgb, var(--accent) 12%, transparent);
 	}
 	.ha-header__notif-badge {
 		position: absolute;

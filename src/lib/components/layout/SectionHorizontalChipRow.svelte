@@ -323,7 +323,7 @@
 		--chip-row-margin-x: 0vw;
 		--chip-row-scale-portrait: 1.4;
 		--chip-row-scale-phone: 3;
-		--chip-row-border: 1px solid color-mix(in srgb, var(--state-icon-color, #9da0a2) 10%, transparent);
+		--chip-row-border: 1px solid color-mix(in srgb, var(--tile-label-on, var(--control-active-name)) 10%, transparent);
 		--chip-row-bg: rgba(115, 115, 115, 0.1);
 		--chip-row-bg-phone: rgba(115, 115, 115, 0.12);
 		--chip-row-label-color: var(--state-icon-color, #9da0a2);
@@ -511,7 +511,7 @@
 	.chiprow__chip-label {
 		font-size: var(--chip-row-font-size);
 		font-weight: 500;
-		color: var(--chip-row-label-color);
+		color: color-mix(in srgb, var(--fg) 80%, transparent);
 		letter-spacing: 0.05vw;
 		flex: 0 0 auto;
 	}

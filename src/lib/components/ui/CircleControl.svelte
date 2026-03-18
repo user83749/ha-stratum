@@ -11,9 +11,10 @@
     step?: number;
     label?: string;
     onchange?: (value: number) => void;
+    hideRing?: boolean;
   }
 
-  let { value, isOn, unit = '%', min = 1, max = 100, step = 1, label = 'Value', onchange }: Props = $props();
+  let { value, isOn, unit = '%', min = 1, max = 100, step = 1, label = 'Value', onchange, hideRing = false }: Props = $props();
 
   const effectiveMin = $derived(min < 1 ? 1 : min);
 
@@ -144,14 +145,16 @@
     aria-hidden="true"
   >
     <!-- Ring Stroke -->
-    <circle
-      cx="25" cy="25" r="22.1"
-      class="circle-stroke"
-      class:on={isOn}
-      class:dragging
-      stroke-dasharray={circumference}
-      stroke-dashoffset={circumference - pct / 100 * circumference}
-    />
+    {#if !hideRing}
+      <circle
+        cx="25" cy="25" r="22.1"
+        class="circle-stroke"
+        class:on={isOn}
+        class:dragging
+        stroke-dasharray={circumference}
+        stroke-dashoffset={circumference - pct / 100 * circumference}
+      />
+    {/if}
     <!-- Value Label -->
     <text x="50%" y="52%" class="circle-value">
       {Math.round(pct)}<tspan dx=".2" dy="-.4">{unit}</tspan>

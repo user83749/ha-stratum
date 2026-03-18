@@ -1,9 +1,17 @@
 # Changelog
 
-## [1.1.12] - 2026-03-18
+## [1.1.13] - 2026-03-18
 
-### Fixed
-- **Version Calibration**: Synchronized the `config.yaml` version with `package.json` to ensure Home Assistant correctly detects and notifies of updates within the add-on ecosystem.
+### Added
+- **Icon Addition**: Integrated the **Sonos** custom icon into the registry.
+- **Media Player Enhancements**: Added volume ring/percentage support for small-sized `MediaPlayerTile` instances.
+- **Header UI**: Added an active background state for the notification bell to highlight when alerts are present.
+
+### Changed
+- **Media Interaction**: Refined the `media_player` toggle behavior to use explicit play/pause service calls for improved state reliability across devices.
+- **Style Optimizations**: Improved label legibility in `SectionHorizontalChipRow` and added a `hideRing` option for `CircleControl`.
+
+## [1.1.12] - 2026-03-18
 
 ## [1.1.11] - 2026-03-18
 

@@ -50,6 +50,7 @@ export const CUSTOM_ICONS: Record<string, CustomIconMeta> = {
 	apple_tv: { width: '77%', marginLeft: '0%', marginTop: '0%', dynamic: false },
 	spotify: { width: '77%', marginLeft: '0%', marginTop: '0%', dynamic: false },
 	nest_mini: { width: '77%', marginLeft: '0%', marginTop: '0%', dynamic: false },
+	sonos: { width: '77%', marginLeft: '0%', marginTop: '0%', dynamic: false },
 	play_pause: { width: '25%', marginLeft: '0%', marginTop: '0%', dynamic: true },
 	hue: { width: '77%', marginLeft: '-14%', marginTop: '1%', dynamic: true },
 	shade: { width: '77%', marginLeft: '-15%', marginTop: '1%', dynamic: true },

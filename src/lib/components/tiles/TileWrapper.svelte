@@ -5,7 +5,7 @@
 	import { isEditing, editSelection, multiSelection, editMode } from '$lib/stores/editMode';
 	import { isUnavailable, isActive } from '$lib/ha/entities';
 	import { entities } from '$lib/ha/websocket';
-	import { handleAction, lockService } from '$lib/ha/services';
+	import { handleAction, lockService, mediaService } from '$lib/ha/services';
 	import { haptic } from '$lib/utils/haptics';
 	import { dashboardStore } from '$lib/stores/dashboard';
 	import { uiStore } from '$lib/stores/ui';
@@ -296,6 +296,14 @@
 				if (s === 'unlocked') { lockService.lock(id).catch(() => {}); return; }
 				// Fallback: open more-info if state is nonstandard.
 				uiStore.openDialog(id, undefined, tile.type, tile.id);
+				return;
+			}
+
+			// Media tiles: map generic toggle to explicit play/pause for consistent behavior.
+			if (action.type === 'toggle' && (tile.type === 'media_player' || tile.type === 'media_hero' || entityDomain === 'media_player')) {
+				const id = tile.entity_id ?? entity?.entity_id ?? '';
+				if (!id) return;
+				await mediaService.playPause(id);
 				return;
 			}
 

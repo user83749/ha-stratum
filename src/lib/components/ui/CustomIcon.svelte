@@ -205,6 +205,7 @@
 		return rgb ? `rgb(${rgb[0]},${rgb[1]},${rgb[2]})` : 'none';
 	});
 
+
 	// Track recent changes for icons with 2s timeout animations
 	let lastState = $state('');
 	let isRecent = $state(false);

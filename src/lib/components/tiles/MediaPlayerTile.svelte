@@ -6,6 +6,7 @@
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
   import BaseTile from '$lib/components/tiles/BaseTile.svelte';
+  import CircleControl from '$lib/components/ui/CircleControl.svelte';
   import Icon from '$lib/components/ui/Icon.svelte';
   import Marquee from '$lib/components/ui/Marquee.svelte';
   import { isCustomIcon } from '$lib/icons/customIcons';
@@ -25,11 +26,12 @@
 
   const entityState = $derived(entity?.state ?? 'off');
   const attrs = $derived(entity?.attributes ?? {});
-  const MEDIA_ON = ['on', 'playing', 'paused', 'idle', 'active'];
-  const MEDIA_OFF = ['off', 'standby', 'unknown', 'unavailable', '0'];
-  const mediaOn = $derived(MEDIA_ON.includes(entityState.toLowerCase()));
-  const mediaOff = $derived(MEDIA_OFF.includes(entityState.toLowerCase()));
-  const isOn = $derived(mediaOn);
+  const isOn = $derived.by(() => {
+    const s = entityState.toLowerCase();
+    return s !== 'off' && s !== 'idle';
+  });
+  const mediaOn = $derived(isOn);
+  const mediaOff = $derived(!isOn);
   const isPlaying = $derived(entityState === 'playing');
   
   const track = $derived(attrs.media_title as string ?? '');
@@ -41,13 +43,19 @@
   const iconIsCustom = $derived(typeof iconName === 'string' && isCustomIcon(iconName));
   const mediaImage = $derived(attrs.entity_picture as string | undefined);
   const hasArtwork = $derived(!!mediaImage);
+  const volumePct = $derived.by(() => {
+    const raw = attrs.volume_level as number | undefined;
+    if (typeof raw !== 'number' || !Number.isFinite(raw)) return null;
+    return Math.max(0, Math.min(100, Math.round(raw * 100)));
+  });
   
-  // State row: show track name when playing, artist when paused, else basic state label
+  // State row (used by BaseTile): always show player state label, not media metadata.
   const displayState = $derived.by(() => {
     if (entityState === 'off' || entityState === 'idle' || entityState === 'standby') return 'Off';
-    if (entityState === 'paused') return track || artist || 'Paused';
-    if (isPlaying) return track || artist || 'Playing';
-    return entityState;
+    if (entityState === 'paused') return 'Paused';
+    if (entityState === 'playing') return 'Playing';
+    if (entityState === 'buffering') return 'Buffering';
+    return entityState ? entityState.charAt(0).toUpperCase() + entityState.slice(1) : 'Off';
   });
 
   // ── Hero Metadata (2x2+) ──────────────────────────────────────────────────
@@ -108,7 +116,7 @@
     </div>
   </div>
 {:else}
-  <BaseTile {name} state={displayState} {isOn}>
+  <BaseTile {name} state={entityState || 'off'} {isOn}>
     {#snippet icon()}
       {#if iconIsCustom}
         <Icon name={iconName} entity={entity} />
@@ -116,6 +124,20 @@
         <div class="mp-icon-wrap" class:isPlaying>
           <Icon name={iconName} entity={entity} size="100%" />
         </div>
+      {/if}
+    {/snippet}
+
+    {#snippet circle()}
+      {#if isSm && isPlaying && volumePct !== null}
+        <CircleControl
+          value={volumePct}
+          isOn={true}
+          unit="%"
+          min={0}
+          max={100}
+          label="Volume"
+          hideRing={true}
+        />
       {/if}
     {/snippet}
 
