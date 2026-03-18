@@ -202,6 +202,8 @@ export interface CameraFeedConfig {
 	entity_id?: string;
 	url?: string;
 	label?: string;
+	popup_trigger_entity?: string;
+	popup_trigger_state?: string;
 }
 
 export interface TileConfig {
@@ -307,6 +309,10 @@ export interface TileConfig {
 	ptz?: boolean;                    // show PTZ controls if camera supports it
 	camera_feeds?: CameraFeedConfig[]; // ordered feed list shown in more-info popup
 	camera_primary_feed?: string; // feed id to select first
+	popup_trigger_enabled?: boolean; // master enable for auto-popup triggers
+	popup_trigger_entity?: string;
+	popup_trigger_state?: string;
+	popup_auto_close_time?: number;
 
 	// ── Vacuum ───────────────────────────────────────────────────────────────
 	show_vacuum_map?: boolean;

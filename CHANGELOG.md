@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.10] - 2026-03-18
+
+### Added
+- **Camera Auto-Popup Notifications**: Implemented a highly configurable auto-popup system for camera tiles. You can now define a specific "Popup trigger entity" and "Trigger state" for the primary camera tile and uniquely for *every* supplemental feed attached to it.
+- **Smart Trigger Evaluation**: Auto-popups intelligently evaluate only when the dashboard tab is explicitly visible and focused, preventing background interruptions.
+- **Auto-Close Tracking**: Popups support an optional auto-close timer that reliably cleans up and resets upon tab navigation or manual closure.
+- **Master Toggle**: Added a `popup_trigger_enabled` master switch to easily suspend auto-popups for a given tile without losing the individual trigger configurations.
+
 ## [1.1.9] - 2026-03-17
 
 ### Fixed

@@ -12,6 +12,7 @@ export interface ActiveDialog {
 	styleOverride?: MoreInfoStyle;
 	tileType?: TileType;
 	tileId?: string;
+	context?: Record<string, any>;
 }
 
 export type Breakpoint = 'sm' | 'md' | 'lg';
@@ -126,20 +127,20 @@ function createUIStore() {
 
 		// ── More-info dialog ──────────────────────────────────────────────
 
-		openDialog(entityId: string, styleOverride?: MoreInfoStyle, tileType?: TileType, tileId?: string) {
+		openDialog(entityId: string, styleOverride?: MoreInfoStyle, tileType?: TileType, tileId?: string, context?: Record<string, any>) {
 			update((s) => ({
 				...s,
-				activeDialog: { entityId, styleOverride, tileType, tileId },
+				activeDialog: { entityId, styleOverride, tileType, tileId, context },
 				dialogStack: []
 			}));
 		},
 
 		/** Open a new dialog while preserving the current one as a "back" target. */
-		pushDialog(entityId: string, styleOverride?: MoreInfoStyle, tileType?: TileType, tileId?: string) {
+		pushDialog(entityId: string, styleOverride?: MoreInfoStyle, tileType?: TileType, tileId?: string, context?: Record<string, any>) {
 			update((s) => ({
 				...s,
 				dialogStack: s.activeDialog ? [...s.dialogStack, s.activeDialog] : s.dialogStack,
-				activeDialog: { entityId, styleOverride, tileType, tileId }
+				activeDialog: { entityId, styleOverride, tileType, tileId, context }
 			}));
 		},
 

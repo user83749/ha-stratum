@@ -1,9 +1,10 @@
 <script lang="ts">
 	// ── CameraMoreInfo ────────────────────────────────────────────────────────
 
-	import { untrack } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import { optimisticEntities } from '$lib/ha/optimistic';
 	import { connection } from '$lib/ha/websocket';
+	import { activeDialog } from '$lib/stores/ui';
 	import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 	import { haptic } from '$lib/utils/haptics';
 	import Icon from '$lib/components/ui/Icon.svelte';
@@ -61,6 +62,10 @@
 
 	// ── Active Feed ────────────────────────────────────────────────────────
 	const primaryFeedId = $derived.by(() => {
+		const contextFeedId = $activeDialog?.context?.feedId as string | undefined;
+		if (contextFeedId && feeds.some((f) => f.id === contextFeedId)) {
+			return contextFeedId;
+		}
 		const configuredPrimary = tile?.config.camera_primary_feed as string | undefined;
 		return feeds.some((f) => f.id === configuredPrimary)
 			? configuredPrimary!
@@ -123,6 +128,11 @@
 			videoEl.load();
 		}
 	}
+
+	onDestroy(() => {
+		activeStreamFeedId = '';
+		teardown();
+	});
 
 	// ── HLS ───────────────────────────────────────────────────────────────
 	async function startHls(
@@ -317,6 +327,7 @@
 			bind:this={videoEl}
 			class="cammi__video"
 			class:cammi__video--hidden={activeStreamState?.status !== 'ready'}
+			autoplay
 			muted
 			playsinline
 		></video>

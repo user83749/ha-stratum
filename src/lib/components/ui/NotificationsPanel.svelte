@@ -8,8 +8,8 @@
 	import { callService, persistentNotificationService } from '$lib/ha/services';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { entities } from '$lib/ha/websocket';
+	import { alertIndex, type AlertSource } from '$lib/stores/alertIndex';
 	import { getDomain } from '$lib/ha/entities';
-	import type { NotificationAlertDomain } from '$lib/types/dashboard';
 
 	interface Props {
 		open: boolean;
@@ -39,100 +39,33 @@
 	);
 
 	// ── Derived State ─────────────────────────────────────────────────────────
-	// Gather persistent_notification entities.
-	const persistentNotifs = $derived(
-		open && notifCfg.showPersistent
-			? Object.values($entities).filter((e) => e.entity_id.startsWith('persistent_notification.'))
-			: []
-	);
-
-	type AlertSource =
-		| 'alert-domain'
-		| 'update-domain'
-		| 'binary-sensor-domain'
-		| 'alarm-panel-domain'
-		| 'tracked';
+	// Gather persistent_notification entities from shared index ids.
+	const persistentNotifs = $derived.by(() => {
+		if (!open || !notifCfg.showPersistent) return [];
+		const list: Array<{ entity_id: string; state: string; attributes: Record<string, unknown> }> = [];
+		for (const id of $alertIndex.persistentIds) {
+			const entity = $entities[id];
+			if (entity) list.push(entity);
+		}
+		return list;
+	});
 
 	interface AlertItem {
 		entity: { entity_id: string; state: string; attributes: Record<string, unknown> };
 		source: AlertSource;
 	}
 
-	function normalizedDomainStates(domain: NotificationAlertDomain): string[] {
-		const raw = notifCfg.alertStateMap?.[domain] ?? [];
-		return raw
-			.map((value) => String(value).trim().toLowerCase())
-			.filter((value, idx, arr) => value.length > 0 && arr.indexOf(value) === idx);
-	}
-
-	function resolveAlertDomain(entityId: string): NotificationAlertDomain | null {
-		if (entityId.startsWith('alert.')) return 'alert';
-		if (entityId.startsWith('update.')) return 'update';
-		if (entityId.startsWith('binary_sensor.')) return 'binary_sensor';
-		if (entityId.startsWith('alarm_control_panel.')) return 'alarm_control_panel';
-		return null;
-	}
-
-	function isEntityActiveForDomain(
-		entity: { entity_id: string; state: string; attributes: Record<string, unknown> },
-		domain: NotificationAlertDomain
-	): boolean {
-		const value = String(entity.state ?? '').trim().toLowerCase();
-		if (!value || value === 'unavailable' || value === 'unknown') return false;
-		return normalizedDomainStates(domain).includes(value);
-	}
-
-	const domainAlertItems = $derived.by(() => {
+	const alertItems = $derived.by(() => {
 		if (!open || !notifCfg.showAlerts) return [] as AlertItem[];
-		const all = Object.values($entities);
 		const items: AlertItem[] = [];
-		if (notifCfg.includeAlertDomainEntities) {
-			for (const entity of all) {
-				if (!entity.entity_id.startsWith('alert.')) continue;
-				if (isEntityActiveForDomain(entity, 'alert')) items.push({ entity, source: 'alert-domain' });
-			}
-		}
-		if (notifCfg.includeUpdateDomainEntities) {
-			for (const entity of all) {
-				if (!entity.entity_id.startsWith('update.')) continue;
-				if (isEntityActiveForDomain(entity, 'update')) items.push({ entity, source: 'update-domain' });
-			}
-		}
-		if (notifCfg.includeBinarySensorDomainEntities) {
-			for (const entity of all) {
-				if (!entity.entity_id.startsWith('binary_sensor.')) continue;
-				if (isEntityActiveForDomain(entity, 'binary_sensor')) items.push({ entity, source: 'binary-sensor-domain' });
-			}
-		}
-		if (notifCfg.includeAlarmControlPanelDomainEntities) {
-			for (const entity of all) {
-				if (!entity.entity_id.startsWith('alarm_control_panel.')) continue;
-				if (isEntityActiveForDomain(entity, 'alarm_control_panel')) items.push({ entity, source: 'alarm-panel-domain' });
-			}
+		for (const id of $alertIndex.activeAlertIds) {
+			if (id.startsWith('persistent_notification.')) continue;
+			const entity = $entities[id];
+			if (!entity) continue;
+			const source = $alertIndex.alertSourceById.get(id) ?? 'tracked';
+			items.push({ entity, source });
 		}
 		return items;
-	});
-
-	const trackedAlertItems = $derived.by(() => {
-		if (!open || !notifCfg.showAlerts) return [];
-		const ids = notifCfg.alertEntityIds ?? [];
-		return ids
-			.map((id) => $entities[id])
-			.filter((entity): entity is NonNullable<typeof entity> => !!entity)
-			.filter((entity) => {
-				const domain = resolveAlertDomain(entity.entity_id);
-				return domain ? isEntityActiveForDomain(entity, domain) : false;
-			})
-			.map((entity) => ({ entity, source: 'tracked' as const }));
-	});
-
-	const alertItems = $derived.by(() => {
-		const merged = new Map<string, AlertItem>();
-		for (const item of domainAlertItems) merged.set(item.entity.entity_id, item);
-		for (const item of trackedAlertItems) {
-			if (!merged.has(item.entity.entity_id)) merged.set(item.entity.entity_id, item);
-		}
-		return [...merged.values()];
 	});
 	const activeAlertEntityIds = $derived(
 		new Set(alertItems.map((item) => item.entity.entity_id))
@@ -147,7 +80,7 @@
 	);
 	const nonClearableAlertCount = $derived(visibleAlertItems.length - clearableAlertEntities.length);
 
-	const totalCount = $derived(persistentNotifs.length + visibleAlertItems.length);
+	const totalCount = $derived((notifCfg.showPersistent ? persistentNotifs.length : 0) + (notifCfg.showAlerts ? visibleAlertItems.length : 0));
 
 	$effect(() => {
 		// Keep dismissals only for currently-active alerts.

@@ -2,11 +2,17 @@
 	// ── CameraTile ────────────────────────────────────────────────────────────
 
 	// ── Imports ───────────────────────────────────────────────────────────────
+	import { browser } from '$app/environment';
 	import type { HassEntity } from 'home-assistant-js-websocket';
-	import type { Tile } from '$lib/types/dashboard';
+	import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 	import { getTileSizePreset } from '$lib/layout/tileSizing';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import { isCustomIcon } from '$lib/icons/customIcons';
+	import { get } from 'svelte/store';
+	import { uiStore, activeDialog } from '$lib/stores/ui';
+	import { optimisticEntities } from '$lib/ha/optimistic';
+	import { entities as liveEntities } from '$lib/ha/websocket';
+	import { untrack } from 'svelte';
 
 	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props { tile: Tile; entity: HassEntity | null; }
@@ -50,6 +56,144 @@
 	const showStreamBadge  = $derived((sizePreset === 'lg' || sizePreset === 'xl') && motionDetected);
 	const showOverlayMeta  = $derived(sizePreset !== 'sm');
 	const showFallbackStatus = $derived(sizePreset !== 'sm');
+
+	// ── Auto-Popup Logic ──────────────────────────────────────────────────────
+	type FeedTriggerSnapshot = { key: string; state: string };
+	let previousFeedTriggerStates: Record<string, FeedTriggerSnapshot> = {};
+	let previousMainTriggerKey: string | undefined;
+	let previousMainTriggerState: string | undefined;
+	let autoCloseTimer: ReturnType<typeof setTimeout> | null = null;
+	let autoPopupSequence = 0;
+
+	function clearAutoCloseTimer() {
+		if (!autoCloseTimer) return;
+		clearTimeout(autoCloseTimer);
+		autoCloseTimer = null;
+	}
+
+	function normalizeAutoCloseSeconds(value: unknown): number | undefined {
+		const n = Number(value);
+		if (!Number.isFinite(n) || n <= 0) return undefined;
+		return Math.round(n);
+	}
+
+	function isDashboardVisibleAndFocused(): boolean {
+		if (!browser) return false;
+		return document.visibilityState === 'visible' && document.hasFocus();
+	}
+
+	function openAutoPopup(
+		dialogEntityId: string,
+		feedId: string | undefined
+	) {
+		if (!isDashboardVisibleAndFocused()) return;
+		const entityId = dialogEntityId.trim();
+		if (!entityId) return;
+
+		const autoPopupKey = `${tile.id}:${++autoPopupSequence}`;
+		const context = feedId
+			? { feedId, autoPopup: true, autoPopupKey }
+			: { autoPopup: true, autoPopupKey };
+
+		untrack(() => {
+			uiStore.openDialog(entityId, undefined, tile.type, tile.id, context);
+		});
+
+		clearAutoCloseTimer();
+		const closeAfter = normalizeAutoCloseSeconds(tile.config.popup_auto_close_time);
+		if (!closeAfter) return;
+
+		autoCloseTimer = setTimeout(() => {
+			autoCloseTimer = null;
+			const dialog = get(activeDialog);
+			if (!dialog || dialog.tileId !== tile.id) return;
+			if (dialog.context?.autoPopup !== true) return;
+			if (dialog.context?.autoPopupKey !== autoPopupKey) return;
+			uiStore.closeDialog();
+		}, closeAfter * 1000);
+	}
+
+	function triggerState(entityId: string): string | undefined {
+		const optimistic = $optimisticEntities[entityId]?.state;
+		if (optimistic !== undefined) return optimistic;
+		return $liveEntities[entityId]?.state;
+	}
+
+	$effect(() => {
+		return () => {
+			clearAutoCloseTimer();
+			previousFeedTriggerStates = {};
+			previousMainTriggerKey = undefined;
+			previousMainTriggerState = undefined;
+		};
+	});
+
+	$effect(() => {
+		const popupTriggersEnabled = tile.config.popup_trigger_enabled !== false;
+		if (!popupTriggersEnabled) {
+			previousFeedTriggerStates = {};
+			previousMainTriggerKey = undefined;
+			previousMainTriggerState = undefined;
+			return;
+		}
+
+		// 1. Check Main Tile Trigger
+		const mainTriggerId = String(tile.config.popup_trigger_entity ?? '').trim();
+		const mainTargetState = String(tile.config.popup_trigger_state ?? '').trim();
+		const mainDialogEntityId = String(entity?.entity_id ?? tile.entity_id ?? '').trim();
+
+		if (mainTriggerId && mainTargetState) {
+			const mainKey = `${mainTriggerId}::${mainTargetState}`;
+			const mainEntityState = triggerState(mainTriggerId);
+			if (mainEntityState !== undefined) {
+				if (
+					previousMainTriggerKey === mainKey &&
+					previousMainTriggerState !== undefined &&
+					previousMainTriggerState !== mainEntityState &&
+					mainEntityState === mainTargetState
+				) {
+					openAutoPopup(mainDialogEntityId, undefined);
+				}
+				previousMainTriggerKey = mainKey;
+				previousMainTriggerState = mainEntityState;
+			}
+		} else {
+			previousMainTriggerKey = undefined;
+			previousMainTriggerState = undefined;
+		}
+
+		// 2. Check Additional Feeds
+		const feeds = (tile.config.camera_feeds as CameraFeedConfig[] | undefined) ?? [];
+		const nextFeedTriggerStates: Record<string, FeedTriggerSnapshot> = {};
+
+		for (const feed of feeds) {
+			const triggerEntityId = String(feed.popup_trigger_entity ?? '').trim();
+			const targetState = String(feed.popup_trigger_state ?? '').trim();
+			const feedDialogEntityId = String(entity?.entity_id ?? tile.entity_id ?? feed.entity_id ?? '').trim();
+
+			if (!triggerEntityId || !targetState) continue;
+
+			const entityState = triggerState(triggerEntityId);
+			if (entityState === undefined) continue;
+
+			const key = `${triggerEntityId}::${targetState}`;
+			const prev = previousFeedTriggerStates[feed.id];
+
+			// Detect exact transition into the target state
+			if (
+				prev &&
+				prev.key === key &&
+				prev.state !== entityState &&
+				entityState === targetState
+			) {
+				openAutoPopup(feedDialogEntityId, feed.id);
+			}
+
+			// Store current state for next cycle
+			nextFeedTriggerStates[feed.id] = { key, state: entityState };
+		}
+		previousFeedTriggerStates = nextFeedTriggerStates;
+	});
 </script>
 
 <div class="camera-tile" class:unavailable data-size={sizePreset}>
