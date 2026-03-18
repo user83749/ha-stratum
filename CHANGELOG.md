@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.11] - 2026-03-18
+
+### Changed
+- **Reactivity Optimization**: Dispatched a brand new `entitiesDelta` system inside the WebSocket handler, drastically improving efficiency by emitting lightweight added/changed/removed patches instead of reacting to full state map copies globally.
+- **Alert Index Stability**: Rewired the global `alertIndex` to consume the new pinpoint delta patches directly, eliminating CPU-heavy "diff calculation" loops on every state ping and preventing race conditions.
+- **Media Player Refinements**: Minor layout adjustments and stability enhancements applied to the `MediaPlayerTile`.
+
 ## [1.1.10] - 2026-03-18
 
 ### Added

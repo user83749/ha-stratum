@@ -9,8 +9,6 @@
   import Icon from '$lib/components/ui/Icon.svelte';
   import Marquee from '$lib/components/ui/Marquee.svelte';
   import { isCustomIcon } from '$lib/icons/customIcons';
-  import { mediaService } from '$lib/ha/services';
-  import { clockNow } from '$lib/stores/clock';
 
   // ── Props ─────────────────────────────────────────────────────────────────
   interface Props { tile: Tile; entity: HassEntity | null; }
@@ -27,7 +25,11 @@
 
   const entityState = $derived(entity?.state ?? 'off');
   const attrs = $derived(entity?.attributes ?? {});
-  const isOn = $derived(!['off', 'idle', 'standby', 'unknown', 'unavailable'].includes(entityState));
+  const MEDIA_ON = ['on', 'playing', 'paused', 'idle', 'active'];
+  const MEDIA_OFF = ['off', 'standby', 'unknown', 'unavailable', '0'];
+  const mediaOn = $derived(MEDIA_ON.includes(entityState.toLowerCase()));
+  const mediaOff = $derived(MEDIA_OFF.includes(entityState.toLowerCase()));
+  const isOn = $derived(mediaOn);
   const isPlaying = $derived(entityState === 'playing');
   
   const track = $derived(attrs.media_title as string ?? '');
@@ -48,18 +50,17 @@
     return entityState;
   });
 
-  const mediaDuration = $derived((attrs.media_duration as number) ?? 0);
-  const mediaPosition = $derived((attrs.media_position as number) ?? 0);
-  const positionUpdatedAt = $derived((attrs.media_position_updated_at as string) ?? null);
-
-  const livePosition = $derived.by(() => {
-    if (!isPlaying || !positionUpdatedAt || !mediaDuration) return mediaPosition;
-    const updatedMs = new Date(positionUpdatedAt).getTime();
-    if (!Number.isFinite(updatedMs)) return mediaPosition;
-    return Math.min(mediaPosition + ($clockNow - updatedMs) / 1000, mediaDuration);
+  // ── Hero Metadata (2x2+) ──────────────────────────────────────────────────
+  const heroTitle = $derived.by(() => {
+    if (!isOn) return name;
+    return track || artist || name;
   });
-  const progressPct = $derived(mediaDuration > 0 ? Math.min((livePosition / mediaDuration) * 100, 100) : 0);
-  const showProgress = $derived(mediaDuration > 0 && isOn);
+  const heroSubtitle = $derived.by(() => {
+    if (!isOn) return displayState;
+    if (artist) return artist;
+    if (track) return isPlaying ? 'Playing' : entityState === 'paused' ? 'Paused' : entityState;
+    return displayState;
+  });
 
   // ── Actions ───────────────────────────────────────────────────────────────
 </script>
@@ -67,8 +68,8 @@
 {#if isHero}
   <div
     class="media-hero"
-    class:media-on={isOn}
-    class:media-off={!isOn}
+    class:media-on={mediaOn}
+    class:media-off={mediaOff}
     class:has-artwork={hasArtwork}
     style="
       background-image: {hasArtwork
@@ -77,13 +78,13 @@
           ? 'linear-gradient(0deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.8) 100%)'
           : 'linear-gradient(0deg, rgba(115, 115, 115, 0.2) 0%, rgba(115, 115, 115, 0.2) 100%)'
       };
-      color: {!isOn || !entity
+      color: {mediaOff || !entity
         ? 'rgba(255, 255, 255, 0.3)'
-        : isOn && !hasArtwork
+        : mediaOn && !hasArtwork
           ? 'rgba(0, 0, 0, 0.6)'
           : '#efefef'
       };
-      text-shadow: {hasArtwork && isOn
+      text-shadow: {hasArtwork && mediaOn
         ? '1px 1px 5px rgba(18, 22, 23, 0.9)'
         : 'none'
       };
@@ -99,34 +100,10 @@
       <div class="spacer-field"></div>
 
       <div class="bottom-field">
-        {#if showProgress}
-          <div class="progress-bar" aria-hidden="true">
-            <div class="progress-fill" style="width: {progressPct}%"></div>
-          </div>
+        <span class="name-text">{heroTitle}</span>
+        {#if heroSubtitle}
+          <Marquee text={heroSubtitle} class="state-marquee" />
         {/if}
-        <div class="bottom-info-row">
-          <div class="meta-col">
-            <span class="name-text">{isOn && primaryMeta ? primaryMeta : name}</span>
-            {#if isOn && primaryMeta}
-              <Marquee text={secondaryMeta || (isPlaying ? 'Playing' : entityState === 'paused' ? 'Paused' : entityState)} class="state-marquee" />
-            {:else if displayState}
-              <Marquee text={displayState} class="state-marquee" />
-            {/if}
-          </div>
-          {#if isOn && entity?.entity_id}
-            <div class="media-controls">
-              <button class="hero-ctrl" aria-label="Previous" onclick={(e) => { e.stopPropagation(); mediaService.previous(entity.entity_id); }}>
-                <Icon name="skip-back" size={16} />
-              </button>
-              <button class="hero-ctrl play-pause" aria-label={isPlaying ? 'Pause' : 'Play'} onclick={(e) => { e.stopPropagation(); mediaService.playPause(entity.entity_id); }}>
-                <Icon name={isPlaying ? "pause" : "play"} size={18} />
-              </button>
-              <button class="hero-ctrl" aria-label="Next" onclick={(e) => { e.stopPropagation(); mediaService.next(entity.entity_id); }}>
-                <Icon name="skip-forward" size={16} />
-              </button>
-            </div>
-          {/if}
-        </div>
       </div>
     </div>
   </div>
@@ -232,13 +209,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    /* Darken bottom ~32% with a sharp cutoff line for readability */
-    background: linear-gradient(
-      0deg,
-      rgba(0, 0, 0, 0.8) 0%,
-      rgba(0, 0, 0, 0.6) 32%,
-      rgba(0, 0, 0, 0) 32.1%
-    );
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 62%);
     pointer-events: none;
     z-index: 0;
   }
@@ -284,57 +255,6 @@
     overflow: visible;
   }
 
-  .bottom-info-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    gap: calc(var(--button-card-font-size) * 0.5);
-    min-width: 0;
-  }
-
-  .meta-col {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    flex: 1;
-  }
-
-  .media-controls {
-    display: flex;
-    align-items: center;
-    gap: calc(var(--button-card-font-size) * 0.3);
-    flex-shrink: 0;
-  }
-
-  .hero-ctrl {
-    all: unset;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: calc(var(--button-card-font-size) * 2.2);
-    height: calc(var(--button-card-font-size) * 2.2);
-    border-radius: 50%;
-    background: color-mix(in srgb, currentColor 8%, transparent);
-    color: currentColor;
-    cursor: pointer;
-    transition: all var(--transition);
-  }
-
-  .hero-ctrl:hover {
-    background: color-mix(in srgb, currentColor 15%, transparent);
-  }
-
-  .hero-ctrl:active {
-    transform: scale(0.92);
-  }
-
-  .hero-ctrl.play-pause {
-    background: color-mix(in srgb, currentColor 12%, transparent);
-    width: calc(var(--button-card-font-size) * 2.5);
-    height: calc(var(--button-card-font-size) * 2.5);
-  }
-
   .name-text {
     justify-self: flex-start;
     font-size: var(--button-card-font-size);
@@ -358,21 +278,4 @@
     text-shadow: 3px 1px 4px black;
   }
 
-  .progress-bar {
-    width: 100%;
-    height: calc(var(--action-icon-size) * 0.14);
-    border-radius: 99px;
-    background: rgba(255, 255, 255, 0.22);
-    overflow: hidden;
-  }
-
-  .progress-fill {
-    height: 100%;
-    border-radius: 99px;
-    background: rgba(255, 255, 255, 0.82);
-    transition: width 1s linear;
-  }
-
-  .media-on:not(.has-artwork) .progress-bar { background: color-mix(in srgb, var(--accent) 20%, transparent); }
-  .media-on:not(.has-artwork) .progress-fill { background: var(--accent); }
 </style>

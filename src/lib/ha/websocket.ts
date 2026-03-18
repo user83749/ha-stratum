@@ -20,15 +20,52 @@ export const connection = writable<Connection | null>(null);
 export const connectionStatus = writable<ConnectionStatus>('disconnected');
 export const entities = writable<HassEntities>({});
 export const error = writable<string | null>(null);
+export interface EntityDelta {
+	added: string[];
+	changed: string[];
+	removed: string[];
+	full: boolean;
+	seq: number;
+}
+export const entitiesDelta = writable<EntityDelta>({
+	added: [],
+	changed: [],
+	removed: [],
+	full: true,
+	seq: 0
+});
 
 // ── Internal State ───────────────────────────────────────────────────────────
 let unsubscribeEntities: (() => void) | null = null;
+let unsubscribeEntityDeltaEvents: (() => void) | null = null;
 const FIRST_SNAPSHOT_TIMEOUT_MS = 6000;
+let entityDeltaSeq = 0;
+let pendingEntityDelta: Omit<EntityDelta, 'full' | 'seq'> | null = null;
+
+function emitEntityDelta(delta: Omit<EntityDelta, 'seq'>) {
+	entityDeltaSeq += 1;
+	entitiesDelta.set({
+		...delta,
+		seq: entityDeltaSeq
+	});
+}
 
 // ── Connection Helpers ───────────────────────────────────────────────────────
 function attachListeners(conn: Connection) {
 	connection.set(conn);
 	connectionStatus.set('connected');
+	unsubscribeEntityDeltaEvents?.();
+	unsubscribeEntityDeltaEvents = null;
+	conn.subscribeMessage((updates: any) => {
+		const added = updates?.a ? Object.keys(updates.a) : [];
+		const removed = Array.isArray(updates?.r) ? updates.r.filter((id: unknown): id is string => typeof id === 'string') : [];
+		const changed = updates?.c ? Object.keys(updates.c) : [];
+		pendingEntityDelta = { added, removed, changed };
+	}, { type: 'subscribe_entities' }).then((unsub) => {
+		if (get(connection) === conn) {
+			unsubscribeEntityDeltaEvents = unsub;
+		}
+	}).catch(() => {});
 	unsubscribeEntities = subscribeEntities(conn, (state) => {
 		// Prune optimistic patches in one pass for entities that arrived from HA,
 		// so confirmed state replaces optimistic values immediately without
@@ -36,6 +73,12 @@ function attachListeners(conn: Connection) {
 		clearPatchesForSnapshot(state);
 		entities.set(state);
 		syncBaseEntities(state);
+		if (pendingEntityDelta) {
+			emitEntityDelta({ ...pendingEntityDelta, full: false });
+			pendingEntityDelta = null;
+		} else {
+			emitEntityDelta({ added: [], changed: [], removed: [], full: true });
+		}
 	});
 	conn.addEventListener('ready', () => connectionStatus.set('connected'));
 	conn.addEventListener('disconnected', () => connectionStatus.set('disconnected'));
@@ -69,6 +112,7 @@ async function seedInitialStates(conn: Connection): Promise<void> {
 	clearPatchesForSnapshot(stateMap);
 	entities.set(stateMap);
 	syncBaseEntities(stateMap);
+	emitEntityDelta({ added: [], changed: [], removed: [], full: true });
 }
 
 async function connectViaRelay(): Promise<Connection> {
@@ -130,6 +174,8 @@ export async function connect(hassUrl: string, token: string): Promise<void> {
 export function disconnect(): void {
 	unsubscribeEntities?.();
 	unsubscribeEntities = null;
+	unsubscribeEntityDeltaEvents?.();
+	unsubscribeEntityDeltaEvents = null;
 
 	const conn = get(connection);
 	conn?.close();
@@ -137,6 +183,8 @@ export function disconnect(): void {
 	connectionStatus.set('disconnected');
 	entities.set({});
 	syncBaseEntities({});
+	pendingEntityDelta = null;
+	emitEntityDelta({ added: [], changed: [], removed: [], full: true });
 }
 
 export const entityList = derived(entities, ($entities) =>

@@ -3,7 +3,7 @@
 // ── Imports ──────────────────────────────────────────────────────────────────
 import { readable, get } from 'svelte/store';
 import { dashboardStore } from '$lib/stores/dashboard';
-import { entities, connectionStatus } from '$lib/ha/websocket';
+import { entities, entitiesDelta, connectionStatus } from '$lib/ha/websocket';
 import type { HassEntities } from 'home-assistant-js-websocket';
 import type { NotificationAlertDomain, NotificationConfig } from '$lib/types/dashboard';
 import { dev } from '$app/environment';
@@ -127,7 +127,6 @@ export const alertIndex = readable<AlertIndexSnapshot>(EMPTY_SNAPSHOT, (set) => 
 	let domainStates = normalizedDomainStates(notifConfig);
 	let trackedIds = new Set<string>(notifConfig.alertEntityIds ?? []);
 	let currentEntities: HassEntities = get(entities);
-	let prevEntityStates = new Map<string, string>();
 	let entityFlags = new Map<string, EntityFlags>();
 	let persistentIds = new Set<string>();
 	let activeDomainAlertIds = new Set<string>();
@@ -171,12 +170,11 @@ export const alertIndex = readable<AlertIndexSnapshot>(EMPTY_SNAPSHOT, (set) => 
 		});
 	};
 
-	const resetIndex = (resetPrev = false) => {
+	const resetIndex = () => {
 		entityFlags = new Map();
 		persistentIds = new Set();
 		activeDomainAlertIds = new Set();
 		trackedActiveAlertIds = new Set();
-		if (resetPrev) prevEntityStates = new Map();
 	};
 
 	const processEntity = (entityId: string, entity: HassEntities[string] | null) => {
@@ -227,45 +225,14 @@ export const alertIndex = readable<AlertIndexSnapshot>(EMPTY_SNAPSHOT, (set) => 
 		}
 	};
 
-	const rebuild = (entitiesMap: HassEntities, resetPrev = true) => {
+	const rebuild = (entitiesMap: HassEntities) => {
 		currentEntities = entitiesMap;
-		resetIndex(resetPrev);
+		resetIndex();
 
 		for (const [entityId, entity] of Object.entries(entitiesMap)) {
 			processEntity(entityId, entity);
 		}
-
-		prevEntityStates = new Map(
-			Object.entries(entitiesMap).map(([id, entity]) => [id, String(entity.state ?? '')])
-		);
 		emit();
-	};
-
-	const applyEntityDelta = (nextEntities: HassEntities) => {
-		currentEntities = nextEntities;
-
-		let changed = false;
-		for (const [id, entity] of Object.entries(nextEntities)) {
-			const prevState = prevEntityStates.get(id);
-			const nextState = String(entity.state ?? '');
-			if (prevState === undefined || prevState !== nextState) {
-				processEntity(id, entity);
-				changed = true;
-			}
-		}
-
-		for (const id of prevEntityStates.keys()) {
-			if (!(id in nextEntities)) {
-				processEntity(id, null);
-				changed = true;
-			}
-		}
-
-		prevEntityStates = new Map(
-			Object.entries(nextEntities).map(([id, entity]) => [id, String(entity.state ?? '')])
-		);
-
-		if (changed) emit();
 	};
 
 	const dashboardUnsub = dashboardStore.subscribe(($dashboard) => {
@@ -276,28 +243,48 @@ export const alertIndex = readable<AlertIndexSnapshot>(EMPTY_SNAPSHOT, (set) => 
 		notifSignature = nextSig;
 		domainStates = normalizedDomainStates(notifConfig);
 		trackedIds = new Set(notifConfig.alertEntityIds ?? []);
-		rebuild(currentEntities, false);
+		rebuild(currentEntities);
 	});
 
 	const statusUnsub = connectionStatus.subscribe((status) => {
 		if (status !== 'connected') {
-			resetIndex(true);
+			resetIndex();
 			emit();
 			return;
 		}
-		rebuild(currentEntities, true);
+		rebuild(currentEntities);
 	});
 
 	const entitiesUnsub = entities.subscribe(($entities) => {
 		currentEntities = $entities;
-		applyEntityDelta($entities);
+	});
+	const entityDeltaUnsub = entitiesDelta.subscribe((delta) => {
+		if (delta.full) {
+			rebuild(currentEntities);
+			return;
+		}
+		let changed = false;
+		for (const id of delta.added) {
+			processEntity(id, currentEntities[id] ?? null);
+			changed = true;
+		}
+		for (const id of delta.changed) {
+			processEntity(id, currentEntities[id] ?? null);
+			changed = true;
+		}
+		for (const id of delta.removed) {
+			processEntity(id, null);
+			changed = true;
+		}
+		if (changed) emit();
 	});
 
-	rebuild(currentEntities, true);
+	rebuild(currentEntities);
 
 	return () => {
 		dashboardUnsub();
 		statusUnsub();
 		entitiesUnsub();
+		entityDeltaUnsub();
 	};
 });
