@@ -339,7 +339,7 @@
 	}
 
 	// ── Interaction Handlers ─────────────────────────────────────────────────
-	function handleBodyInteraction(e: PointerEvent) {
+	function handleBodyInteraction(e: MouseEvent) {
 		const t = e.target as Element | null;
 		if (!t) return;
 		const interactive = t.closest('button, a, [role="button"]');
@@ -351,8 +351,8 @@
 	$effect(() => {
 		const el = bodyEl;
 		if (!el) return;
-		el.addEventListener('pointerdown', handleBodyInteraction);
-		return () => el.removeEventListener('pointerdown', handleBodyInteraction);
+		el.addEventListener('click', handleBodyInteraction);
+		return () => el.removeEventListener('click', handleBodyInteraction);
 	});
 
 	function handlePanelKeydown(e: KeyboardEvent) {

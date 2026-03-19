@@ -236,12 +236,31 @@
 	<div class="ns__group">
 		<span class="s-label">Options</span>
 
+		<span class="ns__sub-label">Desktop / Tablet</span>
 		{#each [
-			['showLabels',           'Show labels',           'Show page names next to icons (desktop)'],
+			['showLabels',           'Show labels',       'Show page names next to icons'],
+			['showConnectionStatus', 'Connection status', 'Show HA connection indicator'],
+		] as [key, label, desc]}
+			<div class="ns__toggle-row">
+				<div class="ns__toggle-info">
+					<span class="ns__toggle-label">{label}</span>
+					<span class="ns__toggle-desc">{desc}</span>
+				</div>
+				<Toggle
+					checked={cfg[key as keyof NavConfig] as boolean}
+					onchange={(v) => set({ [key]: v })}
+					label={label}
+				/>
+			</div>
+		{/each}
+
+		<span class="ns__sub-label">Mobile</span>
+		{#each [
 			['showLabelsOnMobile',   'Show labels on mobile', mobileStyle === 'bottom-bar' ? 'Show page names in the mobile bottom bar' : 'Show page names in the mobile drawer'],
 			['showMobileClock',      'Mobile header clock',   'Show the large time (clock) line at the top of the page on mobile'],
+			['showMobileDate',       'Mobile header date',    'Show the date line in the mobile header clock block'],
+			['showMobileWeather',    'Mobile header weather', 'Show weather text in the mobile header clock block'],
 			['showMobileAlertsButton','Mobile alerts button', 'Show Alerts button in the mobile navigation controls'],
-			['showConnectionStatus', 'Connection status',     'Show HA connection indicator'],
 		] as [key, label, desc]}
 			<div class="ns__toggle-row">
 				<div class="ns__toggle-info">

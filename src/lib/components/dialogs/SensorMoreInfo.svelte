@@ -183,9 +183,11 @@
 
 		{#if updateEntitiesOn.length > 0}
 			<div class="usmi__list">
+				<!-- ── Update Entity Rows (Icon + Name + Version + Actions) ───────────── -->
 				{#each updateEntitiesOn as u (u.id)}
 					<div class="usmi__row">
 						<button class="usmi__name" onclick={() => openUpdate(u.id)} title={u.id}>
+							<!-- ── Update Entity Icon / Picture ───────────────────────────────────── -->
 							{#if u.picture && !imageErrorById[u.id]}
 								<img
 									class="usmi__img usmi__img--photo"
@@ -195,8 +197,10 @@
 									onerror={() => { imageErrorById = { ...imageErrorById, [u.id]: true }; }}
 								/>
 							{:else}
-								<div class="usmi__img" aria-hidden="true">
-									<Icon name={u.icon} entity={u.entity} size={18} />
+								<div class="usmi__img usmi__img--icon" aria-hidden="true">
+									<span class="usmi__img-inner">
+										<Icon name={u.icon} entity={u.entity} size="100%" />
+									</span>
 								</div>
 							{/if}
 							<span class="usmi__name-text">{u.name.replace(/\\bupdate\\b/ig, '').trim() || u.name}</span>
@@ -375,6 +379,7 @@
 	.usmi__copy { min-width: 0; }
 	.usmi__title { font-size: 1rem; font-weight: 700; color: var(--fg); line-height: 1.15; }
 
+	/* ── Update Entity List Rows ─────────────────────────────────────────────── */
 	.usmi__list { display: flex; flex-direction: column; gap: 10px; padding: 4px 20px 20px; }
 	.usmi__row {
 		border: 1px solid var(--border);
@@ -385,6 +390,8 @@
 		grid-template-columns: minmax(0, 1fr);
 		gap: 8px;
 	}
+
+	/* ── Update Entity Name + Icon Block ────────────────────────────────────── */
 	.usmi__name {
 		all: unset;
 		display: flex;
@@ -393,10 +400,12 @@
 		cursor: pointer;
 		min-width: 0;
 	}
+
+	/* ── Update Entity Icon / Picture Container ─────────────────────────────── */
 	.usmi__img {
 		width: 34px;
 		height: 34px;
-		border-radius: var(--dialog-radius);
+		border-radius: var(--radius-sm);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -404,7 +413,27 @@
 		color: var(--fg-muted);
 		flex-shrink: 0;
 	}
-	.usmi__img--photo { object-fit: contain; }
+	.usmi__img--icon {
+		overflow: visible;
+	}
+	.usmi__img-inner {
+		width: 20px;
+		height: 20px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		overflow: visible;
+	}
+	.usmi__img-inner :global(svg),
+	.usmi__img-inner :global(.icon),
+	.usmi__img-inner :global(.ci-sizer) {
+		overflow: visible;
+	}
+	.usmi__img--photo {
+		border-radius: var(--radius-sm);
+		object-fit: contain;
+		overflow: hidden;
+	}
 	.usmi__name-text { font-size: 0.9rem; font-weight: 650; color: var(--fg); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 	.usmi__ver { display: flex; }

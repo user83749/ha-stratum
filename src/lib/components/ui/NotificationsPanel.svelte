@@ -255,6 +255,8 @@
 		inset: 0;
 		z-index: 599;
 		background: transparent;
+		overscroll-behavior: none;
+		touch-action: none;
 	}
 
 	.np-panel {
@@ -272,6 +274,7 @@
 		box-shadow: var(--shadow-lg);
 		transform: translateX(100%);
 		transition: transform var(--transition-slow);
+		overscroll-behavior: contain;
 	}
 
 	.np-panel--open { transform: translateX(0); }
@@ -342,9 +345,13 @@
 	.np-content {
 		flex: 1;
 		overflow-y: auto;
+		overflow-x: hidden;
 		padding: 8px;
 		scrollbar-width: thin;
 		scrollbar-color: var(--border) transparent;
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior-y: contain;
+		touch-action: pan-y;
 	}
 
 	.np-empty {

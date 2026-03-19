@@ -4,7 +4,6 @@
 	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { fanService } from '$lib/ha/services';
-	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
 	// ── Props ─────────────────────────────────────────────────────────────────
@@ -53,13 +52,39 @@
 		}
 		speedDebounce = setTimeout(run, 120);
 	}
-	function onSpeedInput(e: Event) {
-		const v = parseInt((e.target as HTMLInputElement).value);
-		localPct = v;
-		if (isOn && !isUnavail) commitSpeed(v, false);
+
+	// ── Vertical Speed Dimmer ────────────────────────────────────────────────
+	let speedTrackEl = $state<HTMLElement | null>(null);
+	let draggingSpeed = $state(false);
+
+	function getSpeedFromPointer(e: PointerEvent): number {
+		if (!speedTrackEl) return localPct;
+		const rect = speedTrackEl.getBoundingClientRect();
+		const relY = e.clientY - rect.top;
+		const pct = 1 - Math.max(0, Math.min(1, relY / rect.height));
+		return Math.round(pct * 100);
 	}
-	function onSpeedCommit(e: Event) {
-		const v = parseInt((e.target as HTMLInputElement).value);
+
+	function onSpeedTrackPointerDown(e: PointerEvent) {
+		if (!isOn || isUnavail) return;
+		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+		draggingSpeed = true;
+		const v = getSpeedFromPointer(e);
+		localPct = v;
+		commitSpeed(v, false);
+	}
+
+	function onSpeedTrackPointerMove(e: PointerEvent) {
+		if (!draggingSpeed) return;
+		const v = getSpeedFromPointer(e);
+		localPct = v;
+		commitSpeed(v, false);
+	}
+
+	function onSpeedTrackPointerUp(e: PointerEvent) {
+		if (!draggingSpeed) return;
+		draggingSpeed = false;
+		const v = getSpeedFromPointer(e);
 		localPct = v;
 		commitSpeed(v, true);
 	}
@@ -133,53 +158,51 @@
 
 	<!-- ── Speed slider ───────────────────────────────────────────────────── -->
 	{#if supportsSpeed}
-		<div class="fmi__row" class:fmi__row--disabled={!isOn || isUnavail}>
-			<Icon name="wind" size={16} />
-			<input
-				type="range" min="0" max="100" step="1"
-				value={localPct}
-				oninput={onSpeedInput}
-				onchange={onSpeedCommit}
-				onpointerdown={(e) => e.stopPropagation()}
-				onpointermove={(e) => e.stopPropagation()}
-				onpointerup={(e) => { e.stopPropagation(); onSpeedCommit(e); }}
-				ontouchstart={(e) => e.stopPropagation()}
-				ontouchmove={(e) => e.stopPropagation()}
-				ontouchend={(e) => { e.stopPropagation(); onSpeedCommit(e); }}
-				disabled={!isOn || isUnavail}
-				class="fmi__slider"
-				style="--fill: {localPct}%;"
+		<div class="fmi__speed-stage">
+			<div
+				class="fmi__dimmer"
+				class:fmi__dimmer--on={isOn}
+				class:fmi__dimmer--disabled={!isOn || isUnavail}
+				style="--fill: {isOn ? localPct : 0}%"
+				bind:this={speedTrackEl}
+				onpointerdown={onSpeedTrackPointerDown}
+				onpointermove={onSpeedTrackPointerMove}
+				onpointerup={onSpeedTrackPointerUp}
+				onpointercancel={onSpeedTrackPointerUp}
+				role="slider"
 				aria-label="Fan speed"
-			/>
-			<span class="fmi__val">{localPct}%</span>
-		</div>
-	{/if}
-
-	<!-- ── Preset modes ────────────────────────────────────────────────────── -->
-	{#if supportsPreset && presetModes.length > 0}
-		<div class="fmi__section" class:fmi__section--disabled={!isOn || isUnavail}>
-			<div class="fmi__section-label">Mode</div>
-			<div class="fmi__pills">
-				{#each [...new Set(presetModes)] as mode (mode)}
-					<button
-						class="fmi__pill"
-						class:fmi__pill--active={presetMode === mode}
-						onclick={() => setPreset(mode)}
-						disabled={!isOn || isUnavail}
-						aria-pressed={presetMode === mode}
-					>
-						{mode.replace(/_/g, ' ')}
-					</button>
-				{/each}
+				aria-valuenow={localPct}
+				aria-valuemin={0}
+				aria-valuemax={100}
+				aria-disabled={!isOn || isUnavail}
+				tabindex={isOn && !isUnavail ? 0 : -1}
+				data-no-sheet-drag
+			>
+				<div class="fmi__dimmer-fill" style="height: {isOn ? localPct : 0}%;"></div>
+				<div class="fmi__dimmer-icon">
+					<Icon name="wind" size={26} />
+				</div>
 			</div>
 		</div>
 	{/if}
 
-	<!-- ── Oscillate + Direction ──────────────────────────────────────────── -->
-	{#if supportsOscillate || supportsDirection}
+	<!-- ── Combined Attributes ─────────────────────────────────────────────── -->
+	{#if (supportsPreset && presetModes.length > 0) || supportsOscillate || supportsDirection}
 		<div class="fmi__section" class:fmi__section--disabled={!isOn || isUnavail}>
-			<div class="fmi__section-label">Controls</div>
 			<div class="fmi__pills">
+				{#if supportsPreset && presetModes.length > 0}
+					{#each [...new Set(presetModes)] as mode (mode)}
+						<button
+							class="fmi__pill"
+							class:fmi__pill--active={presetMode === mode}
+							onclick={() => setPreset(mode)}
+							disabled={!isOn || isUnavail}
+							aria-pressed={presetMode === mode}
+						>
+							{mode.replace(/_/g, ' ')}
+						</button>
+					{/each}
+				{/if}
 				{#if supportsOscillate}
 					<button
 						class="fmi__pill fmi__pill--icon"
@@ -188,7 +211,6 @@
 						disabled={!isOn || isUnavail}
 						aria-pressed={oscillating}
 					>
-						<Icon name="rotate-ccw" size={14} />
 						Oscillate
 					</button>
 				{/if}
@@ -321,69 +343,61 @@
 	}
 	.fmi__toggle:disabled { opacity: 0.4; cursor: not-allowed; }
 
-	/* ── Speed row ──────────────────────────────────────────────────────────── */
-	.fmi__row {
+	/* ── Vertical Speed Dimmer ──────────────────────────────────────────────── */
+	.fmi__speed-stage {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 10px;
+		padding: 34px 20px 18px;
+	}
+	.fmi__dimmer {
+		position: relative;
+		width: 92px;
+		height: clamp(300px, 56vh, 500px);
+		border-radius: var(--dialog-radius);
+		background: var(--active);
+		border: 1.5px solid var(--border);
+		overflow: hidden;
+		cursor: ns-resize;
+		touch-action: none;
+		user-select: none;
+		transition: border-color var(--transition);
+	}
+	.fmi__dimmer--disabled {
+		opacity: 0.35;
+		cursor: not-allowed;
+		pointer-events: none;
+	}
+	.fmi__dimmer--on {
+		border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 15%, transparent);
+	}
+	.fmi__dimmer-fill {
+		position: absolute;
+		bottom: 0;
+		left: -1px;
+		right: -1px;
+		width: calc(100% + 2px);
+		background: var(--accent);
+		opacity: 0.85;
+		border-radius: 0 0 calc(var(--dialog-radius) - 1px) calc(var(--dialog-radius) - 1px);
+		transition: height 0.08s ease;
+		min-height: 0;
+	}
+	.fmi__dimmer-icon {
+		position: absolute;
+		inset: 0;
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 14px 20px;
-		border-bottom: 1px solid var(--border);
-		color: var(--fg-subtle);
-		transition: opacity var(--transition);
+		justify-content: center;
+		color: color-mix(in srgb, var(--fg-subtle) 35%, transparent);
+		pointer-events: none;
+		z-index: 1;
 	}
-	.fmi__row--disabled { opacity: 0.35; pointer-events: none; }
-
-	.fmi__slider {
-		-webkit-appearance: none;
-		appearance: none;
-		flex: 1;
-		height: 5px;
-		border-radius: 999px;
-		outline: none;
-		cursor: pointer;
-		background: linear-gradient(
-			to right,
-			var(--accent) var(--fill, 50%),
-			var(--border-strong) var(--fill, 50%)
-		);
-		touch-action: none;
-	}
-	.fmi__slider::-webkit-slider-thumb {
-		-webkit-appearance: none;
-		width: 18px; height: 18px;
-		border-radius: 50%;
-		background: var(--thumb-bg);
-		border: 2px solid var(--border-strong);
-		box-shadow: var(--shadow);
-		cursor: pointer;
-		transition: border-color var(--transition), box-shadow var(--transition);
-	}
-	.fmi__slider::-webkit-slider-thumb:hover {
-		border-color: var(--accent);
-		box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
-	}
-	.fmi__slider::-moz-range-thumb {
-		width: 18px; height: 18px;
-		border-radius: 50%;
-		background: var(--thumb-bg);
-		border: 2px solid var(--border-strong);
-		box-shadow: var(--shadow);
-		cursor: pointer;
-	}
-
-	.fmi__val {
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: var(--fg);
-		font-variant-numeric: tabular-nums;
-		min-width: 3ch;
-		text-align: right;
-	}
-
 	/* ── Sections (presets, controls) ───────────────────────────────────────── */
 	.fmi__section {
 		padding: 14px 20px;
-		border-bottom: 1px solid var(--border);
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
@@ -391,24 +405,17 @@
 	}
 	.fmi__section--disabled { opacity: 0.35; pointer-events: none; }
 
-	.fmi__section-label {
-		font-size: 0.7rem;
-		font-weight: 600;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--fg-subtle);
-	}
-
 	.fmi__pills {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 8px;
+		justify-content: center;
 	}
 
 	.fmi__pill {
 		padding: 7px 14px;
 		border-radius: 999px;
-		font-size: 0.8125rem;
+		font-size: 0.875rem;
 		font-weight: 600;
 		text-transform: capitalize;
 		border: 1px solid var(--border);

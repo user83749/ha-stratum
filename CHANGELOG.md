@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.15] - 2026-03-18
+
+### Added
+- **Navigation Configuration**: Introduced new toggles for **Mobile header date** and **Mobile header weather**, allowing users to customize the visibility of these elements within the mobile clock block.
+
+### Changed
+- **Mobile UX Optimizations**:
+    - Implemented `overscroll-behavior: contain` and `touch-action` controls on all overlay panels (Settings, Notifications) to eliminate background scroll-chaining on mobile devices.
+    - Enabled hardware-accelerated `-webkit-overflow-scrolling: touch` for buttery-smooth panel performance.
+- **Settings UI**: Refined the `NavSettings` panel with better grouping for Desktop vs. Mobile options.
+- **Dialog Refinements**: Applied layout stability fixes and minor logic improvements to `FanMoreInfo`, `SensorMoreInfo`, and `MoreInfoShell`.
+
 ## [1.1.14] - 2026-03-18
 
 ### Changed

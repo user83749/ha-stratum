@@ -171,6 +171,8 @@
 		background: rgba(0, 0, 0, 0.35);
 		backdrop-filter: blur(1px);
 		animation: sp-fade-in 0.25s ease both;
+		overscroll-behavior: none;
+		touch-action: none;
 	}
 
 	/* ── Panel ────────────────────────────────────────────────────────────── */
@@ -190,6 +192,7 @@
 		transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 		overflow: hidden;
 		animation: sp-slide-in 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
+		overscroll-behavior: contain;
 	}
 
 	@media (max-width: 800px) {
@@ -222,6 +225,9 @@
 		gap: 1px;
 		overflow-y: auto;
 		scrollbar-width: none;
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior-y: contain;
+		touch-action: pan-y;
 	}
 
 	.sp__tabs-header {
@@ -316,5 +322,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 20px;
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior-y: contain;
+		touch-action: pan-y;
 	}
 </style>

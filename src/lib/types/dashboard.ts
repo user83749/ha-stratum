@@ -583,6 +583,8 @@ export interface NavConfig {
 	showLabels: boolean;
 	showLabelsOnMobile: boolean;
 	showMobileClock: boolean; // show the clock block above sections in mobile view
+	showMobileDate: boolean; // show the date line in the mobile header clock block
+	showMobileWeather: boolean; // show weather text in the mobile header clock block
 	showMobileAlertsButton: boolean; // show alerts button in mobile bottom bar / dock
 
 	showHeader: boolean;
@@ -885,6 +887,8 @@ export const DEFAULT_NAV: NavConfig = {
 	showLabels: true,
 	showLabelsOnMobile: false,
 	showMobileClock: false,
+	showMobileDate: true,
+	showMobileWeather: true,
 	showMobileAlertsButton: true,
 	showHeader: false,
 	showConnectionStatus: true,
@@ -1146,6 +1150,8 @@ export function migrateConfig(raw: unknown): DashboardConfig {
 			showLabels: rawNav.showLabels ?? DEFAULT_NAV.showLabels,
 			showLabelsOnMobile: rawNav.showLabelsOnMobile ?? DEFAULT_NAV.showLabelsOnMobile,
 			showMobileClock: rawNav.showMobileClock ?? DEFAULT_NAV.showMobileClock,
+			showMobileDate: rawNav.showMobileDate ?? DEFAULT_NAV.showMobileDate,
+			showMobileWeather: rawNav.showMobileWeather ?? DEFAULT_NAV.showMobileWeather,
 			showMobileAlertsButton: rawNav.showMobileAlertsButton ?? DEFAULT_NAV.showMobileAlertsButton,
 			showHeader: rawNav.showHeader ?? DEFAULT_NAV.showHeader,
 			headerTitle: rawNav.headerTitle ?? DEFAULT_NAV.headerTitle,

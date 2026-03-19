@@ -21,6 +21,8 @@
 	interface Props {
 		showIntegratedNav?: boolean;
 		showMobileClock?: boolean;
+		showMobileDate?: boolean;
+		showMobileWeather?: boolean;
 		onEditSection?: (pageId: string, sectionId: string) => void;
 		onEditPage?: (pageId: string) => void;
 		onAddTile?: (pageId: string, sectionId: string, activeColumns?: number) => void;
@@ -30,6 +32,8 @@
 	const {
 		showIntegratedNav = false,
 		showMobileClock = false,
+		showMobileDate = true,
+		showMobileWeather = true,
 		onEditSection,
 		onEditPage,
 		onAddTile,
@@ -400,12 +404,16 @@
 								{#if showMobileClock}
 									<span class="mobile-page-clock__time">{clockDisplay.time}</span>
 								{/if}
-								<div class="mobile-page-clock__sub">
-									<span class="mobile-page-clock__date">{clockDisplay.date}</span>
-									{#if weatherStr}
-										<span class="mobile-page-clock__weather">{weatherStr}</span>
-									{/if}
-								</div>
+								{#if showMobileDate || (showMobileWeather && !!weatherStr)}
+									<div class="mobile-page-clock__sub">
+										{#if showMobileDate}
+											<span class="mobile-page-clock__date">{clockDisplay.date}</span>
+										{/if}
+										{#if showMobileWeather && weatherStr}
+											<span class="mobile-page-clock__weather">{weatherStr}</span>
+										{/if}
+									</div>
+								{/if}
 								{#each mobileHeroEntities as hero (hero.id)}
 									{@const ent = $entities[hero.entityId]}
 									{@const state = ent?.state ?? '—'}
