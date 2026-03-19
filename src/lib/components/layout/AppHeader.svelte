@@ -241,7 +241,7 @@
 	}
 	.ha-header__btn--notif-active {
 		color: var(--fg);
-		background-color: color-mix(in srgb, var(--accent) 12%, transparent);
+		background-color: var(--hover);
 	}
 	.ha-header__notif-badge {
 		position: absolute;

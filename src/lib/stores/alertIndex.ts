@@ -149,11 +149,11 @@ export const alertIndex = readable<AlertIndexSnapshot>(EMPTY_SNAPSHOT, (set) => 
 		if (dev) {
 			for (const id of activeAlertIds) {
 				if (!(id in currentEntities)) {
-					console.warn('[alerts:index] Active alert id missing from entity map', id);
+					console.warn('[alerts-index] Active alert id missing from entity map', id);
 				}
 			}
 			if (activeAlertIds.size !== alertSourceById.size) {
-				console.warn('[alerts:index] Active id/source map size mismatch', {
+				console.warn('[alerts-index] Active id/source map size mismatch', {
 					activeIds: activeAlertIds.size,
 					sources: alertSourceById.size
 				});

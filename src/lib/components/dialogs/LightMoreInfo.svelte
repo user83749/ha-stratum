@@ -69,14 +69,22 @@
 
 	// ── Color (RGB) ───────────────────────────────────────────────────────────
 
-	const supportsColor = $derived(
+	const supportedColorModes = $derived(
 		Array.isArray(entity?.attributes.supported_color_modes)
-			? (entity.attributes.supported_color_modes as string[]).some((m) =>
-				['rgb', 'hs', 'rgbw', 'rgbww', 'xy'].includes(m))
-			: false
+			? (entity.attributes.supported_color_modes as string[])
+			: []
 	);
+	const supportsColor = $derived(
+		supportedColorModes.some((m) => ['rgb', 'hs', 'rgbw', 'rgbww', 'xy'].includes(m))
+	);
+	const supportsRgbPayload = $derived(
+		supportedColorModes.some((m) => ['rgb', 'rgbw', 'rgbww'].includes(m))
+	);
+	const supportsHsPayload = $derived(supportedColorModes.includes('hs'));
+	const supportsXyPayload = $derived(supportedColorModes.includes('xy'));
 
 	const rgb = $derived(entity?.attributes.rgb_color as [number, number, number] | undefined);
+	const hs = $derived(entity?.attributes.hs_color as [number, number] | undefined);
 
 	function rgbToHex(r: number, g: number, b: number): string {
 		return '#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -106,8 +114,29 @@
 		if (max === gn) return 60 * (((bn - rn) / delta) + 2);
 		return 60 * (((rn - gn) / delta) + 4);
 	}
-	const currentHex = $derived(rgb ? rgbToHex(rgb[0], rgb[1], rgb[2]) : '#ffffff');
-	const currentHue = $derived(rgb ? rgbToHue(rgb[0], rgb[1], rgb[2]) : 48);
+	function rgbToXy(r: number, g: number, b: number): [number, number] {
+		const lin = (v: number): number => {
+			const c = v / 255;
+			return c > 0.04045 ? Math.pow((c + 0.055) / 1.055, 2.4) : c / 12.92;
+		};
+		const rl = lin(r);
+		const gl = lin(g);
+		const bl = lin(b);
+		const x = rl * 0.664511 + gl * 0.154324 + bl * 0.162028;
+		const y = rl * 0.283881 + gl * 0.668433 + bl * 0.047685;
+		const z = rl * 0.000088 + gl * 0.07231 + bl * 0.986039;
+		const sum = x + y + z;
+		if (sum <= 0) return [0.3127, 0.329];
+		return [x / sum, y / sum];
+	}
+	const currentHue = $derived(
+		rgb
+			? rgbToHue(rgb[0], rgb[1], rgb[2])
+			: (hs ? ((hs[0] % 360) + 360) % 360 : 48)
+	);
+	const currentHex = $derived(
+		rgb ? rgbToHex(rgb[0], rgb[1], rgb[2]) : rgbToHex(...hueToRgb(currentHue))
+	);
 	let localHex = $state('#ffffff');
 	let localHue = $state(48);
 	$effect(() => { localHex = currentHex; });
@@ -128,8 +157,29 @@
 	function commitColor(r: number, g: number, b: number) {
 		if (colorDebounce) clearTimeout(colorDebounce);
 		colorDebounce = setTimeout(() => {
-			if (optimisticPreviewEnabled) applyPatch(entityId, { state: 'on', attributes: { rgb_color: [r, g, b] } });
-			else lightService.setRgb(entityId, r, g, b).catch(() => {});
+			const hue = rgbToHue(r, g, b);
+			const hsColor: [number, number] = [Math.round(hue), 100];
+			const xyColor = rgbToXy(r, g, b);
+			if (optimisticPreviewEnabled) {
+				if (supportsRgbPayload) applyPatch(entityId, { state: 'on', attributes: { rgb_color: [r, g, b] } });
+				else if (supportsHsPayload) applyPatch(entityId, { state: 'on', attributes: { hs_color: hsColor } });
+				else if (supportsXyPayload) applyPatch(entityId, { state: 'on', attributes: { xy_color: xyColor } });
+				else applyPatch(entityId, { state: 'on', attributes: { rgb_color: [r, g, b] } });
+				return;
+			}
+			if (supportsRgbPayload) {
+				lightService.setRgb(entityId, r, g, b).catch(() => {});
+				return;
+			}
+			if (supportsHsPayload) {
+				lightService.turnOn(entityId, { hs_color: hsColor }).catch(() => {});
+				return;
+			}
+			if (supportsXyPayload) {
+				lightService.turnOn(entityId, { xy_color: xyColor }).catch(() => {});
+				return;
+			}
+			lightService.setRgb(entityId, r, g, b).catch(() => {});
 		}, 80);
 	}
 	function previewColor(r: number, g: number, b: number) {
@@ -488,11 +538,12 @@
 	.lmi__dimmer-fill {
 		position: absolute;
 		bottom: 0;
-		left: 0;
-		right: 0;
+		left: -1px;
+		right: -1px;
+		width: calc(100% + 2px);
 		background: var(--glow, #ffd580);
 		opacity: 0.85;
-		border-radius: 0 0 22px 22px;
+		border-radius: 0 0 calc(var(--dialog-radius) - 1px) calc(var(--dialog-radius) - 1px);
 		transition: height 0.08s ease, background-color var(--transition);
 		min-height: 0;
 	}
@@ -518,13 +569,13 @@
 		background:
 			linear-gradient(
 				to top,
-				#ff0040 0%,
-				#ff7a00 16%,
-				#ffe600 32%,
-				#39ff14 48%,
-				#00d9ff 64%,
-				#214dff 80%,
-				#a400ff 100%
+				#ff0000 0%,
+				#ffff00 16.666%,
+				#00ff00 33.333%,
+				#00ffff 50%,
+				#0000ff 66.666%,
+				#ff00ff 83.333%,
+				#ff0000 100%
 			);
 		border: 1.5px solid var(--border);
 		overflow: hidden;
@@ -539,16 +590,36 @@
 	}
 	.lmi__color-thumb {
 		position: absolute;
-		left: 10px;
-		right: 10px;
-		height: 4px;
+		left: 8px;
+		right: 8px;
+		height: 8px;
 		border-radius: 999px;
-		background: rgba(255, 255, 255, 0.95);
+		background: linear-gradient(
+			to right,
+			rgba(255, 255, 255, 0.98),
+			rgba(255, 255, 255, 0.86)
+		);
+		border: 1px solid rgba(255, 255, 255, 0.75);
 		box-shadow:
-			0 0 0 1px rgba(0, 0, 0, 0.28),
-			0 0 12px rgba(255, 255, 255, 0.2);
+			0 0 0 4px rgba(0, 0, 0, 0.46),
+			0 2px 10px rgba(0, 0, 0, 0.38),
+			0 0 16px rgba(255, 255, 255, 0.32);
 		transform: translateY(-50%);
 		pointer-events: none;
+		z-index: 2;
+	}
+	.lmi__color-thumb::after {
+		content: '';
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		transform: translate(-50%, -50%);
+		background: rgba(255, 255, 255, 0.95);
+		border: 1px solid rgba(0, 0, 0, 0.45);
+		box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.22);
 	}
 	.lmi__color-icon {
 		position: absolute;

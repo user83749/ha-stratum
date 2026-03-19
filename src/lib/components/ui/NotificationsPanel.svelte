@@ -441,11 +441,19 @@
 		font-size: 0.75rem;
 		color: var(--fg-muted);
 		line-height: 1.4;
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
-		-webkit-box-orient: vertical;
+		display: block;
+		max-height: calc(1.4em * 2);
 		overflow: hidden;
+	}
+
+	@supports (-webkit-line-clamp: 2) {
+		.np-item__desc {
+			display: -webkit-box;
+			-webkit-box-orient: vertical;
+			-webkit-line-clamp: 2;
+			line-clamp: 2;
+			max-height: none;
+		}
 	}
 
 	.np-item__action {

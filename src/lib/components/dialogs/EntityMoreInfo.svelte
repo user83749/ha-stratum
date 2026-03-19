@@ -22,7 +22,6 @@
 	const stateLabel = $derived(entity ? formatState(entity) : 'unavailable');
 	const stateColor = $derived(entity ? getStateColor(entity) : 'var(--fg-subtle)');
 	const iconName   = $derived(entity ? getEntityIcon(entity) : 'circle-help');
-	const unit       = $derived(entity?.attributes.unit_of_measurement as string | undefined);
 	const isUnavailable = $derived(!entity || entity.state === 'unavailable' || entity.state === 'unknown');
 	const optimisticPreviewEnabled = false;
 
@@ -233,7 +232,7 @@
 		</div>
 		<div class="emi__hero-text">
 			<div class="emi__state-value">
-				{stateLabel}{#if unit}<span class="emi__unit">&thinsp;{unit}</span>{/if}
+				{stateLabel}
 			</div>
 			<div class="emi__entity-id">{entityId}</div>
 		</div>
@@ -322,12 +321,6 @@
 		color: var(--fg);
 		line-height: 1.1;
 		letter-spacing: -0.02em;
-	}
-
-	.emi__unit {
-		font-size: 1rem;
-		font-weight: 500;
-		color: var(--fg-muted);
 	}
 
 	.emi__entity-id {

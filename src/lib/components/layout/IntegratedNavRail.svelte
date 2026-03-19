@@ -316,7 +316,7 @@
 		font-weight: 540;
 		line-height: 1.2;
 		color: color-mix(in srgb, var(--fg) 34%, transparent);
-		text-wrap: normal;
+		overflow-wrap: normal;
 	}
 
 	.rail__weather {

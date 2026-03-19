@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.14] - 2026-03-18
+
+### Changed
+- **Light UI Overhaul**: Significantly refined the `LightMoreInfo` component, featuring a more modern color slider with a high-fidelity "thumb" design, improved gradients, and perfected edge-to-edge layout dimensions.
+- **Dialog Cleanups**: Unified state formatting across `SensorMoreInfo` and `EntityMoreInfo`, removing redundant hardcoded unit displays in favor of the global `formatState` engine to prevent double-unit rendering.
+- **Style Optimizations**: 
+    - Migrated notification descriptions to use CSS line-clamping logic with fallback support for better cross-browser compatibility.
+    - Updated `AppHeader` notification toggle to use standard hover-state styling when active.
+    - Improved label alignment and wrapping in the sidebar's navigation rail.
+
 ## [1.1.13] - 2026-03-18
 
 ### Added

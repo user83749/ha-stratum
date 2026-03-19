@@ -21,7 +21,6 @@
 	const domain = $derived(getDomain(entityId));
 	const iconName = $derived(entity ? getEntityIcon(entity) : 'activity');
 	const stateLabel = $derived(entity ? formatState(entity) : 'Unavailable');
-	const unit = $derived((entity?.attributes.unit_of_measurement as string | undefined) ?? '');
 	const deviceClass = $derived((entity?.attributes.device_class as string | undefined) ?? '');
 
 	// Special-case: update summary sensors like `sensor.*updates_available`.
@@ -239,7 +238,7 @@
 			<div class="smi__icon"><Icon name={iconName} entity={entity} size={26} /></div>
 			<div class="smi__hero-copy">
 				<div class="smi__value">
-					{stateLabel}{#if unit}<span class="smi__unit">&thinsp;{unit}</span>{/if}
+					{stateLabel}
 				</div>
 				<div class="smi__sub">{entity ? getEntityName(entity) : entityId}</div>
 			</div>
@@ -294,7 +293,6 @@
 	}
 	.smi__hero-copy { min-width: 0; }
 	.smi__value { font-size: 1.15rem; font-weight: 700; line-height: 1.15; color: var(--fg); }
-	.smi__unit { color: var(--fg-subtle); font-weight: 600; }
 	.smi__sub {
 		margin-top: 4px;
 		font-size: 0.8rem;
