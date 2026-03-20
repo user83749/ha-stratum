@@ -11,7 +11,14 @@
 	import Toggle from '$lib/components/ui/Toggle.svelte';
 	import { CUSTOM_ICON_NAMES } from '$lib/icons/customIcons';
 	import { generateId } from '$lib/utils/uuid';
-	import type { Tile, Action, CameraFeedConfig } from '$lib/types/dashboard';
+	import type {
+		Tile,
+		Action,
+		CameraFeedConfig,
+		CustomPopupConfig,
+		CustomPopupSectionConfig,
+		CustomPopupSectionEntityConfig
+	} from '$lib/types/dashboard';
 
 	// ── Props ─────────────────────────────────────────────────────────────────
 	interface Props {
@@ -264,6 +271,150 @@
 		next.splice(toIndex, 0, moved);
 		saveCameraFeeds(next);
 	}
+
+	// ── Custom Popup Configuration ───────────────────────────────────────────
+	function getCustomPopupConfig(): CustomPopupConfig {
+		if (!tile) return { enabled: false, sections: [] };
+		const raw = (tile.config.custom_popup as CustomPopupConfig | undefined) ?? {};
+		const sections = (Array.isArray(raw.sections) ? raw.sections : [])
+			.slice(0, 3)
+			.map((section): CustomPopupSectionConfig => ({
+				id: section.id || generateId(),
+				title: section.title ?? '',
+				entities: (Array.isArray(section.entities) ? section.entities : []).map((entry): CustomPopupSectionEntityConfig => ({
+					id: entry.id || generateId(),
+					entity_id: entry.entity_id ?? '',
+					name: entry.name ?? '',
+					icon: entry.icon ?? ''
+				}))
+			}));
+		return {
+			enabled: raw.enabled === true,
+			header_title: raw.header_title ?? '',
+			header_subtitle: raw.header_subtitle ?? '',
+			header_icon: raw.header_icon ?? '',
+			sections
+		};
+	}
+
+	function saveCustomPopupConfig(cfg: CustomPopupConfig) {
+		if (!tile) return;
+		const sections = (Array.isArray(cfg.sections) ? cfg.sections : [])
+			.slice(0, 3)
+			.map((section): CustomPopupSectionConfig => ({
+				id: section.id || generateId(),
+				title: String(section.title ?? '').trim() || undefined,
+				entities: (Array.isArray(section.entities) ? section.entities : [])
+					.map((entry): CustomPopupSectionEntityConfig | null => {
+						const entityId = String(entry.entity_id ?? '').trim();
+						if (!entityId) return null;
+						const name = String(entry.name ?? '').trim();
+						const icon = String(entry.icon ?? '').trim();
+						return {
+							id: entry.id || generateId(),
+							entity_id: entityId,
+							name: name || undefined,
+							icon: icon || undefined
+						};
+					})
+					.filter((entry): entry is CustomPopupSectionEntityConfig => !!entry)
+			}))
+			.filter((section) => section.entities.length > 0 || !!section.title);
+
+		const enabled = cfg.enabled === true;
+		const headerTitle = String(cfg.header_title ?? '').trim();
+		const headerSubtitle = String(cfg.header_subtitle ?? '').trim();
+		const headerIcon = String(cfg.header_icon ?? '').trim();
+		const hasConfig = enabled || sections.length > 0 || !!headerTitle || !!headerSubtitle || !!headerIcon;
+
+		save({
+			custom_popup: hasConfig ? {
+				enabled: enabled || undefined,
+				header_title: headerTitle || undefined,
+				header_subtitle: headerSubtitle || undefined,
+				header_icon: headerIcon || undefined,
+				sections: sections.length > 0 ? sections : undefined
+			} : undefined
+		});
+	}
+
+	function setCustomPopupEnabled(enabled: boolean) {
+		const cfg = getCustomPopupConfig();
+		saveCustomPopupConfig({ ...cfg, enabled });
+	}
+
+	function updateCustomPopupHeader(patch: Partial<CustomPopupConfig>) {
+		const cfg = getCustomPopupConfig();
+		saveCustomPopupConfig({ ...cfg, ...patch });
+	}
+
+	function addCustomPopupSection() {
+		const cfg = getCustomPopupConfig();
+		if ((cfg.sections?.length ?? 0) >= 3) return;
+		const sections = [...(cfg.sections ?? [])];
+		sections.push({ id: generateId(), title: '', entities: [] });
+		saveCustomPopupConfig({ ...cfg, sections });
+	}
+
+	function removeCustomPopupSection(sectionId: string) {
+		const cfg = getCustomPopupConfig();
+		const sections = (cfg.sections ?? []).filter((section) => section.id !== sectionId);
+		saveCustomPopupConfig({ ...cfg, sections });
+	}
+
+	function moveCustomPopupSection(fromIndex: number, toIndex: number) {
+		const cfg = getCustomPopupConfig();
+		const sections = [...(cfg.sections ?? [])];
+		if (fromIndex < 0 || toIndex < 0 || fromIndex >= sections.length || toIndex >= sections.length || fromIndex === toIndex) return;
+		const [moved] = sections.splice(fromIndex, 1);
+		sections.splice(toIndex, 0, moved);
+		saveCustomPopupConfig({ ...cfg, sections });
+	}
+
+	function updateCustomPopupSection(sectionId: string, patch: Partial<CustomPopupSectionConfig>) {
+		const cfg = getCustomPopupConfig();
+		const sections = (cfg.sections ?? []).map((section) =>
+			section.id === sectionId ? { ...section, ...patch } : section
+		);
+		saveCustomPopupConfig({ ...cfg, sections });
+	}
+
+	function addCustomPopupEntity(sectionId: string) {
+		const cfg = getCustomPopupConfig();
+		const sections = (cfg.sections ?? []).map((section) =>
+			section.id === sectionId
+				? { ...section, entities: [...section.entities, { id: generateId(), entity_id: '', name: '', icon: '' }] }
+				: section
+		);
+		saveCustomPopupConfig({ ...cfg, sections });
+	}
+
+	function removeCustomPopupEntity(sectionId: string, entryId: string) {
+		const cfg = getCustomPopupConfig();
+		const sections = (cfg.sections ?? []).map((section) =>
+			section.id === sectionId
+				? { ...section, entities: section.entities.filter((entry) => entry.id !== entryId) }
+				: section
+		);
+		saveCustomPopupConfig({ ...cfg, sections });
+	}
+
+	function updateCustomPopupEntity(
+		sectionId: string,
+		entryId: string,
+		patch: Partial<CustomPopupSectionEntityConfig>
+	) {
+		const cfg = getCustomPopupConfig();
+		const sections = (cfg.sections ?? []).map((section) =>
+			section.id === sectionId
+				? {
+					...section,
+					entities: section.entities.map((entry) => (entry.id === entryId ? { ...entry, ...patch } : entry))
+				}
+				: section
+		);
+		saveCustomPopupConfig({ ...cfg, sections });
+	}
 </script>
 
 {#if open && tile}
@@ -294,20 +445,18 @@
 		<!-- ── Body ───────────────────────────────────────────────────────────── -->
 		<div class="te__body">
 			<!-- ── Type & Identity ───────────────────────────────────────────────────────────── -->
-			{#if !isChipRowSection}
-				<div class="te__group">
-					<span class="te__section-title">Tile type</span>
-					<select
-						class="te__select"
-						value={tile.type}
-						onchange={(e) => changeTileType((e.target as HTMLSelectElement).value)}
-					>
-						{#each TILE_TYPES as t}
-							<option value={t}>{TILE_TYPE_LABELS[t] ?? t}</option>
-						{/each}
-					</select>
-				</div>
-			{/if}
+			<div class="te__group">
+				<span class="te__section-title">Tile type</span>
+				<select
+					class="te__select"
+					value={tile.type}
+					onchange={(e) => changeTileType((e.target as HTMLSelectElement).value)}
+				>
+					{#each TILE_TYPES as t}
+						<option value={t}>{TILE_TYPE_LABELS[t] ?? t}</option>
+					{/each}
+				</select>
+			</div>
 
 			<div class="te__group">
 				<span class="te__section-title">Identity</span>
@@ -391,7 +540,7 @@
 				</div>
 			{/if}
 
-				{#if hasTileSpecificSettings && !isChipRowSection}
+				{#if hasTileSpecificSettings}
 				<div class="te__group">
 					<!-- ── Tile-specific Settings ───────────────────────────────────────────────────────────── -->
 					<span class="te__section-title">Tile-specific settings</span>
@@ -811,6 +960,189 @@
 				</div>
 			{/if}
 
+			{#if tile}
+				{@const customPopup = getCustomPopupConfig()}
+				<div class="te__group te__group--boxed">
+					<!-- ── Custom Popup Card ───────────────────────────────────────────────────────────── -->
+					<span class="te__section-title">Custom Popup Card</span>
+					<span class="te__label">Enable custom popup layout</span>
+					<Toggle
+						checked={customPopup.enabled === true}
+						onchange={setCustomPopupEnabled}
+						label="Enable custom popup layout"
+					/>
+					<p class="te__hint">
+						When enabled, this tile opens a custom sectioned popup instead of the default domain popup.
+					</p>
+
+					{#if customPopup.enabled}
+						<div class="te__subgroup te__mt12">
+							<span class="te__section-title">Header</span>
+							<p class="te__hint">Customize the popup title area shown at the top of this tile’s popup.</p>
+							<span class="te__label">Header title</span>
+							<input
+								class="te__input"
+								type="text"
+								placeholder="System"
+								value={(customPopup.header_title as string) ?? ''}
+								oninput={(e) => updateCustomPopupHeader({ header_title: (e.target as HTMLInputElement).value })}
+							/>
+							<div class="te__grid2">
+								<div>
+									<span class="te__label">Header subtitle (optional)</span>
+									<input
+										class="te__input"
+										type="text"
+										placeholder="Quick controls"
+										value={(customPopup.header_subtitle as string) ?? ''}
+										oninput={(e) => updateCustomPopupHeader({ header_subtitle: (e.target as HTMLInputElement).value })}
+									/>
+								</div>
+								<div>
+									<span class="te__label">Header icon (optional)</span>
+									<input
+										class="te__input"
+										type="text"
+										placeholder="mdi:home-assistant"
+										value={(customPopup.header_icon as string) ?? ''}
+										oninput={(e) => updateCustomPopupHeader({ header_icon: (e.target as HTMLInputElement).value })}
+									/>
+								</div>
+							</div>
+						</div>
+
+						<div class="te__subgroup">
+							<div class="te__subgroup-head">
+								<span class="te__section-title">Sections</span>
+								<button
+									class="te__add-btn"
+									type="button"
+									onclick={addCustomPopupSection}
+									disabled={(customPopup.sections?.length ?? 0) >= 3}
+								>
+									<Icon name="plus" size={14} />
+									<span>{(customPopup.sections?.length ?? 0) >= 3 ? 'Max 3 sections' : 'Add section'}</span>
+								</button>
+							</div>
+							<p class="te__hint">
+								Add up to 3 sections. Each section can contain entities with optional name/icon overrides.
+							</p>
+
+							{#if (customPopup.sections?.length ?? 0) === 0}
+								<p class="te__hint">No sections yet. Add your first section to start building this popup.</p>
+							{/if}
+
+							<div class="te__player-map">
+								{#each (customPopup.sections ?? []) as section, sectionIndex (section.id)}
+									<div class="te__pm-row">
+										<div class="te__pm-header">
+											<span class="te__pm-index">Section #{sectionIndex + 1}</span>
+											{#if sectionIndex > 0}
+												<button
+													class="te__icon-btn te__pm-move"
+													onclick={() => moveCustomPopupSection(sectionIndex, sectionIndex - 1)}
+													aria-label="Move section up"
+													title="Move up"
+												>
+													<Icon name="chevron-up" size={12} />
+												</button>
+											{/if}
+											{#if sectionIndex < (customPopup.sections ?? []).length - 1}
+												<button
+													class="te__icon-btn te__pm-move"
+													onclick={() => moveCustomPopupSection(sectionIndex, sectionIndex + 1)}
+													aria-label="Move section down"
+													title="Move down"
+												>
+													<Icon name="chevron-down" size={12} />
+												</button>
+											{/if}
+											<button
+												class="te__icon-btn te__icon-btn--danger te__pm-del"
+												onclick={() => removeCustomPopupSection(section.id)}
+												aria-label="Delete section"
+												title="Delete section"
+											>
+												<Icon name="trash-2" size={13} />
+											</button>
+										</div>
+
+										<span class="te__label">Section title</span>
+										<input
+											class="te__input te__input--sm"
+											type="text"
+											placeholder="Home Assistant"
+											value={section.title ?? ''}
+											oninput={(e) => updateCustomPopupSection(section.id, { title: (e.target as HTMLInputElement).value })}
+										/>
+
+										{#if section.entities.length === 0}
+											<p class="te__hint">No entities in this section yet.</p>
+										{/if}
+
+										{#each section.entities as entry (entry.id)}
+											<div class="te__pm-grid">
+												<div>
+													<span class="te__label">Entity</span>
+													<input
+														class="te__input te__input--sm"
+														type="text"
+														list="te-custom-popup-entities"
+														placeholder="sensor.current_version"
+														value={entry.entity_id}
+														oninput={(e) => updateCustomPopupEntity(section.id, entry.id, { entity_id: (e.target as HTMLInputElement).value })}
+													/>
+												</div>
+												<div>
+													<span class="te__label">Name override (optional)</span>
+													<input
+														class="te__input te__input--sm"
+														type="text"
+														placeholder="Core"
+														value={entry.name ?? ''}
+														oninput={(e) => updateCustomPopupEntity(section.id, entry.id, { name: (e.target as HTMLInputElement).value })}
+													/>
+												</div>
+												<div>
+													<span class="te__label">Icon override (optional)</span>
+													<input
+														class="te__input te__input--sm"
+														type="text"
+														placeholder="mdi:home-assistant"
+														value={entry.icon ?? ''}
+														oninput={(e) => updateCustomPopupEntity(section.id, entry.id, { icon: (e.target as HTMLInputElement).value })}
+													/>
+												</div>
+												<div class="te__row">
+													<button
+														class="te__icon-btn te__icon-btn--danger"
+														onclick={() => removeCustomPopupEntity(section.id, entry.id)}
+														aria-label="Delete entity"
+														title="Delete entity"
+													>
+														<Icon name="trash-2" size={13} />
+													</button>
+												</div>
+											</div>
+										{/each}
+
+										<button class="te__add-btn" type="button" onclick={() => addCustomPopupEntity(section.id)}>
+											<Icon name="plus" size={14} /> <span>Add entity</span>
+										</button>
+									</div>
+								{/each}
+							</div>
+
+							<datalist id="te-custom-popup-entities">
+								{#each Object.keys($entities).sort() as candidate}
+									<option value={candidate}></option>
+								{/each}
+							</datalist>
+						</div>
+					{/if}
+				</div>
+			{/if}
+
 				{#if !isChipRowSection}
 					<div class="te__group">
 						<!-- ── Visibility ───────────────────────────────────────────────────────────── -->
@@ -978,6 +1310,20 @@
 	}
 	.te__group--boxed .te__hint {
 		color: color-mix(in srgb, var(--fg) 74%, transparent);
+	}
+	.te__subgroup {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		padding-top: 10px;
+		border-top: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border));
+	}
+	.te__subgroup-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		flex-wrap: wrap;
 	}
 
 	.te__section-title {

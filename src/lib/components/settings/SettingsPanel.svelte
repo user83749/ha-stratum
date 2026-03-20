@@ -2,6 +2,7 @@
 	// ── SettingsPanel ─────────────────────────────────────────────────────────
 
 	// ── Imports ─────────────────────────────────────────────────────────────
+	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 	import ConnectionSettings from './ConnectionSettings.svelte';
 	import ThemeSettings from './ThemeSettings.svelte';
@@ -48,7 +49,45 @@
 	// ── Local State ───────────────────────────────────────────────────────────
 	const validTabIds = new Set(TABS.map((t) => t.id));
 	let activeTab = $state<TabId>('theme');
+	let tabsEl = $state<HTMLElement | null>(null);
 	let bodyEl = $state<HTMLDivElement | null>(null);
+
+	// ── Scroll Containment ───────────────────────────────────────────────────
+	function canScroll(el: HTMLElement, deltaY: number): boolean {
+		const max = el.scrollHeight - el.clientHeight;
+		if (max <= 0) return false;
+		if (deltaY < 0) return el.scrollTop > 0;
+		if (deltaY > 0) return el.scrollTop < max - 1;
+		return true;
+	}
+
+	function bindScrollContainment(el: HTMLElement) {
+		let touchStartY = 0;
+		const onWheel = (e: WheelEvent) => {
+			if (!canScroll(el, e.deltaY)) e.preventDefault();
+		};
+		const onTouchStart = (e: TouchEvent) => {
+			const touch = e.touches[0];
+			if (!touch) return;
+			touchStartY = touch.clientY;
+		};
+		const onTouchMove = (e: TouchEvent) => {
+			const touch = e.touches[0];
+			if (!touch) return;
+			const deltaY = touchStartY - touch.clientY;
+			if (!canScroll(el, deltaY)) e.preventDefault();
+		};
+
+		el.addEventListener('wheel', onWheel, { passive: false });
+		el.addEventListener('touchstart', onTouchStart, { passive: true });
+		el.addEventListener('touchmove', onTouchMove, { passive: false });
+
+		return () => {
+			el.removeEventListener('wheel', onWheel);
+			el.removeEventListener('touchstart', onTouchStart);
+			el.removeEventListener('touchmove', onTouchMove);
+		};
+	}
 
 	// ── Tab Sync ─────────────────────────────────────────────────────────────
 	$effect(() => {
@@ -88,6 +127,16 @@
 		activeTab = tabId;
 		bodyEl?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
 	}
+
+	$effect(() => {
+		if (!browser || !open) return;
+		const cleanups: Array<() => void> = [];
+		if (tabsEl) cleanups.push(bindScrollContainment(tabsEl));
+		if (bodyEl) cleanups.push(bindScrollContainment(bodyEl));
+		return () => {
+			for (const cleanup of cleanups) cleanup();
+		};
+	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -101,10 +150,24 @@
 	></div>
 
 	<!-- ── Panel ────────────────────────────────────────────────────────── -->
-	<div class="sp" aria-label="Settings" role="dialog" aria-modal="true" tabindex="-1">
+	<div
+		class="sp"
+		aria-label="Settings"
+		role="dialog"
+		aria-modal="true"
+		tabindex="-1"
+		onwheel={(e) => {
+			const target = e.target as Element | null;
+			if (!target?.closest('.sp__tabs, .sp__body')) e.preventDefault();
+		}}
+		ontouchmove={(e) => {
+			const target = e.target as Element | null;
+			if (!target?.closest('.sp__tabs, .sp__body')) e.preventDefault();
+		}}
+	>
 
 		<!-- ── Tab Sidebar ───────────────────────────────────────────────── -->
-		<nav class="sp__tabs" aria-label="Settings sections">
+		<nav class="sp__tabs" aria-label="Settings sections" bind:this={tabsEl}>
 			<div class="sp__tabs-header">
 				<button
 					class="sp__tab sp__tab--close"

@@ -15,6 +15,7 @@
 	import ClimateMoreInfo from './ClimateMoreInfo.svelte';
 	import CounterMoreInfo from './CounterMoreInfo.svelte';
 	import CoverMoreInfo from './CoverMoreInfo.svelte';
+	import CustomPopupMoreInfo from './CustomPopupMoreInfo.svelte';
 	import DateTimeMoreInfo from './DateTimeMoreInfo.svelte';
 	import LightMoreInfo from './LightMoreInfo.svelte';
 	import FanMoreInfo from './FanMoreInfo.svelte';
@@ -74,6 +75,12 @@
 		return null;
 	});
 	const title = $derived.by(() => {
+		const customPopupEnabled = (selectedTile?.config?.custom_popup as { enabled?: boolean } | undefined)?.enabled === true;
+		if (customPopupEnabled) {
+			const customTitle = ((selectedTile?.config?.custom_popup as { header_title?: string } | undefined)?.header_title ?? '').trim();
+			if (customTitle) return customTitle;
+		}
+
 		// For update.* entity detail dialogs, keep the shell header generic.
 		// The content area already shows the entity name + status.
 		if (entityId.startsWith('update.')) return 'Details';
@@ -87,6 +94,10 @@
 	// ── Domain Routing ────────────────────────────────────────────────────────
 
 	const domain = $derived(entityId ? getDomain(entityId) : '');
+	const customPopupEnabled = $derived(
+		(selectedTile?.config?.custom_popup as { enabled?: boolean; sections?: unknown[] } | undefined)?.enabled === true &&
+		(((selectedTile?.config?.custom_popup as { sections?: unknown[] } | undefined)?.sections?.length ?? 0) > 0)
+	);
 	const shellVariant = $derived(domain === 'camera' ? 'camera' : 'default');
 
 	// TV detection: device_class first, then media_content_type as fallback
@@ -121,7 +132,9 @@
 	canBack={canBack}
 	onback={back}
 >
-	{#if tileType === 'map' && selectedTile}
+	{#if customPopupEnabled && selectedTile}
+		<CustomPopupMoreInfo {entityId} tile={selectedTile} />
+	{:else if tileType === 'map' && selectedTile}
 		<MapTileMoreInfo tile={selectedTile} {entity} />
 	{:else if (tileType === 'history' || tileType === 'gauge' || tileType === 'statistic') && selectedTile}
 		<GraphTileMoreInfo tile={selectedTile} {entity} mode={tileType} />

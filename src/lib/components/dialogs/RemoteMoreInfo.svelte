@@ -63,11 +63,11 @@
 				<Icon name="power" size={18} />
 				<span>{state === 'off' ? 'Power On' : 'Power Off'}</span>
 			</button>
-			<button class="rmi__btn" onclick={() => send('home')} disabled={isUnavail}>
+			<button class="rmi__btn" onclick={() => send('Home')} disabled={isUnavail}>
 				<Icon name="house" size={18} />
 				<span>Home</span>
 			</button>
-			<button class="rmi__btn" onclick={() => send('back')} disabled={isUnavail}>
+			<button class="rmi__btn" onclick={() => send('Return')} disabled={isUnavail}>
 				<Icon name="undo-2" size={18} />
 				<span>Back</span>
 			</button>
@@ -77,11 +77,11 @@
 		<div class="rmi__section">
 			<div class="rmi__label">Navigation</div>
 			<div class="rmi__dpad">
-				<button class="rmi__dpad-btn rmi__dpad-btn--up" onclick={() => send('up')} disabled={isUnavail}><Icon name="chevron-up" size={20} /></button>
-				<button class="rmi__dpad-btn rmi__dpad-btn--left" onclick={() => send('left')} disabled={isUnavail}><Icon name="chevron-left" size={20} /></button>
-				<button class="rmi__dpad-center" onclick={() => send('select')} disabled={isUnavail}>OK</button>
-				<button class="rmi__dpad-btn rmi__dpad-btn--right" onclick={() => send('right')} disabled={isUnavail}><Icon name="chevron-right" size={20} /></button>
-				<button class="rmi__dpad-btn rmi__dpad-btn--down" onclick={() => send('down')} disabled={isUnavail}><Icon name="chevron-down" size={20} /></button>
+				<button class="rmi__dpad-btn rmi__dpad-btn--up" onclick={() => send('CursorUp')} disabled={isUnavail}><Icon name="chevron-up" size={20} /></button>
+				<button class="rmi__dpad-btn rmi__dpad-btn--left" onclick={() => send('CursorLeft')} disabled={isUnavail}><Icon name="chevron-left" size={20} /></button>
+				<button class="rmi__dpad-center" onclick={() => send('DpadCenter')} disabled={isUnavail}>OK</button>
+				<button class="rmi__dpad-btn rmi__dpad-btn--right" onclick={() => send('CursorRight')} disabled={isUnavail}><Icon name="chevron-right" size={20} /></button>
+				<button class="rmi__dpad-btn rmi__dpad-btn--down" onclick={() => send('CursorDown')} disabled={isUnavail}><Icon name="chevron-down" size={20} /></button>
 			</div>
 		</div>
 

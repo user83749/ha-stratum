@@ -15,6 +15,15 @@
 	// ── Derived State ─────────────────────────────────────────────────────────
 	const tvRemoteEntities = $derived((tile?.config.tv_remote_entities as Record<string, string> | undefined) ?? {});
 	const optimisticPreviewEnabled = false;
+	const remoteCommandMap: Partial<Record<TvRemoteCommand, string>> = {
+		home: 'Home',
+		back: 'Return',
+		up: 'CursorUp',
+		down: 'CursorDown',
+		left: 'CursorLeft',
+		right: 'CursorRight',
+		select: 'DpadCenter'
+	};
 	function resolveTarget(cmd: TvRemoteCommand): string {
 		return resolveTvCommandEntityId(cmd, entityId, tvRemoteEntities, $optimisticEntities);
 	}
@@ -60,7 +69,8 @@
 
 		// If this is a remote.* entity, send navigation/rocker commands.
 		if (domain === 'remote') {
-			remoteService.sendCommand(targetId, [cmd]).catch(() => {});
+			const remoteCommand = remoteCommandMap[cmd] ?? cmd;
+			remoteService.sendCommand(targetId, [remoteCommand]).catch(() => {});
 			return;
 		}
 

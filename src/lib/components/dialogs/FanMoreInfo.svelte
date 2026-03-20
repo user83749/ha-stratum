@@ -235,6 +235,9 @@
 	.fmi {
 		display: flex;
 		flex-direction: column;
+		height: 100%;
+		overflow-y: auto;
+		overscroll-behavior: contain;
 	}
 
 	/* ── Hero ───────────────────────────────────────────────────────────────── */
@@ -242,7 +245,7 @@
 		display: flex;
 		align-items: center;
 		gap: 16px;
-		padding: 24px 20px 20px;
+		padding: 20px 20px 16px;
 		border-bottom: 1px solid var(--border);
 	}
 
@@ -349,12 +352,14 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 10px;
-		padding: 34px 20px 18px;
+		padding: 20px 20px 12px;
+		flex: 1;
+		min-height: 0;
 	}
 	.fmi__dimmer {
 		position: relative;
 		width: 92px;
-		height: clamp(300px, 56vh, 500px);
+		height: clamp(200px, 40vh, 340px);
 		border-radius: var(--dialog-radius);
 		background: var(--active);
 		border: 1.5px solid var(--border);

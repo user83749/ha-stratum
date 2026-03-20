@@ -206,6 +206,27 @@ export interface CameraFeedConfig {
 	popup_trigger_state?: string;
 }
 
+export interface CustomPopupSectionEntityConfig {
+	id: string;
+	entity_id: string;
+	name?: string;
+	icon?: string;
+}
+
+export interface CustomPopupSectionConfig {
+	id: string;
+	title?: string;
+	entities: CustomPopupSectionEntityConfig[];
+}
+
+export interface CustomPopupConfig {
+	enabled?: boolean;
+	header_title?: string;
+	header_subtitle?: string;
+	header_icon?: string;
+	sections?: CustomPopupSectionConfig[];
+}
+
 export interface TileConfig {
 	// ── Universal display overrides ───────────────────────────────────────────
 	name?: string;                // override entity friendly_name
@@ -313,6 +334,9 @@ export interface TileConfig {
 	popup_trigger_entity?: string;
 	popup_trigger_state?: string;
 	popup_auto_close_time?: number;
+
+	// ── Custom popup ─────────────────────────────────────────────────────────
+	custom_popup?: CustomPopupConfig;
 
 	// ── Vacuum ───────────────────────────────────────────────────────────────
 	show_vacuum_map?: boolean;
@@ -1284,6 +1308,11 @@ function migrateTileV5(raw: unknown): Tile {
 	const rawType = typeof t.type === 'string' ? t.type : 'entity';
 	const normalizedType = rawType === 'clock' ? 'divider' : rawType;
 
+	const config = { ...(t.config ?? {}) };
+	const normalizedCustomPopup = normalizeCustomPopupConfig(config.custom_popup);
+	if (normalizedCustomPopup) config.custom_popup = normalizedCustomPopup;
+	else delete config.custom_popup;
+
 	return {
 		id: t.id ?? generateId(),
 		type: normalizedType as TileType,
@@ -1294,7 +1323,58 @@ function migrateTileV5(raw: unknown): Tile {
 		visibility: t.visibility ?? { ...VISIBLE_ALL },
 		conditions: t.conditions,
 		badges: t.badges,
-		config: t.config ?? {}
+		config
+	};
+}
+
+function normalizeCustomPopupConfig(raw: unknown): CustomPopupConfig | undefined {
+	if (!raw || typeof raw !== 'object') return undefined;
+	const cfg = raw as Record<string, unknown>;
+
+	const sectionsRaw = Array.isArray(cfg.sections) ? cfg.sections : [];
+	const sections = sectionsRaw
+		.slice(0, 3)
+		.map((section): CustomPopupSectionConfig | null => {
+			if (!section || typeof section !== 'object') return null;
+			const sec = section as Record<string, unknown>;
+			const entitiesRaw = Array.isArray(sec.entities) ? sec.entities : [];
+			const entities = entitiesRaw
+				.map((entry): CustomPopupSectionEntityConfig | null => {
+					if (!entry || typeof entry !== 'object') return null;
+					const item = entry as Record<string, unknown>;
+					const entityId = String(item.entity_id ?? '').trim();
+					if (!entityId) return null;
+					const name = String(item.name ?? '').trim();
+					const icon = String(item.icon ?? '').trim();
+					return {
+						id: String(item.id ?? generateId()),
+						entity_id: entityId,
+						name: name || undefined,
+						icon: icon || undefined
+					};
+				})
+				.filter((entry): entry is CustomPopupSectionEntityConfig => !!entry);
+			return {
+				id: String(sec.id ?? generateId()),
+				title: String(sec.title ?? '').trim() || undefined,
+				entities
+			};
+		})
+		.filter((section): section is CustomPopupSectionConfig => !!section);
+
+	const enabled = cfg.enabled === true;
+	const headerTitle = String(cfg.header_title ?? '').trim();
+	const headerSubtitle = String(cfg.header_subtitle ?? '').trim();
+	const headerIcon = String(cfg.header_icon ?? '').trim();
+	const hasContent = sections.length > 0 || headerTitle.length > 0 || headerSubtitle.length > 0 || headerIcon.length > 0;
+	if (!enabled && !hasContent) return undefined;
+
+	return {
+		enabled: enabled || undefined,
+		header_title: headerTitle || undefined,
+		header_subtitle: headerSubtitle || undefined,
+		header_icon: headerIcon || undefined,
+		sections
 	};
 }
 

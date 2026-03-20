@@ -26,6 +26,8 @@
 	let dismissedAlertEntityIds = $state<string[]>([]);
 	let clearInfoMessage = $state('');
 	let windowWidth = $state(1280);
+	let contentEl = $state<HTMLDivElement | null>(null);
+	let touchStartY = 0;
 
 	$effect(() => {
 		if (!browser) return;
@@ -81,6 +83,49 @@
 	const nonClearableAlertCount = $derived(visibleAlertItems.length - clearableAlertEntities.length);
 
 	const totalCount = $derived((notifCfg.showPersistent ? persistentNotifs.length : 0) + (notifCfg.showAlerts ? visibleAlertItems.length : 0));
+
+	function canScroll(el: HTMLElement, deltaY: number): boolean {
+		const max = el.scrollHeight - el.clientHeight;
+		if (max <= 0) return false;
+		if (deltaY < 0) return el.scrollTop > 0;
+		if (deltaY > 0) return el.scrollTop < max - 1;
+		return true;
+	}
+
+	function handleContentWheel(e: WheelEvent) {
+		const el = contentEl;
+		if (!el) return;
+		if (!canScroll(el, e.deltaY)) e.preventDefault();
+	}
+
+	function handleContentTouchStart(e: TouchEvent) {
+		const t = e.touches[0];
+		if (!t) return;
+		touchStartY = t.clientY;
+	}
+
+	function handleContentTouchMove(e: TouchEvent) {
+		const el = contentEl;
+		if (!el) return;
+		const t = e.touches[0];
+		if (!t) return;
+		const deltaY = touchStartY - t.clientY;
+		if (!canScroll(el, deltaY)) e.preventDefault();
+	}
+
+	$effect(() => {
+		if (!browser || !open) return;
+		const el = contentEl;
+		if (!el) return;
+		el.addEventListener('wheel', handleContentWheel, { passive: false });
+		el.addEventListener('touchstart', handleContentTouchStart, { passive: true });
+		el.addEventListener('touchmove', handleContentTouchMove, { passive: false });
+		return () => {
+			el.removeEventListener('wheel', handleContentWheel);
+			el.removeEventListener('touchstart', handleContentTouchStart);
+			el.removeEventListener('touchmove', handleContentTouchMove);
+		};
+	});
 
 	$effect(() => {
 		// Keep dismissals only for currently-active alerts.
@@ -161,6 +206,14 @@
 	class:np-panel--mobile-nav={mobileNavContext}
 	aria-label="Notifications"
 	aria-hidden={!open}
+	onwheel={(e) => {
+		const t = e.target as Element | null;
+		if (!t?.closest('.np-content')) e.preventDefault();
+	}}
+	ontouchmove={(e) => {
+		const t = e.target as Element | null;
+		if (!t?.closest('.np-content')) e.preventDefault();
+	}}
 >
 	<!-- Header -->
 		<div class="np-header">
@@ -186,7 +239,7 @@
 		</div>
 
 	<!-- Content -->
-	<div class="np-content">
+	<div class="np-content" bind:this={contentEl}>
 		{#if !notifCfg.enabled}
 			<div class="np-empty">
 				<Icon name="bell-off" size={20} />

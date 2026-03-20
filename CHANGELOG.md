@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.16] - 2026-03-20
+
+### Added
+- **Custom Popup Engine**: Introduced a complete system for designing bespoke, section-based popups. Features include configurable headers (title/subtitle/icon) and categorized entity rows, manageable directly within the tile editor.
+- **Enhanced Mobile Stability**: Implemented a sophisticated "overscroll lock" mechanism for overlay panels (Settings, Notifications), preventing accidental background scrolling and "bounce" effects on mobile browsers.
+
+### Changed
+- **Dialog Architecture**: Refactored `MoreInfoDialog` and specialized sub-dialogs (`Fan`, `Tv`, `Remote`) to seamlessly integrate the new custom popup overrides.
+- **Performance & Fixes**: 
+  - Optimized touch and wheel interpolation in side panels for rock-solid modal behavior.
+  - Finalized `entitiesDelta` integration for lightweight state updates.
+  - Updated core dependencies including Tailwind CSS, Svelte, and Vite.
+
 ## [1.1.15] - 2026-03-18
 
 ### Added
