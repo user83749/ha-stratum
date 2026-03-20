@@ -113,7 +113,90 @@
 		(selectedTile?.config?.custom_popup as { enabled?: boolean; sections?: unknown[] } | undefined)?.enabled === true &&
 		customPopupHasRenderableSections
 	);
-	const shellVariant = $derived(domain === 'camera' ? 'camera' : 'default');
+	const customPopupDesktopWidth = $derived.by(() => {
+		if (!customPopupEnabled || !selectedTile) return undefined;
+		const sections = (selectedTile.config?.custom_popup as { sections?: unknown[] } | undefined)?.sections;
+		if (!Array.isArray(sections)) return undefined;
+
+		let longestText = 0;
+		let renderableSections = 0;
+		for (const section of sections) {
+			if (!section || typeof section !== 'object') continue;
+			const sec = section as { title?: unknown; entities?: unknown[] };
+			const title = String(sec.title ?? '').trim();
+			longestText = Math.max(longestText, title.length);
+
+			const entities = Array.isArray(sec.entities) ? sec.entities : [];
+			let hasEntity = false;
+			for (const entry of entities) {
+				if (!entry || typeof entry !== 'object') continue;
+				const e = entry as { entity_id?: unknown; name?: unknown };
+				const entityId = String(e.entity_id ?? '').trim();
+				if (!entityId) continue;
+				hasEntity = true;
+				const label = String(e.name ?? '').trim() || entityId;
+				longestText = Math.max(longestText, label.length);
+			}
+
+			if (hasEntity || title.length > 0) renderableSections++;
+		}
+
+		const cols = Math.max(1, Math.min(3, renderableSections || 1));
+		const textDriven = 340 + Math.max(0, longestText - 16) * 4.5;
+		const perColumn = Math.max(360, Math.min(560, textDriven));
+		const edgePadding = 64;
+		const interColumnAllowance = cols > 1 ? (cols - 1) * 28 : 0;
+		const computed = cols * perColumn + edgePadding + interColumnAllowance;
+		const maxWidth = cols === 1 ? 860 : cols === 2 ? 1260 : 1540;
+		return Math.max(560, Math.min(maxWidth, computed));
+	});
+	const customPopupDesktopHeight = $derived.by(() => {
+		if (!customPopupEnabled || !selectedTile) return undefined;
+		const customPopup = selectedTile.config?.custom_popup as {
+			sections?: unknown[];
+			header_title?: string;
+			header_subtitle?: string;
+			header_icon?: string;
+		} | undefined;
+		const sections = customPopup?.sections;
+		if (!Array.isArray(sections)) return undefined;
+
+		const hasHeader =
+			String(customPopup?.header_title ?? '').trim().length > 0 ||
+			String(customPopup?.header_subtitle ?? '').trim().length > 0 ||
+			String(customPopup?.header_icon ?? '').trim().length > 0;
+
+		let maxEntitiesInSection = 0;
+		let longestHasTitle = false;
+
+		for (const section of sections) {
+			if (!section || typeof section !== 'object') continue;
+			const sec = section as { title?: unknown; entities?: unknown[] };
+			const title = String(sec.title ?? '').trim();
+			const entities = Array.isArray(sec.entities) ? sec.entities : [];
+			const validEntities = entities.filter((entry) => {
+				if (!entry || typeof entry !== 'object') return false;
+				return String((entry as { entity_id?: unknown }).entity_id ?? '').trim().length > 0;
+			});
+			if (validEntities.length > maxEntitiesInSection) {
+				maxEntitiesInSection = validEntities.length;
+				longestHasTitle = title.length > 0;
+			}
+		}
+
+		const rows = Math.max(1, maxEntitiesInSection);
+		const headerHeight = hasHeader ? 72 : 14;
+		const sectionTitleHeight = longestHasTitle ? 26 : 0;
+		const rowsHeight = rows * 50 + Math.max(0, rows - 1) * 8;
+		const verticalPadding = 56;
+		const computed = headerHeight + sectionTitleHeight + rowsHeight + verticalPadding;
+		return Math.max(360, Math.min(780, computed));
+	});
+	const shellVariant = $derived.by(() => {
+		if (customPopupEnabled) return 'custom';
+		if (domain === 'camera') return 'camera';
+		return 'default';
+	});
 
 	// TV detection: device_class first, then media_content_type as fallback
 	const TV_CONTENT_TYPES = new Set(['tvshow', 'video', 'movie', 'episode', 'channel']);
@@ -143,6 +226,8 @@
 	{side}
 	{title}
 	variant={shellVariant}
+	customDesktopWidth={customPopupDesktopWidth}
+	customDesktopHeight={customPopupDesktopHeight}
 	onclose={close}
 	canBack={canBack}
 	onback={back}

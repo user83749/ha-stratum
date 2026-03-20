@@ -54,17 +54,22 @@
 
 	const sections = $derived(normalizeSections(popupCfg?.sections));
 	const multiSectionDesktop = $derived(!isMobile && sections.length > 1);
+	const desktopSectionColumns = $derived.by(() => {
+		if (isMobile) return 1;
+		return Math.max(1, Math.min(3, sections.length));
+	});
 
 	// ── Header ────────────────────────────────────────────────────────────────
 	const sourceEntity = $derived($optimisticEntities[entityId] ?? null);
-	const headerTitle = $derived(
-		(popupCfg?.header_title ?? '').trim()
-			|| (tile?.config?.name as string | undefined)?.trim()
-			|| (sourceEntity ? getEntityName(sourceEntity) : entityId)
-	);
+	const configuredHeaderTitle = $derived((popupCfg?.header_title ?? '').trim());
 	const headerSubtitle = $derived((popupCfg?.header_subtitle ?? '').trim());
+	const configuredHeaderIcon = $derived((popupCfg?.header_icon ?? '').trim());
+	const showHeader = $derived(
+		configuredHeaderTitle.length > 0 || headerSubtitle.length > 0 || configuredHeaderIcon.length > 0
+	);
+	const headerTitle = $derived(configuredHeaderTitle);
 	const headerIcon = $derived(
-		(popupCfg?.header_icon ?? '').trim()
+		configuredHeaderIcon
 			|| ((tile?.config?.icon as string | undefined)?.trim() ?? '')
 			|| (sourceEntity ? getEntityIcon(sourceEntity) : 'layout-grid')
 	);
@@ -99,17 +104,21 @@
 
 <div class="cpm">
 	<!-- ── Header ───────────────────────────────────────────────────────────── -->
-	<div class="cpm__header">
-		<div class="cpm__header-icon">
-			<Icon name={headerIcon} entity={sourceEntity} size={22} />
+	{#if showHeader}
+		<div class="cpm__header">
+			<div class="cpm__header-icon">
+				<Icon name={headerIcon} entity={sourceEntity} size={22} />
+			</div>
+			<div class="cpm__header-copy">
+				{#if headerTitle}
+					<div class="cpm__header-title">{headerTitle}</div>
+				{/if}
+				{#if headerSubtitle}
+					<div class="cpm__header-subtitle">{headerSubtitle}</div>
+				{/if}
+			</div>
 		</div>
-		<div class="cpm__header-copy">
-			<div class="cpm__header-title">{headerTitle}</div>
-			{#if headerSubtitle}
-				<div class="cpm__header-subtitle">{headerSubtitle}</div>
-			{/if}
-		</div>
-	</div>
+	{/if}
 
 	<!-- ── Sections ─────────────────────────────────────────────────────────── -->
 	{#if sections.length === 0}
@@ -118,7 +127,11 @@
 			<span>No custom sections configured.</span>
 		</div>
 	{:else}
-		<div class="cpm__sections" class:cpm__sections--desktop={multiSectionDesktop}>
+		<div
+			class="cpm__sections"
+			class:cpm__sections--desktop={multiSectionDesktop}
+			style={!isMobile ? `--cpm-desktop-columns: ${desktopSectionColumns};` : undefined}
+		>
 			{#each sections as section, i (section.id)}
 				<section class="cpm__section" class:cpm__section--desktop={multiSectionDesktop} class:cpm__section--divided={i > 0}>
 					{#if section.title}
@@ -205,6 +218,11 @@
 	}
 
 	/* ── Sections Layout ────────────────────────────────────────────────────── */
+	.cpm {
+		--cpm-desktop-spacing: 24px;
+		--cpm-divider-inset-mobile: 34px;
+		--cpm-divider-inset-desktop: 30px;
+	}
 	.cpm__sections {
 		flex: 1;
 		min-height: 0;
@@ -212,33 +230,56 @@
 		flex-direction: column;
 		overflow: hidden;
 	}
+	.cpm__sections:not(.cpm__sections--desktop) {
+		gap: 10px;
+		padding-bottom: 10px;
+	}
 	.cpm__sections--desktop {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+		grid-template-columns: repeat(var(--cpm-desktop-columns, 2), minmax(0, 1fr));
+		padding: 0 0 16px;
 	}
 
 	.cpm__section {
 		display: flex;
 		flex-direction: column;
 		min-height: 0;
-		padding: 12px 14px;
-	}
-	.cpm__sections:not(.cpm__sections--desktop) .cpm__section {
-		flex: 1 1 0;
-	}
-	.cpm__section--desktop {
 		padding: 14px 12px;
 	}
+	.cpm__sections:not(.cpm__sections--desktop) .cpm__section {
+		flex: 0 0 auto;
+	}
+	.cpm__section--desktop {
+		padding: 14px var(--cpm-desktop-spacing);
+	}
 	.cpm__section--divided {
-		border-top: 1px solid var(--border);
+		position: relative;
+	}
+	.cpm__section--divided::before {
+		content: '';
+		position: absolute;
+		pointer-events: none;
+	}
+	.cpm__sections:not(.cpm__sections--desktop) .cpm__section--divided::before {
+		left: var(--cpm-divider-inset-mobile);
+		right: var(--cpm-divider-inset-mobile);
+		top: 0;
+		height: 1px;
+		background: var(--border);
 	}
 	.cpm__section--desktop.cpm__section--divided {
 		border-top: none;
-		border-left: 1px solid var(--border);
+	}
+	.cpm__section--desktop.cpm__section--divided::before {
+		left: 0;
+		top: var(--cpm-divider-inset-desktop);
+		bottom: var(--cpm-divider-inset-desktop);
+		width: 1px;
+		background: var(--border);
 	}
 	.cpm__section-title {
 		margin: 0 0 8px;
-		font-size: 0.73rem;
+		font-size: 0.86rem;
 		font-weight: 700;
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
@@ -300,8 +341,12 @@
 		.cpm__header {
 			padding: 14px 14px 12px;
 		}
+		.cpm__sections:not(.cpm__sections--desktop) {
+			gap: 22px;
+			padding: 0 18px 16px;
+		}
 		.cpm__section {
-			padding: 10px 12px;
+			padding: 16px 16px;
 		}
 		.cpm__row {
 			padding: 9px;

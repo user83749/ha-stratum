@@ -241,13 +241,11 @@
 	}
 	.ha-header__btn--notif-active {
 		color: var(--fg);
-		background-color: color-mix(in srgb, var(--fg) 14%, var(--bg-elevated));
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 18%, transparent);
+		background-color: var(--hover);
 	}
 	.ha-header__btn--notif-active:hover {
 		color: var(--fg);
-		background-color: color-mix(in srgb, var(--fg) 18%, var(--bg-elevated));
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 24%, transparent);
+		background-color: var(--active);
 	}
 	.ha-header__notif-badge {
 		position: absolute;
@@ -263,7 +261,6 @@
 		font-weight: 700;
 		line-height: 16px;
 		text-align: center;
-		border: 1px solid color-mix(in srgb, var(--bg-elevated) 85%, transparent);
 	}
 
 	/* ── Search pill ─────────────────────────────────────────────────────── */

@@ -28,7 +28,9 @@
 		style?:    MoreInfoStyle;  // 'modal' | 'drawer' | 'panel'
 		side?:     DrawerSide;     // 'right' | 'left' | 'bottom'  (drawer only)
 		title?:    string;
-		variant?:  'default' | 'camera';
+		variant?:  'default' | 'camera' | 'custom';
+		customDesktopWidth?: number;
+		customDesktopHeight?: number;
 		children:  Snippet;
 	}
 
@@ -41,6 +43,8 @@
 		side   = 'right',
 		title  = '',
 		variant = 'default',
+		customDesktopWidth = undefined,
+		customDesktopHeight = undefined,
 		children
 	}: Props = $props();
 
@@ -368,6 +372,24 @@
 	const isModal  = $derived(style === 'modal');
 	const isPanel  = $derived(style === 'panel');
 	const isCameraDesktop = $derived(variant === 'camera' && !isSheet && !isPanel);
+	const isCustomDesktop = $derived(variant === 'custom' && !isSheet && !isPanel);
+	const customDesktopWidthPx = $derived.by(() => {
+		const n = Number(customDesktopWidth);
+		if (!Number.isFinite(n)) return undefined;
+		return Math.max(560, Math.min(1540, Math.round(n)));
+	});
+	const customDesktopHeightPx = $derived.by(() => {
+		const n = Number(customDesktopHeight);
+		if (!Number.isFinite(n)) return undefined;
+		return Math.max(360, Math.min(780, Math.round(n)));
+	});
+	const panelInlineStyle = $derived.by(() => {
+		const parts: string[] = [];
+		if (isSheet) parts.push(`--sheet-drag: ${dragY}px`);
+		if (isCustomDesktop && customDesktopWidthPx) parts.push(`--custom-desktop-width: ${customDesktopWidthPx}px`);
+		if (isCustomDesktop && customDesktopHeightPx) parts.push(`--custom-desktop-height: ${customDesktopHeightPx}px`);
+		return parts.length > 0 ? parts.join('; ') : undefined;
+	});
 </script>
 
 {#if visible}
@@ -396,6 +418,7 @@
 		class:moreinfo-panel--panel={isPanel}
 			class:moreinfo-panel--sheet={isSheet}
 			class:moreinfo-panel--camera-desktop={isCameraDesktop}
+			class:moreinfo-panel--custom-desktop={isCustomDesktop}
 			class:moreinfo-panel--closing={closing}
 			class:moreinfo-panel--dragging={dragging}
 		role="dialog"
@@ -430,7 +453,7 @@
 			endSheetDrag();
 		}}
 		bind:this={panelEl}
-		style={isSheet ? `--sheet-drag: ${dragY}px;` : undefined}
+		style={panelInlineStyle}
 	>
 			<!-- Header -->
 			<div class="moreinfo-header">
@@ -681,6 +704,32 @@
 
 	@starting-style {
 		.moreinfo-panel--camera-desktop {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.96) !important;
+		}
+	}
+
+	/* ── Custom desktop popup variant (keeps mobile sheet unchanged) ───────── */
+	.moreinfo-panel--custom-desktop {
+		top: 50% !important;
+		left: 50% !important;
+		right: auto !important;
+		bottom: auto !important;
+		transform: translate(-50%, -50%) !important;
+		width: min(var(--custom-desktop-width, 1280px), 96dvw) !important;
+		height: min(var(--custom-desktop-height, 780px), 86dvh) !important;
+		max-height: 88dvh;
+		border: 1px solid var(--border) !important;
+		border-radius: var(--dialog-radius, var(--radius-lg)) !important;
+		box-shadow: var(--shadow-lg) !important;
+	}
+
+	.moreinfo-panel--custom-desktop.moreinfo-panel--closing {
+		transform: translate(-50%, -50%) scale(0.985) !important;
+	}
+
+	@starting-style {
+		.moreinfo-panel--custom-desktop {
 			opacity: 0;
 			transform: translate(-50%, -50%) scale(0.96) !important;
 		}

@@ -350,14 +350,19 @@
 								<div class="page-view__content">
 									{#if !editing}
 										<div class="page-view__actions">
-											<button class="page-view__btn page-view__btn--notif" onclick={() => uiStore.toggleNotifications()} title="Notifications">
-												<Icon name="bell" size={18} />
-												{#if alertCount > 0}
-													<span class="page-view__notif-badge" aria-label={`${alertCount} alerts`}>
-														{alertCount > 99 ? '99+' : alertCount}
-													</span>
-												{/if}
-											</button>
+										<button
+											class="page-view__btn page-view__btn--notif"
+											class:page-view__btn--notif-active={alertCount > 0}
+											onclick={() => uiStore.toggleNotifications()}
+											title="Notifications"
+										>
+											<Icon name="bell" size={18} />
+											{#if alertCount > 0}
+												<span class="page-view__notif-badge" aria-label={`${alertCount} alerts`}>
+													{alertCount > 99 ? '99+' : alertCount}
+												</span>
+											{/if}
+										</button>
 											<button class="page-view__btn" onclick={() => editMode.toggle()} title="Edit dashboard">
 												<Icon name="pencil" size={18} />
 											</button>
@@ -654,6 +659,14 @@
 	}
 	.page-view__btn--notif {
 		position: relative;
+	}
+	.page-view__btn--notif-active {
+		opacity: 1;
+		color: var(--fg);
+		background-color: var(--hover);
+	}
+	.page-view__btn--notif-active:hover {
+		background-color: var(--active);
 	}
 	.page-view__notif-badge {
 		position: absolute;

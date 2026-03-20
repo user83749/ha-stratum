@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.1.18] - 2026-03-20
+
+### Added
+- **Custom Popup Enhancements**: 
+  - Overhauled the `CustomPopupMoreInfo` layout with a dynamic column-based grid system (up to 3 columns) and a cleaner responsive hierarchy.
+  - Implemented sophisticated section dividers with consistent inset spacing for both desktop and mobile views.
+  - Added conditional header rendering to maximize vertical space when titles are not configured.
+
+### Fixed
+- **Camera Auto-Popup Engine**: 
+  - Implemented high-fidelity state normalization to ensure trigger detection works flawlessly across all Home Assistant entity types (handling case-sensitivity and whitespace).
+  - Added a fallback entity resolver to prevent popup failures when the primary tile entity is not present.
+- **UI Consistency**: Synchronized the notification bell's active background and hover states between the `AppHeader` and the `PageView` mobile dock.
+
+### Changed
+- **Dialog Core**: Refined the lifecycle of the `MoreInfoShell` to ensure clean mounting and unmounting of floating popup elements.
+
 ## [1.1.17] - 2026-03-20
 
 ### Fixed

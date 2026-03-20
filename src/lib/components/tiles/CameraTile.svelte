@@ -119,6 +119,16 @@
 		return $liveEntities[entityId]?.state;
 	}
 
+	function normalizedState(value: unknown): string {
+		return String(value ?? '').trim().toLowerCase();
+	}
+
+	function fallbackEntityFeedId(): string {
+		const feeds = (tile.config.camera_feeds as CameraFeedConfig[] | undefined) ?? [];
+		const entityFeed = feeds.find((feed) => feed.type !== 'url' && String(feed.entity_id ?? '').trim().length > 0);
+		return String(entityFeed?.entity_id ?? '').trim();
+	}
+
 	$effect(() => {
 		return () => {
 			clearAutoCloseTimer();
@@ -141,22 +151,24 @@
 		// 1. Check Main Tile Trigger
 		const mainTriggerId = String(tile.config.popup_trigger_entity ?? '').trim();
 		const mainTargetState = String(tile.config.popup_trigger_state ?? '').trim();
-		const mainDialogEntityId = String(entity?.entity_id ?? tile.entity_id ?? '').trim();
+		const normalizedMainTargetState = normalizedState(mainTargetState);
+		const mainDialogEntityId = String(entity?.entity_id ?? tile.entity_id ?? fallbackEntityFeedId()).trim();
 
-		if (mainTriggerId && mainTargetState) {
+		if (mainTriggerId && normalizedMainTargetState) {
 			const mainKey = `${mainTriggerId}::${mainTargetState}`;
 			const mainEntityState = triggerState(mainTriggerId);
 			if (mainEntityState !== undefined) {
+				const normalizedMainEntityState = normalizedState(mainEntityState);
 				if (
 					previousMainTriggerKey === mainKey &&
 					previousMainTriggerState !== undefined &&
-					previousMainTriggerState !== mainEntityState &&
-					mainEntityState === mainTargetState
+					previousMainTriggerState !== normalizedMainEntityState &&
+					normalizedMainEntityState === normalizedMainTargetState
 				) {
 					openAutoPopup(mainDialogEntityId, undefined);
 				}
 				previousMainTriggerKey = mainKey;
-				previousMainTriggerState = mainEntityState;
+				previousMainTriggerState = normalizedMainEntityState;
 			}
 		} else {
 			previousMainTriggerKey = undefined;
@@ -170,9 +182,10 @@
 		for (const feed of feeds) {
 			const triggerEntityId = String(feed.popup_trigger_entity ?? '').trim();
 			const targetState = String(feed.popup_trigger_state ?? '').trim();
-			const feedDialogEntityId = String(entity?.entity_id ?? tile.entity_id ?? feed.entity_id ?? '').trim();
+			const normalizedFeedTargetState = normalizedState(targetState);
+			const feedDialogEntityId = String(entity?.entity_id ?? tile.entity_id ?? feed.entity_id ?? fallbackEntityFeedId()).trim();
 
-			if (!triggerEntityId || !targetState) {
+			if (!triggerEntityId || !normalizedFeedTargetState) {
 				// No trigger configured — preserve any existing snapshot so it isn't lost
 				const existing = previousFeedTriggerStates[feed.id];
 				if (existing) nextFeedTriggerStates[feed.id] = existing;
@@ -186,6 +199,7 @@
 				if (existing) nextFeedTriggerStates[feed.id] = existing;
 				continue;
 			}
+			const normalizedEntityState = normalizedState(entityState);
 
 			const key = `${triggerEntityId}::${targetState}`;
 			const prev = previousFeedTriggerStates[feed.id];
@@ -194,14 +208,14 @@
 			if (
 				prev &&
 				prev.key === key &&
-				prev.state !== entityState &&
-				entityState === targetState
+				prev.state !== normalizedEntityState &&
+				normalizedEntityState === normalizedFeedTargetState
 			) {
 				openAutoPopup(feedDialogEntityId, feed.id);
 			}
 
 			// Store current state for next cycle
-			nextFeedTriggerStates[feed.id] = { key, state: entityState };
+			nextFeedTriggerStates[feed.id] = { key, state: normalizedEntityState };
 		}
 		previousFeedTriggerStates = nextFeedTriggerStates;
 	});
