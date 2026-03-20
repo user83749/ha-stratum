@@ -326,7 +326,6 @@ export interface TileConfig {
 	tv_remote_entities?: Record<string, string>; // per-button entity overrides for TV more-info remote controls
 
 	// ── Camera ───────────────────────────────────────────────────────────────
-	stream_type?: 'auto' | 'hls' | 'webrtc' | 'mjpeg';
 	ptz?: boolean;                    // show PTZ controls if camera supports it
 	camera_feeds?: CameraFeedConfig[]; // ordered feed list shown in more-info popup
 	camera_primary_feed?: string; // feed id to select first
@@ -1360,7 +1359,8 @@ function normalizeCustomPopupConfig(raw: unknown): CustomPopupConfig | undefined
 				entities
 			};
 		})
-		.filter((section): section is CustomPopupSectionConfig => !!section);
+		.filter((section): section is CustomPopupSectionConfig => !!section)
+		.filter((section) => section.entities.length > 0 || !!section.title);
 
 	const enabled = cfg.enabled === true;
 	const headerTitle = String(cfg.header_title ?? '').trim();

@@ -17,7 +17,17 @@
 	}
 	const { entityId, tile = null }: Props = $props();
 	const entity = $derived($optimisticEntities[entityId] ?? null);
-	const stateLabel = $derived((entity?.state as string | undefined) ?? 'unknown');
+	const stateLabel = $derived.by(() => {
+		const raw = (entity?.state as string | undefined) ?? 'unknown';
+		const map: Record<string, string> = {
+			recording:   'Recording',
+			streaming:   'Live',
+			idle:        'Idle',
+			unavailable: 'Unavailable',
+			unknown:     'Unknown'
+		};
+		return map[raw] ?? (raw.charAt(0).toUpperCase() + raw.slice(1));
+	});
 
 	// ── Types ─────────────────────────────────────────────────────────────
 	interface ResolvedCameraFeed {
@@ -42,9 +52,10 @@
 				};
 			}
 			const sourceEntityId = feed.entity_id?.trim() || entityId;
+			const friendlyName = ($optimisticEntities[sourceEntityId]?.attributes?.friendly_name as string | undefined)?.trim();
 			return {
 				id: feed.id,
-				label: feed.label?.trim() || sourceEntityId,
+				label: feed.label?.trim() || friendlyName || sourceEntityId,
 				sourceType: 'entity' as const,
 				entityId: sourceEntityId
 			};

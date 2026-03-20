@@ -233,6 +233,7 @@
 
 	function addCameraEntityFeed() {
 		const feeds = getCameraFeeds();
+		if (feeds.length >= 4) return;
 		feeds.push({
 			id: generateId(),
 			type: 'entity',
@@ -244,6 +245,7 @@
 
 	function addCameraUrlFeed() {
 		const feeds = getCameraFeeds();
+		if (feeds.length >= 4) return;
 		feeds.push({
 			id: generateId(),
 			type: 'url',
@@ -270,6 +272,24 @@
 		const [moved] = next.splice(fromIndex, 1);
 		next.splice(toIndex, 0, moved);
 		saveCameraFeeds(next);
+	}
+
+	// ── Camera Auto-Popup Helpers ───────────────────────────────────────────
+	const POPUP_AUTO_CLOSE_MIN_SECONDS = 1;
+	const POPUP_AUTO_CLOSE_MAX_SECONDS = 3600;
+
+	function normalizedPopupAutoCloseInput(value: string): number | undefined {
+		const trimmed = value.trim();
+		if (!trimmed) return undefined;
+		const parsed = Number.parseInt(trimmed, 10);
+		if (!Number.isFinite(parsed)) return undefined;
+		const clamped = Math.min(POPUP_AUTO_CLOSE_MAX_SECONDS, Math.max(POPUP_AUTO_CLOSE_MIN_SECONDS, parsed));
+		return clamped;
+	}
+
+	function savePopupAutoCloseFromInput(rawValue: string) {
+		const normalized = normalizedPopupAutoCloseInput(rawValue);
+		save({ popup_auto_close_time: normalized });
 	}
 
 	// ── Custom Popup Configuration ───────────────────────────────────────────
@@ -305,9 +325,8 @@
 				id: section.id || generateId(),
 				title: String(section.title ?? '').trim() || undefined,
 				entities: (Array.isArray(section.entities) ? section.entities : [])
-					.map((entry): CustomPopupSectionEntityConfig | null => {
+					.map((entry): CustomPopupSectionEntityConfig => {
 						const entityId = String(entry.entity_id ?? '').trim();
-						if (!entityId) return null;
 						const name = String(entry.name ?? '').trim();
 						const icon = String(entry.icon ?? '').trim();
 						return {
@@ -317,7 +336,6 @@
 							icon: icon || undefined
 						};
 					})
-					.filter((entry): entry is CustomPopupSectionEntityConfig => !!entry)
 			}))
 			.filter((section) => section.entities.length > 0 || !!section.title);
 
@@ -352,7 +370,8 @@
 		const cfg = getCustomPopupConfig();
 		if ((cfg.sections?.length ?? 0) >= 3) return;
 		const sections = [...(cfg.sections ?? [])];
-		sections.push({ id: generateId(), title: '', entities: [] });
+		const nextIndex = sections.length + 1;
+		sections.push({ id: generateId(), title: `Section ${nextIndex}`, entities: [] });
 		saveCustomPopupConfig({ ...cfg, sections });
 	}
 
@@ -381,6 +400,8 @@
 
 	function addCustomPopupEntity(sectionId: string) {
 		const cfg = getCustomPopupConfig();
+		const target = (cfg.sections ?? []).find((s) => s.id === sectionId);
+		if (!target || target.entities.length >= 10) return;
 		const sections = (cfg.sections ?? []).map((section) =>
 			section.id === sectionId
 				? { ...section, entities: [...section.entities, { id: generateId(), entity_id: '', name: '', icon: '' }] }
@@ -739,196 +760,147 @@
 					</div>
 				{/if}
 
-			{#if tile.type === 'alarm_panel'}
-				<label class="te__check">
-					<input type="checkbox" checked={tile.config.show_keypad !== false}
-						onchange={(e) => save({ show_keypad: (e.target as HTMLInputElement).checked })} />
-					Show keypad
-				</label>
-			{/if}
+					{#if tile.type === 'alarm_panel'}
+						<label class="te__check">
+							<input type="checkbox" checked={tile.config.show_keypad !== false}
+								onchange={(e) => save({ show_keypad: (e.target as HTMLInputElement).checked })} />
+							Show keypad
+						</label>
+					{/if}
 
 					{#if tile.type === 'camera' || domain === 'camera'}
 						{@const popupTriggersEnabled = (tile.config.popup_trigger_enabled as boolean | undefined) !== false}
-						<!-- ── Auto-popup Settings ───────────────────────────────────────────────────────────── -->
-						<div class="te__group te__group--boxed">
-							<span class="te__section-title">Auto-popup Settings</span>
-							<span class="te__label">Enable auto-popup triggers</span>
-							<Toggle
-								checked={popupTriggersEnabled}
-								onchange={(checked) => save({ popup_trigger_enabled: checked })}
-								label="Enable auto-popup triggers"
-							/>
-							<p class="te__hint">Allow automatic popup opening from configured trigger entities.</p>
+						{@const cameraFeeds = getCameraFeeds()}
+						{@const feedCount = cameraFeeds.length}
+						{@const feedsAtMax = feedCount >= 4}
 
-							{#if popupTriggersEnabled}
-								<p class="te__hint">
-									When the dashboard is open and active, these triggers can automatically open this camera popup.
-								</p>
-								<span class="te__label">Default trigger entity (optional)</span>
-								<input
-									class="te__input te__input--sm te__mb4"
-									type="text"
-									placeholder="e.g. binary_sensor.front_door_motion"
-									value={(tile.config.popup_trigger_entity as string) ?? ''}
-									oninput={(e) => save({ popup_trigger_entity: (e.target as HTMLInputElement).value || undefined })}
-								/>
-								<div class="te__grid2">
-									<div>
-										<span class="te__label">Default trigger state</span>
-										<input
-											class="te__input te__input--sm"
-											type="text"
-											placeholder="on"
-											value={(tile.config.popup_trigger_state as string) ?? ''}
-											oninput={(e) => save({ popup_trigger_state: (e.target as HTMLInputElement).value || undefined })}
-										/>
-									</div>
-									<div>
-										<span class="te__label">Auto-close (sec)</span>
-										<input
-											class="te__input te__input--sm te__input--num"
-											type="number"
-											placeholder="15"
-											value={(tile.config.popup_auto_close_time as number) ?? ''}
-											oninput={(e) => {
-												const val = parseInt((e.target as HTMLInputElement).value, 10);
-												save({ popup_auto_close_time: isNaN(val) ? undefined : val });
-											}}
-										/>
-									</div>
-								</div>
-							{:else}
-								<p class="te__hint">Auto-popup triggers are disabled. Manual popup opening still works.</p>
-							{/if}
-						</div>
-
-						<!-- ── Additional Feeds ───────────────────────────────────────────────────────────── -->
+						<!-- ── Additional Feeds ─────────────────────────────────────────────────────── -->
 						<div class="te__group">
-							<span class="te__section-title">Additional Feeds</span>
+							<span class="te__section-title">Camera Feeds</span>
 							<p class="te__hint">
-								Add secondary camera entities or URLs as tabs in this popup.
+								Add secondary camera entities or URLs as tabs in this popup. Up to 4 feeds total.
 								{#if popupTriggersEnabled}
-									Feed-specific trigger overrides are available below and use the auto-close value above.
+									Feed-specific trigger overrides are available below.
 								{:else}
-									Enable auto-popup triggers above to configure feed-specific trigger overrides.
+									Enable auto-popup triggers below to configure feed-specific trigger overrides.
 								{/if}
 							</p>
 							<div class="te__row te__row--gap">
-								<button class="te__add-btn te__add-btn--large" type="button" onclick={addCameraEntityFeed}>
-									<Icon name="plus" size={14} /> <span>Add camera entity</span>
+								<button class="te__add-btn te__add-btn--large" type="button" onclick={addCameraEntityFeed} disabled={feedsAtMax}>
+									<Icon name="plus" size={14} /> <span>{feedsAtMax ? 'Max 4 feeds' : 'Add camera entity'}</span>
 								</button>
-								<button class="te__add-btn te__add-btn--large" type="button" onclick={addCameraUrlFeed}>
-									<Icon name="plus" size={14} /> <span>Add custom URL</span>
+								<button class="te__add-btn te__add-btn--large" type="button" onclick={addCameraUrlFeed} disabled={feedsAtMax}>
+									<Icon name="plus" size={14} /> <span>{feedsAtMax ? 'Max 4 feeds' : 'Add custom URL'}</span>
 								</button>
 							</div>
-							{#if getCameraFeeds().length === 0}
+							{#if feedCount === 0}
 								<p class="te__hint">
 									No extra feeds configured. The tile entity feed is used by default.
 								</p>
 							{:else}
 								<div class="te__player-map">
-									{#each getCameraFeeds() as feed, i (feed.id)}
+									{#each cameraFeeds as feed, i (feed.id)}
 									<div
 										class="te__pm-row te__feed-row"
 										role="listitem"
 										draggable="true"
 										ondragstart={() => { draggedCameraFeedIndex = i; }}
-									ondragover={(e) => e.preventDefault()}
-									ondrop={(e) => {
-										e.preventDefault();
-										if (draggedCameraFeedIndex !== null) reorderCameraFeed(draggedCameraFeedIndex, i);
-										draggedCameraFeedIndex = null;
-									}}
-									ondragend={() => { draggedCameraFeedIndex = null; }}
-								>
-									<div class="te__pm-header">
-										<span class="te__pm-index">#{i + 1}</span>
-										<span class="te__feed-drag" title="Drag to reorder">
-											<Icon name="grip-vertical" size={12} />
-										</span>
-										<label class="te__feed-primary">
-											<input
-												type="radio"
-												name="camera-primary-feed"
-												checked={(tile.config.camera_primary_feed as string | undefined) === feed.id}
-												onchange={() => save({ camera_primary_feed: feed.id })}
-											/>
-											Primary
-										</label>
-										<button class="te__icon-btn te__icon-btn--danger te__pm-del" onclick={() => removeCameraFeed(feed.id)} type="button">
-											<Icon name="trash-2" size={13} />
-										</button>
-									</div>
-									<div class="te__pm-grid">
-										<div>
-											<span class="te__label">Source type</span>
-											<select
-												class="te__select te__select--sm"
-												value={feed.type}
-												onchange={(e) => {
-													const nextType = (e.target as HTMLSelectElement).value as 'entity' | 'url';
-													updateCameraFeed(feed.id, nextType === 'entity'
-														? { type: 'entity', entity_id: tile.entity_id ?? '', url: undefined }
-														: { type: 'url', url: '', entity_id: undefined }
-													);
-												}}
-											>
-												<option value="entity">Camera entity</option>
-												<option value="url">Custom URL</option>
-											</select>
+										ondragover={(e) => e.preventDefault()}
+										ondrop={(e) => {
+											e.preventDefault();
+											if (draggedCameraFeedIndex !== null) reorderCameraFeed(draggedCameraFeedIndex, i);
+											draggedCameraFeedIndex = null;
+										}}
+										ondragend={() => { draggedCameraFeedIndex = null; }}
+									>
+										<div class="te__pm-header">
+											<span class="te__pm-index">#{i + 1}</span>
+											<span class="te__feed-drag" title="Drag to reorder">
+												<Icon name="grip-vertical" size={12} />
+											</span>
+											<label class="te__feed-primary">
+												<input
+													type="radio"
+													name="camera-primary-feed"
+													checked={(tile.config.camera_primary_feed as string | undefined) === feed.id}
+													onchange={() => save({ camera_primary_feed: feed.id })}
+												/>
+												Primary
+											</label>
+											<button class="te__icon-btn te__icon-btn--danger te__pm-del" onclick={() => removeCameraFeed(feed.id)} type="button">
+												<Icon name="trash-2" size={13} />
+											</button>
 										</div>
-										<div>
-											<span class="te__label">{feed.type === 'url' ? 'Feed URL' : 'Camera entity'}</span>
-											<input
-												class="te__input te__input--sm"
-												type={feed.type === 'url' ? 'url' : 'text'}
-												list={feed.type === 'entity' ? 'te-camera-entity-candidates' : undefined}
-												placeholder={feed.type === 'url' ? 'https://…' : 'camera.front_door'}
-												value={feed.type === 'url' ? (feed.url ?? '') : (feed.entity_id ?? '')}
-												oninput={(e) =>
-													updateCameraFeed(feed.id, feed.type === 'url'
-														? { url: (e.target as HTMLInputElement).value }
-														: { entity_id: (e.target as HTMLInputElement).value }
-													)
-												}
-											/>
-										</div>
-										<div>
-											<span class="te__label">Label (optional)</span>
-											<input
-												class="te__input te__input--sm"
-												type="text"
-												placeholder="Front Door"
-												value={feed.label ?? ''}
-												oninput={(e) => updateCameraFeed(feed.id, { label: (e.target as HTMLInputElement).value })}
-											/>
-										</div>
-
-										{#if popupTriggersEnabled}
-											<div class="te__camera-popup-divider">
-												<span class="te__camera-popup-heading">Feed-specific Trigger (Optional Override)</span>
+										<div class="te__pm-grid">
+											<div>
+												<span class="te__label">Source type</span>
+												<select
+													class="te__select te__select--sm"
+													value={feed.type}
+													onchange={(e) => {
+														const nextType = (e.target as HTMLSelectElement).value as 'entity' | 'url';
+														updateCameraFeed(feed.id, nextType === 'entity'
+															? { type: 'entity', entity_id: tile.entity_id ?? '', url: undefined }
+															: { type: 'url', url: '', entity_id: undefined }
+														);
+													}}
+												>
+													<option value="entity">Camera entity</option>
+													<option value="url">Custom URL</option>
+												</select>
 											</div>
-											<div class="te__camera-popup-full">
-												<span class="te__label">Trigger entity (optional)</span>
+											<div>
+												<span class="te__label">{feed.type === 'url' ? 'Feed URL' : 'Camera entity'}</span>
 												<input
 													class="te__input te__input--sm"
-													type="text"
-													placeholder="e.g. binary_sensor.front_door_motion"
-													value={feed.popup_trigger_entity ?? ''}
-													oninput={(e) => updateCameraFeed(feed.id, { popup_trigger_entity: (e.target as HTMLInputElement).value || undefined })}
+													type={feed.type === 'url' ? 'url' : 'text'}
+													list={feed.type === 'entity' ? 'te-camera-entity-candidates' : undefined}
+													placeholder={feed.type === 'url' ? 'https://…' : 'camera.front_door'}
+													value={feed.type === 'url' ? (feed.url ?? '') : (feed.entity_id ?? '')}
+													oninput={(e) =>
+														updateCameraFeed(feed.id, feed.type === 'url'
+															? { url: (e.target as HTMLInputElement).value }
+															: { entity_id: (e.target as HTMLInputElement).value }
+														)
+													}
 												/>
 											</div>
 											<div>
-												<span class="te__label">Trigger state</span>
+												<span class="te__label">Label (optional)</span>
 												<input
 													class="te__input te__input--sm"
 													type="text"
-													placeholder="on"
-													value={feed.popup_trigger_state ?? ''}
-													oninput={(e) => updateCameraFeed(feed.id, { popup_trigger_state: (e.target as HTMLInputElement).value || undefined })}
+													placeholder="Front Door"
+													value={feed.label ?? ''}
+													oninput={(e) => updateCameraFeed(feed.id, { label: (e.target as HTMLInputElement).value })}
 												/>
 											</div>
-										{/if}
+
+											{#if popupTriggersEnabled}
+												<div class="te__camera-popup-divider">
+													<span class="te__camera-popup-heading">Feed-specific Trigger (Optional Override)</span>
+												</div>
+												<div class="te__camera-popup-full">
+													<span class="te__label">Trigger entity (optional)</span>
+													<input
+														class="te__input te__input--sm"
+														type="text"
+														placeholder="e.g. binary_sensor.front_door_motion"
+														value={feed.popup_trigger_entity ?? ''}
+														oninput={(e) => updateCameraFeed(feed.id, { popup_trigger_entity: (e.target as HTMLInputElement).value || undefined })}
+													/>
+												</div>
+												<div>
+													<span class="te__label">Open when state is</span>
+													<input
+														class="te__input te__input--sm"
+														type="text"
+														placeholder="on"
+														value={feed.popup_trigger_state ?? ''}
+														oninput={(e) => updateCameraFeed(feed.id, { popup_trigger_state: (e.target as HTMLInputElement).value || undefined })}
+													/>
+												</div>
+											{/if}
 										</div>
 									</div>
 									{/each}
@@ -940,22 +912,75 @@
 								</div>
 							{/if}
 						</div>
+
+						<!-- ── Auto-popup Settings ──────────────────────────────────────────────────── -->
+						<div class="te__group te__group--boxed">
+							<span class="te__section-title">Auto-popup Settings</span>
+							<span class="te__label">Enable auto-popup triggers</span>
+							<Toggle
+								checked={popupTriggersEnabled}
+								onchange={(checked) => save({ popup_trigger_enabled: checked })}
+								label="Enable auto-popup triggers"
+							/>
+							<p class="te__hint">Allow automatic popup opening when the dashboard is visible and a trigger entity changes to its target state.</p>
+
+							{#if popupTriggersEnabled}
+								<span class="te__label te__mt12">Auto-close after (seconds)</span>
+								<input
+									class="te__input te__input--sm te__input--num"
+									type="number"
+									placeholder="e.g. 15 — leave blank to keep open"
+									min={POPUP_AUTO_CLOSE_MIN_SECONDS}
+									max={POPUP_AUTO_CLOSE_MAX_SECONDS}
+									step="1"
+									value={(tile.config.popup_auto_close_time as number) ?? ''}
+									oninput={(e) => savePopupAutoCloseFromInput((e.target as HTMLInputElement).value)}
+									onblur={(e) => {
+										const input = e.target as HTMLInputElement;
+										const normalized = normalizedPopupAutoCloseInput(input.value);
+										input.value = normalized === undefined ? '' : String(normalized);
+										save({ popup_auto_close_time: normalized });
+									}}
+								/>
+								<p class="te__hint">Applies to all triggers — tile-level and feed-specific. Leave blank to keep the popup open indefinitely.</p>
+
+								<span class="te__label te__mt12">Tile trigger entity (optional)</span>
+								<p class="te__hint">Opens the primary camera feed when this entity transitions to the state below. Independent of per-feed triggers.</p>
+								<input
+									class="te__input te__input--sm te__mb4"
+									type="text"
+									placeholder="e.g. binary_sensor.front_door_motion"
+									value={(tile.config.popup_trigger_entity as string) ?? ''}
+									oninput={(e) => save({ popup_trigger_entity: (e.target as HTMLInputElement).value || undefined })}
+								/>
+								<span class="te__label">Open when state is</span>
+								<input
+									class="te__input te__input--sm"
+									type="text"
+									placeholder="on"
+									value={(tile.config.popup_trigger_state as string) ?? ''}
+									oninput={(e) => save({ popup_trigger_state: (e.target as HTMLInputElement).value || undefined })}
+								/>
+							{:else}
+								<p class="te__hint">Auto-popup triggers are disabled. Manual popup opening still works.</p>
+							{/if}
+						</div>
 					{/if}
 
-			{#if tile.type === 'markdown'}
-					<span class="te__label">Content</span>
-					<textarea class="te__textarea" rows={8} value={(tile.config.content as string) ?? ''} oninput={(e) => save({ content: (e.target as HTMLTextAreaElement).value })}></textarea>
-				{/if}
+					{#if tile.type === 'markdown'}
+						<span class="te__label">Content</span>
+						<textarea class="te__textarea" rows={8} value={(tile.config.content as string) ?? ''} oninput={(e) => save({ content: (e.target as HTMLTextAreaElement).value })}></textarea>
+					{/if}
 
-				{#if tile.type === 'iframe'}
-					<span class="te__label">URL</span>
-					<input class="te__input" type="url" placeholder="https://…" value={(tile.config.url as string) ?? ''} oninput={(e) => save({ url: (e.target as HTMLInputElement).value })} />
-				{/if}
+					{#if tile.type === 'iframe'}
+						<span class="te__label">URL</span>
+						<input class="te__input" type="url" placeholder="https://…" value={(tile.config.url as string) ?? ''} oninput={(e) => save({ url: (e.target as HTMLInputElement).value })} />
+					{/if}
 
-				{#if tile.type === 'image'}
-					<span class="te__label">Image URL</span>
-					<input class="te__input" type="url" placeholder="https://…" value={(tile.config.url as string) ?? ''} oninput={(e) => save({ url: (e.target as HTMLInputElement).value })} />
-				{/if}
+					{#if tile.type === 'image'}
+						<span class="te__label">Image URL</span>
+						<input class="te__input" type="url" placeholder="https://…" value={(tile.config.url as string) ?? ''} oninput={(e) => save({ url: (e.target as HTMLInputElement).value })} />
+					{/if}
 
 				</div>
 			{/if}
@@ -1126,8 +1151,14 @@
 											</div>
 										{/each}
 
-										<button class="te__add-btn" type="button" onclick={() => addCustomPopupEntity(section.id)}>
-											<Icon name="plus" size={14} /> <span>Add entity</span>
+										<button
+											class="te__add-btn"
+											type="button"
+											onclick={() => addCustomPopupEntity(section.id)}
+											disabled={section.entities.length >= 10}
+										>
+											<Icon name="plus" size={14} />
+											<span>{section.entities.length >= 10 ? 'Max 10 entities' : 'Add entity'}</span>
 										</button>
 									</div>
 								{/each}

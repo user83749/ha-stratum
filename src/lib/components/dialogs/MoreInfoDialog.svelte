@@ -94,9 +94,24 @@
 	// ── Domain Routing ────────────────────────────────────────────────────────
 
 	const domain = $derived(entityId ? getDomain(entityId) : '');
+	const customPopupHasRenderableSections = $derived.by(() => {
+		const sections = (selectedTile?.config?.custom_popup as { sections?: unknown[] } | undefined)?.sections;
+		if (!Array.isArray(sections) || sections.length === 0) return false;
+		return sections.some((section) => {
+			if (!section || typeof section !== 'object') return false;
+			const sec = section as { title?: unknown; entities?: unknown[] };
+			const title = String(sec.title ?? '').trim();
+			const entities = Array.isArray(sec.entities) ? sec.entities : [];
+			const hasEntity = entities.some((entry) => {
+				if (!entry || typeof entry !== 'object') return false;
+				return String((entry as { entity_id?: unknown }).entity_id ?? '').trim().length > 0;
+			});
+			return hasEntity || title.length > 0;
+		});
+	});
 	const customPopupEnabled = $derived(
 		(selectedTile?.config?.custom_popup as { enabled?: boolean; sections?: unknown[] } | undefined)?.enabled === true &&
-		(((selectedTile?.config?.custom_popup as { sections?: unknown[] } | undefined)?.sections?.length ?? 0) > 0)
+		customPopupHasRenderableSections
 	);
 	const shellVariant = $derived(domain === 'camera' ? 'camera' : 'default');
 

@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.1.17] - 2026-03-20
+
+### Fixed
+- **Camera Auto-Popup Reliability**: 
+  - Switched from strict focus checks to visibility-based evaluation, ensuring camera popups trigger correctly on visible but unfocused tabs.
+  - Implemented trigger-state preservation to prevent lost transitions when entities become temporarily unavailable.
+  - Corrected the `motion_detected` attribute mapping.
+- **Custom Popup Engine**: 
+  - Added a 10-entity per section limit in the editor for layout stability.
+  - Fixed a z-index / precedence bug in the dialog shell where domain-specific popups were sometimes overriding custom ones.
+
+### Changed
+- **More Info Enhancements**:
+  - **Camera**: Improved state labeling (Live, Recording, Idle) and added `friendly_name` fallback for feed selection labels.
+  - **Sensors**: Stripped redundant hardcoded unit displays.
+- **UI Refinements**: 
+  - Modernized the `AppHeader` notification button active state with an inner-shadow and improved `color-mix` contrast.
+  - Optimized the `TileEditor` to conditionally show relevant input fields per tile type.
+
 ## [1.1.16] - 2026-03-20
 
 ### Added

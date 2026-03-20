@@ -17,10 +17,9 @@
 	const { entityId, tile }: Props = $props();
 
 	// ── Viewport State ────────────────────────────────────────────────────────
-	let windowWidth = $state(1280);
+	let windowWidth = $state(browser ? window.innerWidth : 1280);
 	$effect(() => {
 		if (!browser) return;
-		windowWidth = window.innerWidth;
 		const onResize = () => {
 			windowWidth = window.innerWidth;
 		};
@@ -38,12 +37,19 @@
 		const sections = Array.isArray(rawSections) ? rawSections : [];
 		return sections
 			.slice(0, 3)
-			.map((section) => ({
-				id: section.id,
-				title: section.title,
-				entities: (Array.isArray(section.entities) ? section.entities : []).filter((entry) => !!entry?.entity_id?.trim())
+			.map((section, sectionIndex) => ({
+				id: String(section.id ?? `section-${sectionIndex}`),
+				title: String(section.title ?? '').trim() || undefined,
+				entities: (Array.isArray(section.entities) ? section.entities : [])
+					.map((entry, entryIndex) => ({
+						id: String(entry.id ?? `${String(section.id ?? sectionIndex)}-entry-${entryIndex}`),
+						entity_id: String(entry.entity_id ?? '').trim(),
+						name: String(entry.name ?? '').trim() || undefined,
+						icon: String(entry.icon ?? '').trim() || undefined
+					}))
+					.filter((entry) => entry.entity_id.length > 0)
 			}))
-			.filter((section) => section.entities.length > 0 || String(section.title ?? '').trim().length > 0);
+				.filter((section) => section.entities.length > 0 || String(section.title ?? '').trim().length > 0);
 	}
 
 	const sections = $derived(normalizeSections(popupCfg?.sections));
@@ -126,7 +132,6 @@
 								</div>
 								<div class="cpm__row-copy">
 									<div class="cpm__row-name">{entryName(entry)}</div>
-									<div class="cpm__row-entity">{entry.entity_id}</div>
 								</div>
 								<div class="cpm__row-state" style={`--row-state-color: ${entryColor(entry)};`}>
 									{entryState(entry)}
@@ -209,7 +214,7 @@
 	}
 	.cpm__sections--desktop {
 		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
 	}
 
 	.cpm__section {
@@ -277,14 +282,6 @@
 		font-size: 0.84rem;
 		font-weight: 650;
 		color: var(--fg);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-	.cpm__row-entity {
-		margin-top: 2px;
-		font-size: 0.69rem;
-		color: var(--fg-subtle);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;

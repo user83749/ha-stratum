@@ -41,7 +41,7 @@
 		}
 	});
 
-	const motionDetected     = $derived(entity?.attributes.motion_detection as boolean | undefined);
+	const motionDetected     = $derived(entity?.attributes.motion_detected as boolean | undefined);
 	const isRecording        = $derived(entity?.state === 'recording');
 	const isStreaming        = $derived(entity?.state === 'streaming' || entity?.state === 'idle');
 	const unavailable        = $derived(entity?.state === 'unavailable' || entity?.state === 'unknown');
@@ -77,16 +77,16 @@
 		return Math.round(n);
 	}
 
-	function isDashboardVisibleAndFocused(): boolean {
+	function isDashboardVisible(): boolean {
 		if (!browser) return false;
-		return document.visibilityState === 'visible' && document.hasFocus();
+		return document.visibilityState === 'visible';
 	}
 
 	function openAutoPopup(
 		dialogEntityId: string,
 		feedId: string | undefined
 	) {
-		if (!isDashboardVisibleAndFocused()) return;
+		if (!isDashboardVisible()) return;
 		const entityId = dialogEntityId.trim();
 		if (!entityId) return;
 
@@ -131,6 +131,7 @@
 	$effect(() => {
 		const popupTriggersEnabled = tile.config.popup_trigger_enabled !== false;
 		if (!popupTriggersEnabled) {
+			clearAutoCloseTimer();
 			previousFeedTriggerStates = {};
 			previousMainTriggerKey = undefined;
 			previousMainTriggerState = undefined;
@@ -171,10 +172,20 @@
 			const targetState = String(feed.popup_trigger_state ?? '').trim();
 			const feedDialogEntityId = String(entity?.entity_id ?? tile.entity_id ?? feed.entity_id ?? '').trim();
 
-			if (!triggerEntityId || !targetState) continue;
+			if (!triggerEntityId || !targetState) {
+				// No trigger configured — preserve any existing snapshot so it isn't lost
+				const existing = previousFeedTriggerStates[feed.id];
+				if (existing) nextFeedTriggerStates[feed.id] = existing;
+				continue;
+			}
 
 			const entityState = triggerState(triggerEntityId);
-			if (entityState === undefined) continue;
+			if (entityState === undefined) {
+				// Entity temporarily unavailable — preserve snapshot so transition is detected on recovery
+				const existing = previousFeedTriggerStates[feed.id];
+				if (existing) nextFeedTriggerStates[feed.id] = existing;
+				continue;
+			}
 
 			const key = `${triggerEntityId}::${targetState}`;
 			const prev = previousFeedTriggerStates[feed.id];
