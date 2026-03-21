@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.20] - 2026-03-21
+
+### Fixed
+- **Camera Auto-Popup Buffering**: Implemented a buffering mechanism for trigger-state transitions. If a camera event (like motion) occurs while the dashboard is backgrounded, the popup will now fire immediately upon returning to the app, ensuring zero missed notifications.
+- **Motion Detection Compatibility**: Added fallback monitoring for both `motion_detected` and `motion_detection` attributes to support a broader range of camera integrations.
+- **Tile Editor**: Refined the UI to only display Custom Popup configurations for standard **Entity** tiles, reducing clutter for other tile types.
+
+### Changed
+- **Camera Tile Scaling**: Refactored the "Small" (1x1) camera tile to utilize the optimized `EntityTile` component. This provides a cleaner, more consistent look for compact layouts while preserving individual tile functionality.
+- **Improved Observability**: Added internal warnings for edge cases where auto-popups might be skipped due to misconfigured entity IDs.
+
 ## [1.1.19] - 2026-03-21
 
 ### Fixed

@@ -985,7 +985,7 @@
 				</div>
 			{/if}
 
-			{#if tile}
+			{#if tile && tile.type === 'entity'}
 				{@const customPopup = getCustomPopupConfig()}
 				<div class="te__group te__group--boxed">
 					<!-- ── Custom Popup Card ───────────────────────────────────────────────────────────── -->

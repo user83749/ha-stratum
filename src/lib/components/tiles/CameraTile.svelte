@@ -7,6 +7,7 @@
 	import type { Tile, CameraFeedConfig } from '$lib/types/dashboard';
 	import { getTileSizePreset } from '$lib/layout/tileSizing';
 	import Icon from '$lib/components/ui/Icon.svelte';
+	import EntityTile from '$lib/components/tiles/EntityTile.svelte';
 	import { isCustomIcon } from '$lib/icons/customIcons';
 	import { get } from 'svelte/store';
 	import { uiStore, activeDialog } from '$lib/stores/ui';
@@ -41,7 +42,14 @@
 		}
 	});
 
-	const motionDetected     = $derived(entity?.attributes.motion_detected as boolean | undefined);
+	const motionDetected     = $derived.by(() => {
+		const attrs = entity?.attributes as Record<string, unknown> | undefined;
+		const detected = attrs?.motion_detected;
+		if (typeof detected === 'boolean') return detected;
+		const detection = attrs?.motion_detection;
+		if (typeof detection === 'boolean') return detection;
+		return undefined;
+	});
 	const isRecording        = $derived(entity?.state === 'recording');
 	const isStreaming        = $derived(entity?.state === 'streaming' || entity?.state === 'idle');
 	const unavailable        = $derived(entity?.state === 'unavailable' || entity?.state === 'unknown');
@@ -55,7 +63,7 @@
 
 	const showStreamBadge  = $derived((sizePreset === 'lg' || sizePreset === 'xl') && motionDetected);
 	const showOverlayMeta  = $derived(sizePreset !== 'sm');
-	const showFallbackStatus = $derived(sizePreset !== 'sm');
+	const useSnapshot = $derived(sizePreset !== 'sm' && !!snapshotUrl && !unavailable);
 
 	// ── Auto-Popup Logic ──────────────────────────────────────────────────────
 	type FeedTriggerSnapshot = { key: string; state: string };
@@ -77,20 +85,10 @@
 		return Math.round(n);
 	}
 
-	function isIOSContext(): boolean {
-		if (!browser) return false;
-		const ua = navigator.userAgent || '';
-		return /iPad|iPhone|iPod/i.test(ua);
-	}
-
 	function isDashboardActive(): boolean {
 		if (!browser) return false;
-		if (document.visibilityState !== 'visible') return false;
-		if (document.hidden) return false;
-		if (typeof document.hasFocus === 'function' && !document.hasFocus()) {
-			// iOS WebView focus reporting can be unreliable while visible.
-			if (!isIOSContext()) return false;
-		}
+		// Block only when explicitly hidden/backgrounded.
+		if (document.hidden === true) return false;
 		return true;
 	}
 
@@ -100,7 +98,13 @@
 	) {
 		if (!isDashboardActive()) return;
 		const entityId = dialogEntityId.trim();
-		if (!entityId) return;
+		if (!entityId) {
+			console.warn('[CameraTile] Auto-popup skipped: no resolvable camera entity id.', {
+				tileId: tile.id,
+				feedId
+			});
+			return;
+		}
 
 		const autoPopupKey = `${tile.id}:${++autoPopupSequence}`;
 		const context = feedId
@@ -152,6 +156,7 @@
 
 	$effect(() => {
 		const popupTriggersEnabled = tile.config.popup_trigger_enabled !== false;
+		const dashboardActive = isDashboardActive();
 		if (!popupTriggersEnabled) {
 			clearAutoCloseTimer();
 			previousFeedTriggerStates = {};
@@ -171,16 +176,25 @@
 			const mainEntityState = triggerState(mainTriggerId);
 			if (mainEntityState !== undefined) {
 				const normalizedMainEntityState = normalizedState(mainEntityState);
-				if (
+				const transitionedIntoTarget =
 					previousMainTriggerKey === mainKey &&
 					previousMainTriggerState !== undefined &&
 					previousMainTriggerState !== normalizedMainEntityState &&
-					normalizedMainEntityState === normalizedMainTargetState
+					normalizedMainEntityState === normalizedMainTargetState;
+
+				if (
+					transitionedIntoTarget &&
+					dashboardActive
 				) {
 					openAutoPopup(mainDialogEntityId, undefined);
 				}
-				previousMainTriggerKey = mainKey;
-				previousMainTriggerState = normalizedMainEntityState;
+
+				// If transition happened while app is hidden, keep previous snapshot
+				// so the transition can still be handled when app becomes visible.
+				if (!(transitionedIntoTarget && !dashboardActive)) {
+					previousMainTriggerKey = mainKey;
+					previousMainTriggerState = normalizedMainEntityState;
+				}
 			}
 		} else {
 			previousMainTriggerKey = undefined;
@@ -215,87 +229,105 @@
 
 			const key = `${triggerEntityId}::${targetState}`;
 			const prev = previousFeedTriggerStates[feed.id];
+			const transitionedIntoTarget =
+				!!prev &&
+				prev.key === key &&
+				prev.state !== normalizedEntityState &&
+				normalizedEntityState === normalizedFeedTargetState;
 
 			// Detect exact transition into the target state
 			if (
-				prev &&
-				prev.key === key &&
-				prev.state !== normalizedEntityState &&
-				normalizedEntityState === normalizedFeedTargetState
+				transitionedIntoTarget &&
+				dashboardActive
 			) {
 				openAutoPopup(feedDialogEntityId, feed.id);
 			}
 
-			// Store current state for next cycle
+			// If transition happened while hidden, preserve previous snapshot so
+			// it can still fire when app becomes visible.
+			if (transitionedIntoTarget && !dashboardActive) {
+				if (prev) nextFeedTriggerStates[feed.id] = prev;
+				continue;
+			}
+
+			// Store current state for next cycle.
 			nextFeedTriggerStates[feed.id] = { key, state: normalizedEntityState };
 		}
 		previousFeedTriggerStates = nextFeedTriggerStates;
 	});
 </script>
 
-<div class="camera-tile" class:unavailable data-size={sizePreset}>
-	{#if snapshotUrl && !unavailable}
-		<div class="stream-container">
-			<img src={snapshotUrl} alt="" class="stream-img" draggable="false" />
+{#if sizePreset === 'sm'}
+	<EntityTile {tile} {entity} />
+{:else}
+	<div class="camera-tile" class:camera-tile--bleed={useSnapshot} class:unavailable data-size={sizePreset}>
+		{#if useSnapshot}
+			<div class="stream-container">
+				<img src={snapshotUrl} alt="" class="stream-img" draggable="false" />
 
-			{#if isRecording}
-				<span class="rec-dot"></span>
-			{/if}
-
-			{#if showStreamBadge}
-				<span class="motion-badge">
-					<Icon name="activity" size={10} />
-					Motion
-				</span>
-			{/if}
-
-			{#if showOverlayMeta}
-				<div class="name-overlay">
-					<span class="overlay-name">{name}</span>
-					{#if isRecording}
-						<span class="overlay-rec">REC</span>
-					{/if}
-				</div>
-			{/if}
-		</div>
-	{:else}
-		<div class="no-stream">
-			<div class="no-stream-icon" class:recording={isRecording} class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
-				{#if iconOverride}
-					<Icon name={iconOverride} entity={entity} size={32} />
-				{:else}
-					<Icon name="camera" size={32} />
-				{/if}
 				{#if isRecording}
-					<span class="rec-indicator"></span>
+					<span class="rec-dot"></span>
+				{/if}
+
+				{#if showStreamBadge}
+					<span class="motion-badge">
+						<Icon name="activity" size={10} />
+						Motion
+					</span>
+				{/if}
+
+				{#if showOverlayMeta}
+					<div class="name-overlay">
+						<span class="overlay-name">{name}</span>
+						{#if isRecording}
+							<span class="overlay-rec">REC</span>
+						{/if}
+					</div>
 				{/if}
 			</div>
+		{:else}
+			<div class="no-stream">
+				<div class="no-stream-icon" class:recording={isRecording} class:override={!!iconOverride} class:is-custom={overrideIsCustom}>
+					{#if iconOverride}
+						<Icon name={iconOverride} entity={entity} size={32} />
+					{:else}
+						<Icon name="camera" size={32} />
+					{/if}
+					{#if isRecording}
+						<span class="rec-indicator"></span>
+					{/if}
+				</div>
 
-			<span class="no-stream-name">{name}</span>
+				<span class="no-stream-name">{name}</span>
 
-			{#if showFallbackStatus}
 				<span class="no-stream-state" class:recording={isRecording}>{stateLabel}</span>
-			{/if}
 
-			{#if motionDetected}
-				<span class="motion-pill">
-					<Icon name="activity" size={11} />
-					Motion
-				</span>
-			{/if}
-		</div>
-	{/if}
-</div>
+				{#if motionDetected}
+					<span class="motion-pill">
+						<Icon name="activity" size={11} />
+						Motion
+					</span>
+				{/if}
+			</div>
+		{/if}
+	</div>
+{/if}
 
 <style>
 	.camera-tile {
-		width: calc(100% + var(--tile-padding, 10px) * 2);
-		height: calc(100% + var(--tile-padding, 10px) * 2);
-		margin: calc(var(--tile-padding, 10px) * -1);
+		width: 100%;
+		height: 100%;
+		margin: 0;
 		position: relative;
 		overflow: hidden;
 		border-radius: inherit;
 		box-sizing: border-box;
+	}
+
+	.camera-tile--bleed {
+		width: calc(100% + var(--tile-padding, 10px) * 2);
+		height: calc(100% + var(--tile-padding, 10px) * 2);
+		margin: calc(var(--tile-padding, 10px) * -1);
 	}
 
 	/* ── Stream view ─────────────────────────────────────────────────────── */
@@ -468,14 +500,6 @@
 	@keyframes blink {
 		0%, 100% { opacity: 1; }
 		50%      { opacity: 0.25; }
-	}
-
-	/* ── Small tile: simplify ───────────────────────────────────────────── */
-	.camera-tile[data-size='sm'] .name-overlay,
-	.camera-tile[data-size='sm'] .motion-badge,
-	.camera-tile[data-size='sm'] .no-stream-state,
-	.camera-tile[data-size='sm'] .motion-pill {
-		display: none;
 	}
 
 	@container tile (max-width: 170px) {
