@@ -119,7 +119,8 @@
 		display: flex;
 		flex-direction: column;
 		background: var(--bg-elevated);
-		min-height: 520px;
+		height: 100%;
+		min-height: 0;
 		color: var(--fg);
 	}
 
@@ -176,6 +177,7 @@
 		flex-direction: column;
 		gap: 32px;
 		flex: 1;
+		min-height: 0;
 	}
 
 	.lomi__main-action {

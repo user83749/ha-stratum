@@ -233,6 +233,7 @@
 
 <style>
 	.fmi {
+		--fmi-slider-gap: 28px;
 		display: flex;
 		flex-direction: column;
 		height: 100%;
@@ -351,15 +352,17 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		justify-content: flex-start;
 		gap: 10px;
-		padding: 20px 20px 12px;
-		flex: 1;
-		min-height: 0;
+		padding: var(--fmi-slider-gap) 20px var(--fmi-slider-gap);
+		flex: 1 1 auto;
+		min-height: 240px;
 	}
 	.fmi__dimmer {
 		position: relative;
-		width: 92px;
-		height: clamp(200px, 40vh, 340px);
+		width: 90px;
+		height: 100%;
+		min-height: 0;
 		border-radius: var(--dialog-radius);
 		background: var(--active);
 		border: 1.5px solid var(--border);
@@ -402,11 +405,13 @@
 	}
 	/* ── Sections (presets, controls) ───────────────────────────────────────── */
 	.fmi__section {
-		padding: 14px 20px;
+		padding: 0 20px 44px;
+		margin-top: 0;
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
 		transition: opacity var(--transition);
+		flex-shrink: 0;
 	}
 	.fmi__section--disabled { opacity: 0.35; pointer-events: none; }
 

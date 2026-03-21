@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.19] - 2026-03-21
+
+### Fixed
+- **Camera Auto-Popup Engine**: Significantly refined the "Active Dashboard" detection logic to include `visibilityState`, `hidden`, and `hasFocus` checks. Added a specialized bypass for **iOS WebView context** to ensure popups trigger reliably even when iOS focus reporting is inconsistent.
+
+### Changed
+- **Dialog Layout Architecture**: 
+  - Overhauled **Fan** and **Lock** more-info panels to use a unified flex-based `height: 100%` system, allowing them to better utilize vertical space on tablets and smaller displays.
+  - Improved the interactive states (hover/active) for the **TV** power controls for better tactile feedback.
+- **Visual Polish**: Refined padding and spacing in the `FanMoreInfo` dimmer interface for a more balanced "hero" presentation.
+
 ## [1.1.18] - 2026-03-20
 
 ### Added

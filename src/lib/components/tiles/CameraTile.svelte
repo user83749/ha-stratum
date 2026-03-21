@@ -77,16 +77,28 @@
 		return Math.round(n);
 	}
 
-	function isDashboardVisible(): boolean {
+	function isIOSContext(): boolean {
 		if (!browser) return false;
-		return document.visibilityState === 'visible';
+		const ua = navigator.userAgent || '';
+		return /iPad|iPhone|iPod/i.test(ua);
+	}
+
+	function isDashboardActive(): boolean {
+		if (!browser) return false;
+		if (document.visibilityState !== 'visible') return false;
+		if (document.hidden) return false;
+		if (typeof document.hasFocus === 'function' && !document.hasFocus()) {
+			// iOS WebView focus reporting can be unreliable while visible.
+			if (!isIOSContext()) return false;
+		}
+		return true;
 	}
 
 	function openAutoPopup(
 		dialogEntityId: string,
 		feedId: string | undefined
 	) {
-		if (!isDashboardVisible()) return;
+		if (!isDashboardActive()) return;
 		const entityId = dialogEntityId.trim();
 		if (!entityId) return;
 

@@ -188,7 +188,10 @@
 		cursor: pointer; transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease, filter 0.12s ease;
 	}
 	.tvmi__power--on { color: var(--color-on); border-color: color-mix(in srgb, var(--color-on) 30%, transparent); background: color-mix(in srgb, var(--color-on) 10%, transparent); }
+	.tvmi__power:hover:not(:disabled) { background: var(--tvmi-surface-strong); color: var(--fg); border-color: var(--border-strong); }
+	.tvmi__power--on:hover:not(:disabled) { background: color-mix(in srgb, var(--color-on) 18%, transparent); color: var(--color-on); border-color: color-mix(in srgb, var(--color-on) 38%, transparent); }
 	.tvmi__power:active:not(:disabled) { background: var(--tvmi-surface-strong); color: var(--fg); border-color: var(--border-strong); filter: brightness(1.08); }
+	.tvmi__power--on:active:not(:disabled) { background: color-mix(in srgb, var(--color-on) 22%, transparent); color: var(--color-on); border-color: color-mix(in srgb, var(--color-on) 42%, transparent); filter: brightness(1.08); }
 
 	.tvmi__body { padding: 24px 20px; display: flex; flex-direction: column; gap: 32px; }
 
