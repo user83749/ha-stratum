@@ -120,7 +120,7 @@
 	}
 
 	function setAction(key: string, type: string) {
-		if (type === 'none') { save({ [key]: undefined }); return; }
+		if (type === 'none') { save({ [key]: { type: 'none' } }); return; }
 		const action: Action =
 			type === 'more-info'    ? { type: 'more-info' } :
 			type === 'toggle'       ? { type: 'toggle' } :

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.22] - 2026-03-22
+
+### Changed
+- **Section Layout Refinement**: Overhauled empty section headers to be significantly more discreet. Replaced the control-heavy edit-mode placeholder with a clean, invisible layout to reduce visual noise while viewing or editing unconfigured sections.
+
+### Fixed
+- **Tile Action persistence**: Re-enforced the fix for explicitly disabling tile actions (persisting as `none`).
+
 ## [1.1.21] - 2026-03-22
 
 ### Fixed

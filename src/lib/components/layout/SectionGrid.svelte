@@ -663,34 +663,9 @@
 				</button>
 			{/if}
 		</div>
-	{:else if editing}
-		<div class="section__header section__header--edit-only">
-				{#if editing && onSectionDragStart}
-					<button
-						class="section__drag-handle"
-						onpointerdown={onSectionDragStart}
-						title="Drag to reorder section"
-						aria-label="Drag to reorder section"
-					>
-						<Icon name="grip-vertical" size={14} />
-					</button>
-				{/if}
-				<span class="section__edit-hint">
-				<Icon name="layout-panel-top" size={12} />
-				Section
-			</span>
-			<div class="section__edit-controls">
-				{#if onAddTile}
-					<button class="section__edit-btn" onclick={() => onAddTile?.(activeColumns)} title="Add tile" aria-label="Add tile">
-						<Icon name="plus" size={13} strokeWidth={2} />
-					</button>
-				{/if}
-				{#if onEditSection}
-					<button class="section__edit-btn" onclick={onEditSection} title="Section settings" aria-label="Section settings">
-						<Icon name="settings-2" size={13} strokeWidth={1.75} />
-					</button>
-				{/if}
-			</div>
+	{:else}
+		<div class="section__header section__header--placeholder" aria-hidden="true">
+			<h2 class="section__title">Section</h2>
 		</div>
 	{/if}
 
@@ -825,8 +800,12 @@
 		padding: 2px 0 2px 2px;
 	}
 
-	.section__header--edit-only {
-		opacity: 0.7;
+	.section__header--placeholder {
+		pointer-events: none;
+	}
+
+	.section__header--placeholder .section__title {
+		visibility: hidden;
 	}
 
 	.section__icon {
@@ -867,18 +846,6 @@
 			margin: 1.2vw 0 0 0;
 			padding: 0.2vw 0 1.6vw 0;
 		}
-	}
-
-	.section__edit-hint {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		flex: 1;
-		font-size: 0.65rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-		color: var(--fg-subtle);
 	}
 
 	/* ── Section drag handle ─────────────────────────────────────────────── */
