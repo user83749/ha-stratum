@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.21] - 2026-03-22
+
+### Fixed
+- **Tile Editor enhancements**: Sorted tile types alphabetically in the selection list for better usability and improved explicit "none" action persistence.
+
 ## [1.1.20] - 2026-03-21
 
 ### Fixed
