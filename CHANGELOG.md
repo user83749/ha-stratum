@@ -1,15 +1,24 @@
 # Changelog
 
-## [1.1.20] - 2026-03-21
+## [1.1.21] - 2026-03-22
 
 ### Fixed
-- **Camera Auto-Popup Buffering**: Implemented a buffering mechanism for trigger-state transitions. If a camera event (like motion) occurs while the dashboard is backgrounded, the popup will now fire immediately upon returning to the app, ensuring zero missed notifications.
-- **Motion Detection Compatibility**: Added fallback monitoring for both `motion_detected` and `motion_detection` attributes to support a broader range of camera integrations.
-- **Tile Editor**: Refined the UI to only display Custom Popup configurations for standard **Entity** tiles, reducing clutter for other tile types.
+- **Camera Auto-Popup Buffering**: Implemented a mechanism that captures state transitions (e.g. motion detected) while the dashboard is hidden or in the background. These events are now buffered and automatically triggered when the dashboard becomes visible again.
+- **Active Dashboard Detection**: Simplified the detection logic to rely on `document.hidden`, fixing reliability issues with focus-reporting in certain environments like iOS WebView.
+- **Motion Detection Compatibility**: Added fallback support for both `motion_detected` and `motion_detection` attributes to support a wider variety of camera integrations.
+- **Tile Editor UI**: 
+  - Alphabetized the tile type selection list for better navigation.
+  - Ensured Custom Popup configurations only appear for standard Entity tiles.
+  - Fixed a persistence bug when setting tile actions to "none".
 
 ### Changed
-- **Camera Tile Scaling**: Refactored the "Small" (1x1) camera tile to utilize the optimized `EntityTile` component. This provides a cleaner, more consistent look for compact layouts while preserving individual tile functionality.
-- **Improved Observability**: Added internal warnings for edge cases where auto-popups might be skipped due to misconfigured entity IDs.
+- **Camera Tile Scaling**: The 1x1 camera tile has been refactored to use the `EntityTile` component for a cleaner and more consistent layout in compact views.
+
+## [1.1.20] - 2026-03-21
+
+### Changed
+- **Build System**: Optimization of the internal build pipeline and dependency cleanup.
+- **Dialog Core**: Lifecycle refinements for the main MoreInfo shells.
 
 ## [1.1.19] - 2026-03-21
 
