@@ -1,13 +1,5 @@
 # Changelog
 
-## [1.1.21] - 2026-03-22
-
-### Fixed
-- **Tile Action persistence**: Corrected a bug in the `TileEditor` where setting an action to `none` would incorrectly store `undefined`. It now correctly persists as `{ type: 'none' }`, ensuring explicit action disables are properly honored.
-
-### Changed
-- **Tile Editor UX**: Improved the tile type selection by sorting the list alphabetically, making it significantly faster to navigate the growing range of available tile types.
-
 ## [1.1.20] - 2026-03-21
 
 ### Fixed
