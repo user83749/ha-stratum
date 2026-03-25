@@ -43,6 +43,8 @@
   const minKelvin = $derived(attrs.min_color_temp_kelvin as number | undefined);
   const maxKelvin = $derived(attrs.max_color_temp_kelvin as number | undefined);
   const supportedModes = $derived(attrs.supported_color_modes as string[] ?? []);
+  const currentColorMode = $derived((attrs.color_mode as string | undefined) ?? undefined);
+  const supportsStandaloneBrightness = $derived(supportedModes.includes('brightness'));
   const supportsBrightness = $derived(supportedModes.some(m => ['brightness','color_temp','rgb','xy','hs'].includes(m)) || brightness !== null);
   const supportsColorTemp = $derived(supportedModes.includes('color_temp') || colorTempMired !== undefined || colorTempKelvin !== undefined);
   const showBrightnessRing = $derived(supportsBrightness && isOn);
@@ -86,9 +88,46 @@
   const displayColorTemp = $derived(draggingTemp ? localColorTemp : (colorTempMired ?? colorTempKelvin ?? null));
 
   // ── Actions ─────────────────────────────────────────────────────────────
+  function brightnessTurnOnPayload(nextPct: number): Record<string, unknown> {
+    const payload: Record<string, unknown> = { brightness_pct: nextPct };
+    if (supportsStandaloneBrightness) return payload;
+
+    const mode = currentColorMode;
+    const rgbish = mode ? ['rgb', 'rgbw', 'rgbww', 'hs', 'xy'].includes(mode) : false;
+    const ctemp = mode === 'color_temp';
+
+    if (rgbish && rgbColor) {
+      payload.rgb_color = rgbColor;
+      return payload;
+    }
+    if (ctemp && colorTempKelvin !== undefined) {
+      payload.color_temp_kelvin = colorTempKelvin;
+      return payload;
+    }
+    if (ctemp && colorTempMired !== undefined) {
+      payload.color_temp = colorTempMired;
+      return payload;
+    }
+
+    // Mode may be absent/stale on some integrations: prefer currently reported color payload.
+    if (rgbColor) {
+      payload.rgb_color = rgbColor;
+      return payload;
+    }
+    if (colorTempKelvin !== undefined) {
+      payload.color_temp_kelvin = colorTempKelvin;
+      return payload;
+    }
+    if (colorTempMired !== undefined) {
+      payload.color_temp = colorTempMired;
+      return payload;
+    }
+    return payload;
+  }
+
   function handleBrightnessChange(value: number) {
     const next = Math.max(0, Math.min(100, Math.round(value)));
-    if (entityId) lightService.turnOn(entityId, { brightness_pct: next }).catch(() => {});
+    if (entityId) lightService.turnOn(entityId, brightnessTurnOnPayload(next)).catch(() => {});
   }
   function handleTempInput(ev: Event) { draggingTemp = true; localColorTemp = Number((ev.target as HTMLInputElement).value); }
   function handleTempChange(ev: Event) {

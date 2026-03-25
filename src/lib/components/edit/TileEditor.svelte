@@ -180,6 +180,9 @@
 		gauge: 'Gauge', markdown: 'Markdown', iframe: 'iFrame',
 		image: 'Image', todo: 'To-do', update: 'Update'
 	};
+	const SORTED_TILE_TYPES = [...TILE_TYPES].sort((a, b) =>
+		(TILE_TYPE_LABELS[a] ?? a).localeCompare(TILE_TYPE_LABELS[b] ?? b)
+	);
 
 	function changeTileType(newType: string) {
 		if (!tile || newType === tile.type) return;
@@ -473,7 +476,7 @@
 					value={tile.type}
 					onchange={(e) => changeTileType((e.target as HTMLSelectElement).value)}
 				>
-					{#each TILE_TYPES as t}
+					{#each SORTED_TILE_TYPES as t}
 						<option value={t}>{TILE_TYPE_LABELS[t] ?? t}</option>
 					{/each}
 				</select>

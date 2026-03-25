@@ -63,7 +63,7 @@
 		bDebounce = setTimeout(() => {
 			setPendingBrightness(v);
 			if (optimisticPreviewEnabled) applyPatch(entityId, { state: 'on', attributes: { brightness: Math.round(v / 100 * 255) } });
-			else lightService.setBrightness(entityId, v).catch(() => {});
+			else lightService.turnOn(entityId, brightnessTurnOnPayload(v)).catch(() => {});
 		}, 120);
 	}
 
@@ -74,6 +74,8 @@
 			? (entity.attributes.supported_color_modes as string[])
 			: []
 	);
+	const colorMode = $derived((entity?.attributes.color_mode as string | undefined) ?? undefined);
+	const supportsStandaloneBrightness = $derived(supportedColorModes.includes('brightness'));
 	const supportsColor = $derived(
 		supportedColorModes.some((m) => ['rgb', 'hs', 'rgbw', 'rgbww', 'xy'].includes(m))
 	);
@@ -195,6 +197,43 @@
 		});
 	}
 
+	function brightnessTurnOnPayload(nextPct: number): Record<string, unknown> {
+		const payload: Record<string, unknown> = { brightness_pct: nextPct };
+		if (supportsStandaloneBrightness) return payload;
+
+		const mode = colorMode;
+		const rgbish = mode ? ['rgb', 'rgbw', 'rgbww', 'hs', 'xy'].includes(mode) : false;
+		const ctemp = mode === 'color_temp';
+
+		if (rgbish && rgb) {
+			payload.rgb_color = rgb;
+			return payload;
+		}
+		if (ctemp && ctKelvin !== undefined) {
+			payload.color_temp_kelvin = ctKelvin;
+			return payload;
+		}
+		if (ctemp && ctMired !== undefined) {
+			payload.color_temp = ctMired;
+			return payload;
+		}
+
+		// Mode may be absent/stale on some integrations: prefer currently reported color payload.
+		if (rgb) {
+			payload.rgb_color = rgb;
+			return payload;
+		}
+		if (ctKelvin !== undefined) {
+			payload.color_temp_kelvin = ctKelvin;
+			return payload;
+		}
+		if (ctMired !== undefined) {
+			payload.color_temp = ctMired;
+			return payload;
+		}
+		return payload;
+	}
+
 	// ── Color Temperature ─────────────────────────────────────────────────────
 
 	const supportsColorTemp = $derived(
@@ -303,7 +342,7 @@
 		if (bDebounce) clearTimeout(bDebounce);
 		setPendingBrightness(v);
 		if (optimisticPreviewEnabled) applyPatch(entityId, { state: 'on', attributes: { brightness: Math.round(v / 100 * 255) } });
-		else lightService.setBrightness(entityId, v).catch(() => {});
+		else lightService.turnOn(entityId, brightnessTurnOnPayload(v)).catch(() => {});
 	}
 
 	function getHueFromPointer(e: PointerEvent): number {

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.23] - 2026-03-25
+
+### Fixed
+- **Light Control Engine**: Implemented a smarter `brightnessTurnOnPayload` logic across both `LightTile` and `LightMoreInfo`. This ensures that light color (RGB or Color Temp) is preserved during brightness adjustments, resolving issues with bulbs that would otherwise reset to white defaults on certain Zigbee and Z-Wave integrations.
+
+### Changed
+- **Tile Editor UX**: Re-implemented alphabetical sorting for the tile type selection list to streamline the editing workflow as the library of tile types continues to grow.
+
 ## [1.1.22] - 2026-03-22
 
 ### Changed
