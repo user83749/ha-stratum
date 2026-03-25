@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.24] - 2026-03-25
+
+### Fixed
+- **Light Control Engine - Robust Fallbacks**: Significantly enhanced the brightness adjustment logic to handle quirky integrations (e.g., Meross) that reject brightness-only service calls. The engine now automatically synthesizes and stores the existing color or temperature state in the payload, ensuring seamless dimming without unexpected color resets.
+
 ## [1.1.23] - 2026-03-25
 
 ### Fixed

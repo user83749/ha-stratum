@@ -231,6 +231,29 @@
 			payload.color_temp = ctMired;
 			return payload;
 		}
+
+		// Guaranteed fallback by supported modes for integrations that reject
+		// brightness-only payloads (e.g. some Meross lights).
+		if (supportedColorModes.includes('color_temp')) {
+			if (ctKelvin !== undefined) payload.color_temp_kelvin = ctKelvin;
+			else if (ctMired !== undefined) payload.color_temp = ctMired;
+			else if (useKelvinScale) payload.color_temp_kelvin = Math.round((ctMin + ctMax) / 2);
+			else payload.color_temp = Math.round((ctMin + ctMax) / 2);
+			return payload;
+		}
+		if (supportsRgbPayload) {
+			if (rgb) payload.rgb_color = rgb;
+			else payload.rgb_color = hueToRgb(localHue);
+			return payload;
+		}
+		if (supportsHsPayload) {
+			payload.hs_color = hs ?? [Math.round(localHue), 100];
+			return payload;
+		}
+		if (supportsXyPayload) {
+			payload.xy_color = rgb ? rgbToXy(rgb[0], rgb[1], rgb[2]) : rgbToXy(...hueToRgb(localHue));
+			return payload;
+		}
 		return payload;
 	}
 

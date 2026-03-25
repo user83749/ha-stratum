@@ -55,6 +55,8 @@
   );
 
   const rgbColor = $derived(attrs.rgb_color as [number, number, number] | undefined);
+  const hsColor = $derived(attrs.hs_color as [number, number] | undefined);
+  const xyColor = $derived(attrs.xy_color as [number, number] | undefined);
 
   // ── Helpers ─────────────────────────────────────────────────────────────
   function mixChannel(a: number, b: number, t: number): number {
@@ -69,6 +71,21 @@
   }
   function kelvinToMired(kelvin: number): number {
     return Math.round(1_000_000 / Math.max(kelvin, 1));
+  }
+  function hsToRgb(h: number, s: number): [number, number, number] {
+    const hue = ((h % 360) + 360) % 360;
+    const sat = Math.max(0, Math.min(1, s / 100));
+    const c = sat;
+    const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+    const [r1, g1, b1] =
+      hue < 60 ? [c, x, 0] :
+      hue < 120 ? [x, c, 0] :
+      hue < 180 ? [0, c, x] :
+      hue < 240 ? [0, x, c] :
+      hue < 300 ? [x, 0, c] :
+      [c, 0, x];
+    const m = 1 - c;
+    return [Math.round((r1 + m) * 255), Math.round((g1 + m) * 255), Math.round((b1 + m) * 255)];
   }
   const lightColor = $derived(
     rgbColor ? `rgb(${rgbColor[0]},${rgbColor[1]},${rgbColor[2]})` :
@@ -120,6 +137,35 @@
     }
     if (colorTempMired !== undefined) {
       payload.color_temp = colorTempMired;
+      return payload;
+    }
+
+    // Guaranteed fallback by supported modes for integrations that reject
+    // brightness-only payloads (e.g. some Meross lights).
+    if (supportedModes.includes('color_temp')) {
+      if (colorTempKelvin !== undefined) payload.color_temp_kelvin = colorTempKelvin;
+      else if (colorTempMired !== undefined) payload.color_temp = colorTempMired;
+      else if (minKelvin !== undefined || maxKelvin !== undefined) {
+        const low = minKelvin ?? 2000;
+        const high = maxKelvin ?? 6500;
+        payload.color_temp_kelvin = Math.round((low + high) / 2);
+      } else {
+        payload.color_temp = Math.round((minMireds + maxMireds) / 2);
+      }
+      return payload;
+    }
+    if (supportedModes.some((m) => ['rgb', 'rgbw', 'rgbww'].includes(m))) {
+      if (rgbColor) payload.rgb_color = rgbColor;
+      else if (hsColor) payload.rgb_color = hsToRgb(hsColor[0], hsColor[1]);
+      else payload.rgb_color = [255, 255, 255];
+      return payload;
+    }
+    if (supportedModes.includes('hs')) {
+      payload.hs_color = hsColor ?? [0, 100];
+      return payload;
+    }
+    if (supportedModes.includes('xy')) {
+      payload.xy_color = xyColor ?? [0.3127, 0.329];
       return payload;
     }
     return payload;
