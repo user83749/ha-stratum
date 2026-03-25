@@ -4,7 +4,6 @@
 	// ── Imports ───────────────────────────────────────────────────────────────
 	import { optimisticEntities, applyPatch } from '$lib/ha/optimistic';
 	import { climateService } from '$lib/ha/services';
-	import { browser } from '$app/environment';
 	import Icon from '$lib/components/ui/Icon.svelte';
 
 	// ── Props ─────────────────────────────────────────────────────────────────
@@ -12,42 +11,80 @@
 	const { entityId }: Props = $props();
 
 	// ── Derived State ─────────────────────────────────────────────────────────
+	function finiteNumber(value: unknown): number | undefined {
+		return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+	}
+
 	const entity = $derived($optimisticEntities[entityId] ?? null);
 	const optimisticPreviewEnabled = false;
 	const isUnavail = $derived(!entity || entity.state === 'unavailable');
 	const hvacMode = $derived((entity?.state as string | undefined) ?? 'off');
 	const hvacModes = $derived((entity?.attributes.hvac_modes as string[] | undefined) ?? []);
-	const currentTemp = $derived(entity?.attributes.current_temperature as number | undefined);
-	const currentHumidity = $derived(entity?.attributes.current_humidity as number | undefined);
-	const targetTemp = $derived(entity?.attributes.temperature as number | undefined);
-	const targetTempLow = $derived(entity?.attributes.target_temp_low as number | undefined);
-	const targetTempHigh = $derived(entity?.attributes.target_temp_high as number | undefined);
+	const fanModes = $derived((entity?.attributes.fan_modes as string[] | undefined) ?? []);
+	const presetModes = $derived((entity?.attributes.preset_modes as string[] | undefined) ?? []);
+	const fanMode = $derived((entity?.attributes.fan_mode as string | undefined) ?? '');
+	const presetMode = $derived((entity?.attributes.preset_mode as string | undefined) ?? '');
+	const currentTemp = $derived(finiteNumber(entity?.attributes.current_temperature));
+	const currentHumidity = $derived(finiteNumber(entity?.attributes.current_humidity));
+	const targetTemp = $derived(finiteNumber(entity?.attributes.temperature));
+	const targetTempLow = $derived(finiteNumber(entity?.attributes.target_temp_low));
+	const targetTempHigh = $derived(finiteNumber(entity?.attributes.target_temp_high));
 	const minTemp = $derived((entity?.attributes.min_temp as number | undefined) ?? 55);
 	const maxTemp = $derived((entity?.attributes.max_temp as number | undefined) ?? 85);
+	const tempRangeSpan = $derived(Math.max(1, maxTemp - minTemp));
+	const supportedFeatures = $derived((entity?.attributes.supported_features as number | undefined) ?? 0);
+	const SUPPORT_TARGET_TEMPERATURE = 1;
+	const SUPPORT_TARGET_TEMPERATURE_RANGE = 2;
 	// Product requirement: climate nudges/sliders use fixed 1-step increments.
 	const tempStep = 1;
 	const tempUnit = $derived((entity?.attributes.temperature_unit as string | undefined) ?? '°');
 	const hvacAction = $derived((entity?.attributes.hvac_action as string | undefined) ?? '');
-	const supportsRange = $derived(targetTempLow !== undefined && targetTempHigh !== undefined);
+	const supportsHeatCool = $derived(
+		hvacMode === 'heat_cool' || hvacModes.includes('heat_cool')
+	);
+	const supportsRange = $derived(
+		hvacMode === 'heat_cool' && supportsHeatCool && targetTempLow !== undefined && targetTempHigh !== undefined
+	);
+	const supportsSingleTarget = $derived(
+		((supportedFeatures & SUPPORT_TARGET_TEMPERATURE) !== 0) ||
+		((supportedFeatures & SUPPORT_TARGET_TEMPERATURE_RANGE) !== 0) ||
+		targetTemp !== undefined
+	);
+	const hasValidSingleTarget = $derived(targetTemp !== undefined);
+	const canAdjustTemperature = $derived(
+		!isUnavail && hvacMode !== 'off' && (supportsRange || supportsSingleTarget)
+	);
 
 	// ── Local State ───────────────────────────────────────────────────────────
 	let localTemp = $state(72);
 	let localTempLow = $state(68);
 	let localTempHigh = $state(76);
+	let settingFan = $state(false);
+	let settingPreset = $state(false);
 
 	$effect(() => {
 		if (targetTemp !== undefined) localTemp = targetTemp;
+		else localTemp = Math.round((minTemp + maxTemp) / 2);
 	});
 	$effect(() => {
 		if (targetTempLow !== undefined) localTempLow = targetTempLow;
+		else localTempLow = minTemp;
 	});
 	$effect(() => {
 		if (targetTempHigh !== undefined) localTempHigh = targetTempHigh;
+		else localTempHigh = maxTemp;
+	});
+	$effect(() => {
+		return () => {
+			if (tempDebounce) clearTimeout(tempDebounce);
+			if (rangeDebounce) clearTimeout(rangeDebounce);
+		};
 	});
 
 	// ── Temperature Controls ──────────────────────────────────────────────────
 	let tempDebounce: ReturnType<typeof setTimeout> | null = null;
 	function onTempInput(next: number) {
+		if (!canAdjustTemperature) return;
 		localTemp = next;
 		applyPatch(entityId, { attributes: { temperature: next } });
 		if (tempDebounce) clearTimeout(tempDebounce);
@@ -58,6 +95,7 @@
 
 	let rangeDebounce: ReturnType<typeof setTimeout> | null = null;
 	function onRangeInput(kind: 'low' | 'high', next: number) {
+		if (!canAdjustTemperature) return;
 		if (kind === 'low') localTempLow = next;
 		else localTempHigh = next;
 		const low = kind === 'low' ? next : localTempLow;
@@ -102,15 +140,41 @@
 	}
 
 	function nudgeSingle(dir: 1 | -1) {
+		if (!canAdjustTemperature) return;
 		const next = Math.min(maxTemp, Math.max(minTemp, localTemp + dir * tempStep));
 		onTempInput(next);
 	}
 
 	function nudgeRange(kind: 'low' | 'high', dir: 1 | -1) {
+		if (!canAdjustTemperature) return;
 		const next = kind === 'low'
 			? Math.min(localTempHigh - 1, Math.max(minTemp, localTempLow + dir * tempStep))
 			: Math.max(localTempLow + 1, Math.min(maxTemp, localTempHigh + dir * tempStep));
 		onRangeInput(kind, next);
+	}
+
+	async function setFan(nextMode: string) {
+		if (isUnavail || settingFan || !nextMode || fanMode === nextMode) return;
+		settingFan = true;
+		try {
+			await climateService.setFanMode(entityId, nextMode);
+		} catch {
+			// no-op
+		} finally {
+			settingFan = false;
+		}
+	}
+
+	async function setPreset(nextPreset: string) {
+		if (isUnavail || settingPreset || !nextPreset || presetMode === nextPreset) return;
+		settingPreset = true;
+		try {
+			await climateService.setPresetMode(entityId, nextPreset);
+		} catch {
+			// no-op
+		} finally {
+			settingPreset = false;
+		}
 	}
 
 	const displayAction = $derived(hvacAction ? hvacAction.replace(/_/g, ' ') : hvacMode.replace(/_/g, ' '));
@@ -157,7 +221,7 @@
 				</div>
 				
 				<div class="cmi__target-display">
-					{#if supportsRange}
+						{#if supportsRange}
 						<div class="cmi__range-values">
 							<div class="cmi__range-val">
 								<span class="cmi__range-label">Low</span>
@@ -169,49 +233,53 @@
 								<span class="cmi__range-num" style="color: var(--color-info)">{localTempHigh}{tempUnit}</span>
 							</div>
 						</div>
-					{:else}
-						<div class="cmi__single-val">
-							<span class="cmi__single-label">Target</span>
-							<span class="cmi__single-num" style="color: {actionColor}">{localTemp}{tempUnit}</span>
-						</div>
-					{/if}
-				</div>
+						{:else}
+							<div class="cmi__single-val">
+								<span class="cmi__single-label">Target</span>
+								<span class="cmi__single-num" style="color: {actionColor}">
+									{#if hasValidSingleTarget}{localTemp}{tempUnit}{:else}—{/if}
+								</span>
+							</div>
+						{/if}
+					</div>
 			</div>
 
 			<div class="cmi__controls">
 				{#if supportsRange}
 					<div class="cmi__group">
 						<div class="cmi__nudge-row">
-							<button class="cmi__nudge" style="color: var(--color-warning); border-color: color-mix(in srgb, var(--color-warning) 30%, transparent)" onclick={() => nudgeRange('low', -1)}>
+							<button class="cmi__nudge" style="color: var(--color-warning); border-color: color-mix(in srgb, var(--color-warning) 30%, transparent)" onclick={() => nudgeRange('low', -1)} disabled={!canAdjustTemperature}>
 								<Icon name="minus" size={16} />
 							</button>
-							<div class="cmi__slider-track">
-								<div class="cmi__slider-fill" style="width: {((localTempLow - minTemp) / (maxTemp - minTemp)) * 100}%; background: var(--color-warning)"></div>
-								<input 
-									type="range" class="cmi__slider" 
-									min={minTemp} max={maxTemp} step={tempStep} 
-									value={localTempLow} oninput={(e) => onRangeInput('low', Number(e.currentTarget.value))} 
-								/>
-							</div>
-							<button class="cmi__nudge" style="color: var(--color-warning); border-color: color-mix(in srgb, var(--color-warning) 30%, transparent)" onclick={() => nudgeRange('low', 1)}>
+								<div class="cmi__slider-track">
+									<div class="cmi__slider-fill" style="width: {((localTempLow - minTemp) / tempRangeSpan) * 100}%; background: var(--color-warning)"></div>
+									<input 
+										type="range" class="cmi__slider" 
+										min={minTemp} max={maxTemp} step={tempStep} 
+										value={localTempLow} oninput={(e) => onRangeInput('low', Number(e.currentTarget.value))}
+										disabled={!canAdjustTemperature}
+									/>
+								</div>
+							<button class="cmi__nudge" style="color: var(--color-warning); border-color: color-mix(in srgb, var(--color-warning) 30%, transparent)" onclick={() => nudgeRange('low', 1)} disabled={!canAdjustTemperature}>
 								<Icon name="plus" size={16} />
 							</button>
 						</div>
 					</div>
 					<div class="cmi__group">
 						<div class="cmi__nudge-row">
-							<button class="cmi__nudge" style="color: var(--color-info); border-color: color-mix(in srgb, var(--color-info) 30%, transparent)" onclick={() => nudgeRange('high', -1)}>
+							<button class="cmi__nudge" style="color: var(--color-info); border-color: color-mix(in srgb, var(--color-info) 30%, transparent)" onclick={() => nudgeRange('high', -1)} disabled={!canAdjustTemperature}>
 								<Icon name="minus" size={16} />
 							</button>
-							<div class="cmi__slider-track">
-								<div class="cmi__slider-fill" style="width: {((localTempHigh - minTemp) / (maxTemp - minTemp)) * 100}%; background: var(--color-info)"></div>
-								<input 
-									type="range" class="cmi__slider" 
-									min={minTemp} max={maxTemp} step={tempStep} 
-									value={localTempHigh} oninput={(e) => onRangeInput('high', Number(e.currentTarget.value))} 
-								/>
-							</div>
-							<button class="cmi__nudge" style="color: var(--color-info); border-color: color-mix(in srgb, var(--color-info) 30%, transparent)" onclick={() => nudgeRange('high', 1)}>
+								<div class="cmi__slider-track">
+									<div class="cmi__slider-fill" style="width: {((localTempHigh - minTemp) / tempRangeSpan) * 100}%; background: var(--color-info)"></div>
+									<input 
+										type="range" class="cmi__slider" 
+										min={minTemp} max={maxTemp} step={tempStep} 
+										value={localTempHigh} oninput={(e) => onRangeInput('high', Number(e.currentTarget.value))}
+										disabled={!canAdjustTemperature}
+									/>
+								</div>
+							<button class="cmi__nudge" style="color: var(--color-info); border-color: color-mix(in srgb, var(--color-info) 30%, transparent)" onclick={() => nudgeRange('high', 1)} disabled={!canAdjustTemperature}>
 								<Icon name="plus" size={16} />
 							</button>
 						</div>
@@ -219,18 +287,19 @@
 				{:else}
 					<div class="cmi__group">
 						<div class="cmi__nudge-row">
-							<button class="cmi__nudge" style="color: {actionColor}; border-color: color-mix(in srgb, {actionColor} 30%, transparent)" onclick={() => nudgeSingle(-1)}>
+							<button class="cmi__nudge" style="color: {actionColor}; border-color: color-mix(in srgb, {actionColor} 30%, transparent)" onclick={() => nudgeSingle(-1)} disabled={!canAdjustTemperature}>
 								<Icon name="minus" size={18} />
 							</button>
 							<div class="cmi__slider-track">
-								<div class="cmi__slider-fill" style="width: {((localTemp - minTemp) / (maxTemp - minTemp)) * 100}%; background: {actionColor}"></div>
+								<div class="cmi__slider-fill" style="width: {((localTemp - minTemp) / tempRangeSpan) * 100}%; background: {actionColor}"></div>
 								<input 
 									type="range" class="cmi__slider" 
 									min={minTemp} max={maxTemp} step={tempStep} 
-									value={localTemp} oninput={(e) => onTempInput(Number(e.currentTarget.value))} 
+									value={localTemp} oninput={(e) => onTempInput(Number(e.currentTarget.value))}
+									disabled={!canAdjustTemperature}
 								/>
 							</div>
-							<button class="cmi__nudge" style="color: {actionColor}; border-color: color-mix(in srgb, {actionColor} 30%, transparent)" onclick={() => nudgeSingle(1)}>
+							<button class="cmi__nudge" style="color: {actionColor}; border-color: color-mix(in srgb, {actionColor} 30%, transparent)" onclick={() => nudgeSingle(1)} disabled={!canAdjustTemperature}>
 								<Icon name="plus" size={18} />
 							</button>
 						</div>
@@ -250,6 +319,38 @@
 						onclick={() => setMode(mode)}
 					>
 						<span class="cmi__mode-label">{mode.replace(/_/g, ' ')}</span>
+					</button>
+				{/each}
+			</div>
+		{/if}
+
+		{#if fanModes.length > 0}
+			<div class="cmi__subhead">Fan Mode</div>
+			<div class="cmi__options">
+				{#each [...new Set(fanModes)] as mode (mode)}
+					<button
+						class="cmi__chip"
+						class:cmi__chip--active={fanMode === mode}
+						disabled={isUnavail || settingFan}
+						onclick={() => setFan(mode)}
+					>
+						{mode.replace(/_/g, ' ')}
+					</button>
+				{/each}
+			</div>
+		{/if}
+
+		{#if presetModes.length > 0}
+			<div class="cmi__subhead">Preset</div>
+			<div class="cmi__options">
+				{#each [...new Set(presetModes)] as mode (mode)}
+					<button
+						class="cmi__chip"
+						class:cmi__chip--active={presetMode === mode}
+						disabled={isUnavail || settingPreset}
+						onclick={() => setPreset(mode)}
+					>
+						{mode.replace(/_/g, ' ')}
 					</button>
 				{/each}
 			</div>
@@ -485,6 +586,12 @@
 		transform: scale(0.9);
 	}
 
+	.cmi__nudge:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+		transform: none;
+	}
+
 	.cmi__slider-track {
 		flex: 1;
 		position: relative;
@@ -527,6 +634,11 @@
 		border: 2px solid var(--bg-elevated);
 	}
 
+	.cmi__slider:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+	}
+
 	.cmi__modes {
 		/* Use flex so incomplete rows (e.g., 2 modes) can be centered */
 		display: flex;
@@ -555,5 +667,45 @@
 		background: color-mix(in srgb, var(--active-color, var(--accent)) 15%, transparent);
 		border-color: var(--active-color, var(--accent));
 		color: var(--active-color, var(--accent));
+	}
+
+	.cmi__subhead {
+		margin-top: 4px;
+		font-size: 0.72rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--fg-subtle);
+	}
+
+	.cmi__options {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	.cmi__chip {
+		height: 34px;
+		padding: 0 12px;
+		border-radius: var(--dialog-radius);
+		border: 1px solid rgba(255,255,255,0.1);
+		background: rgba(255,255,255,0.03);
+		color: var(--fg-muted);
+		font-size: 0.8rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		text-transform: capitalize;
+	}
+
+	.cmi__chip--active {
+		color: var(--accent);
+		border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+		background: color-mix(in srgb, var(--accent) 16%, transparent);
+	}
+
+	.cmi__chip:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
 	}
 </style>

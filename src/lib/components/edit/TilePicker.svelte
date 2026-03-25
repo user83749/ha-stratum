@@ -31,17 +31,28 @@
   let step = $state<Step>('source');
   let selectedEntityId = $state<string | undefined>(undefined);
   let selectedType = $state<TileType | null>(null);
-  let selectedPreset = $state<'sm' | 'md' | 'lg' | 'xl'>('md');
+  let selectedPreset = $state<'sm' | 'md' | 'lg' | 'xl'>('sm');
   let previewGridWidth = $state(0);
+  let liveSectionGridWidth = $state(0);
+  let liveSectionActiveColumns = $state(0);
   const PREVIEW_IMAGE_DATA_URI =
     'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 600 360%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop stop-color=%22%23364a5c%22/%3E%3Cstop offset=%221%22 stop-color=%22%23232f3c%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%22600%22 height=%22360%22 fill=%22url(%23g)%22/%3E%3Ccircle cx=%22125%22 cy=%22115%22 r=%2232%22 fill=%22%23ffffff33%22/%3E%3Cpath d=%22M70 280L185 170l85 78 95-108 165 140H70z%22 fill=%22%23ffffff22%22/%3E%3Ctext x=%2250%25%22 y=%2252%25%22 fill=%22%23f5f7fa%22 font-size=%2230%22 text-anchor=%22middle%22 font-family=%22system-ui,-apple-system,Segoe UI,Roboto,sans-serif%22%3EImage Preview%3C/text%3E%3C/svg%3E';
   const PREVIEW_IFRAME_DATA_URI =
     'data:text/html,%3C!doctype%20html%3E%3Chtml%3E%3Chead%3E%3Cmeta%20charset=%22utf-8%22/%3E%3Cmeta%20name=%22viewport%22%20content=%22width=device-width,initial-scale=1%22/%3E%3Cstyle%3Ehtml,body%7Bheight:100%25;margin:0;font-family:system-ui,-apple-system,Segoe%20UI,Roboto,sans-serif;background:linear-gradient(135deg,%231f2d3d,%2333475f);color:%23eef3f8;display:grid;place-items:center%7D.card%7Bpadding:14px%2018px;border-radius:14px;background:rgba(255,255,255,.1);backdrop-filter:blur(6px);font-size:16px%7D%3C/style%3E%3C/head%3E%3Cbody%3E%3Cdiv%20class=%22card%22%3EWebpage%20Preview%3C/div%3E%3C/body%3E%3C/html%3E';
 
-  // Preview uses canonical desktop spans so preset dimensions stay stable and
-  // visually distinct regardless of viewport or section column hint.
+  // Preview should mirror current app breakpoint sizing so tile internals
+  // (font/icon/control scales) match the live dashboard.
   function resolvePreviewBreakpoint(): 'sm' | 'md' | 'lg' {
+    if (typeof window === 'undefined') return 'lg';
+    const width = window.innerWidth;
+    if (width <= 800) return 'sm';
+    if (width <= 1160) return 'md';
     return 'lg';
+  }
+
+  function getDefaultPresetForType(type: TileType): 'sm' | 'md' | 'lg' | 'xl' {
+    if (type === 'media_player' || type === 'media_hero') return 'lg';
+    return 'sm';
   }
 
   // ── Open-State Reset ──────────────────────────────────────────────────────
@@ -51,7 +62,66 @@
     step = 'source';
     selectedEntityId = undefined;
     selectedType = null;
-    selectedPreset = 'md';
+    selectedPreset = 'sm';
+    liveSectionGridWidth = 0;
+    liveSectionActiveColumns = 0;
+  });
+
+  $effect(() => {
+    if (!open || typeof document === 'undefined') return;
+
+    const safeSectionId = typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+      ? CSS.escape(sectionId)
+      : sectionId;
+    const sectionEl = document.querySelector<HTMLElement>(`[data-section-id="${safeSectionId}"]`);
+    if (!sectionEl) {
+      liveSectionGridWidth = 0;
+      liveSectionActiveColumns = 0;
+      return;
+    }
+    const gridEl = sectionEl?.querySelector<HTMLElement>('.section__grid-ctr') ?? null;
+    const readColumns = () => {
+      const raw = sectionEl?.dataset.activeColumns ?? '';
+      const parsed = Number(raw);
+      liveSectionActiveColumns = Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 0;
+    };
+    const readWidth = () => {
+      if (!gridEl) return;
+      liveSectionGridWidth = Math.round(gridEl.clientWidth);
+    };
+
+    readColumns();
+    readWidth();
+
+    if (!gridEl) return;
+
+    const resizeObserver = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => {
+          readColumns();
+          readWidth();
+        })
+      : null;
+    resizeObserver?.observe(gridEl);
+
+    const attrObserver = typeof MutationObserver !== 'undefined'
+      ? new MutationObserver(() => {
+          readColumns();
+          readWidth();
+        })
+      : null;
+    attrObserver?.observe(sectionEl, { attributes: true, attributeFilter: ['data-active-columns'] });
+
+    const onWindowResize = () => {
+      readColumns();
+      readWidth();
+    };
+    window.addEventListener('resize', onWindowResize);
+
+    return () => {
+      resizeObserver?.disconnect();
+      attrObserver?.disconnect();
+      window.removeEventListener('resize', onWindowResize);
+    };
   });
 
   // ── Entity / Source Derivations ──────────────────────────────────────────
@@ -182,7 +252,8 @@
     if (types.length === 1) {
       selectedType = types[0];
       const allowed = getAllowedPresets(selectedType);
-      selectedPreset = allowed.includes('md') ? 'md' : allowed[0];
+      const preferred = getDefaultPresetForType(selectedType);
+      selectedPreset = allowed.includes(preferred) ? preferred : allowed[0];
       step = 'size';
       return;
     }
@@ -194,7 +265,8 @@
   function pickType(type: TileType) {
     selectedType = type;
     const allowed = getAllowedPresets(type);
-    selectedPreset = allowed.includes('md') ? 'md' : allowed[0];
+    const preferred = getDefaultPresetForType(type);
+    selectedPreset = allowed.includes(preferred) ? preferred : allowed[0];
     step = 'size';
   }
 
@@ -261,27 +333,35 @@
     const page = $dashboardStore.pages.find((p) => p.id === pageId);
     return page?.sections.find((s) => s.id === sectionId) ?? null;
   });
+  const previewGridWidthEffective = $derived.by(() => {
+    return liveSectionGridWidth > 0 ? liveSectionGridWidth : previewGridWidth;
+  });
   const isChipHorizontalRow = $derived(previewSection?.layoutMode === 'horizontal_chip_row');
   const previewGridGap = $derived.by(() => Number(previewSection?.grid.gap ?? 0));
   const previewGridPad = $derived.by(() => Number(previewSection?.padding ?? 0));
   const previewColumns = $derived.by(() => {
+    if (liveSectionActiveColumns > 0) return liveSectionActiveColumns;
+    if (columnHint > 0) return columnHint;
     const explicitColumns = previewSection?.grid.columns;
     if (explicitColumns && explicitColumns > 0) return explicitColumns;
 
     const base = Number(previewSection?.grid.baseSize ?? 120);
-    if (!Number.isFinite(base) || base <= 0 || previewGridWidth <= 0) return 3;
+    if (!Number.isFinite(base) || base <= 0) return 2;
+    if (!Number.isFinite(previewGridGap)) return 2;
+    if (!previewGridWidthEffective || previewGridWidthEffective <= 0) return 2;
 
-    const fit = Math.floor((previewGridWidth + previewGridGap) / (base + previewGridGap));
+    const fit = Math.floor((previewGridWidthEffective + previewGridGap) / (base + previewGridGap));
     return Math.max(2, Math.min(3, fit));
   });
-  const previewInset = $derived.by(() => Math.max(1, Math.round(previewGridWidth * 0.08)));
-  const previewUsableWidth = $derived.by(() => Math.max(1, Math.round(previewGridWidth - previewInset * 2)));
   const previewCellSize = $derived.by(() => {
-    const innerWidth =
-      previewUsableWidth -
+    const base = Number(previewSection?.grid.baseSize ?? 120);
+    const usable =
+      previewGridWidthEffective -
       previewGridPad * 2 -
       (previewColumns - 1) * previewGridGap;
-    return Math.max(1, Math.round(innerWidth / Math.max(1, previewColumns)));
+
+    if (!Number.isFinite(usable) || usable <= 0) return Math.max(1, base);
+    return Math.max(1, usable / Math.max(1, previewColumns));
   });
   const previewPadY = $derived.by(() => Math.max(1, Math.round(previewCellSize * 0.22)));
 
@@ -292,6 +372,26 @@
   const previewTileHeight = $derived.by(() => {
     const h = previewTile?.layout?.h ?? 1;
     return h * previewCellSize + Math.max(0, h - 1) * previewGridGap;
+  });
+
+  const previewGridStyle = $derived.by(() => {
+    const cols = Math.max(1, previewColumns);
+    const gap = Number(previewSection?.grid.gap ?? 0);
+    const pad = Number(previewSection?.padding ?? 0);
+    const parts: string[] = [];
+
+    parts.push(`grid-template-columns: repeat(${cols}, 1fr)`);
+    const subtract = pad * 2 + (cols - 1) * gap;
+    parts.push(`grid-auto-rows: calc((100cqw - ${subtract}px) / ${cols})`);
+    parts.push(`gap: ${gap}px`);
+    if (pad > 0) parts.push(`padding: ${pad}px`);
+
+    return parts.join('; ');
+  });
+
+  const previewGridContainerWidth = $derived.by(() => {
+    const width = previewGridWidthEffective > 0 ? previewGridWidthEffective : previewGridWidth;
+    return Math.max(1, width);
   });
 
   const previewShellMinHeight = $derived.by(() => {
@@ -448,11 +548,15 @@
         <div class="tp-preview-shell" bind:clientWidth={previewGridWidth} style="min-height:{previewShellMinHeight}px;">
           <div class="tp-preview-canvas">
             {#if previewTile}
-              <div
-                class="tp-preview-slot"
-                style="width:{previewTileWidth}px; height:{previewTileHeight}px;"
-              >
-                <TileRenderer tile={previewTile} preview={true} />
+              <div class="tp-preview-grid-ctr" style="width:{previewGridContainerWidth}px;">
+                <div class="tp-preview-grid" style={previewGridStyle}>
+                  <div
+                    class="tp-preview-slot"
+                    style="grid-column: 1 / span {previewTile.layout?.w ?? 1}; grid-row: 1 / span {previewTile.layout?.h ?? 1};"
+                  >
+                    <TileRenderer tile={previewTile} preview={true} />
+                  </div>
+                </div>
               </div>
             {/if}
           </div>
@@ -700,27 +804,37 @@
   .tp-preview-shell {
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: max(0.9rem, 1vw);
+    padding: 0;
     background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
     display: flex;
     overflow: auto;
   }
 
   .tp-preview-canvas {
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     min-width: 100%;
     width: max-content;
     min-height: 100%;
     overflow: visible;
   }
 
+  .tp-preview-grid-ctr {
+    container-type: inline-size;
+    max-width: 100%;
+  }
+
+  .tp-preview-grid {
+    display: grid;
+    position: relative;
+  }
+
   .tp-preview-slot {
     display: flex;
-    height: 100%;
     min-width: 0;
     min-height: 0;
-    border-radius: var(--radius);
+    border-radius: var(--tile-radius, var(--radius));
     overflow: hidden;
   }
 
@@ -729,8 +843,7 @@
     width: 100%;
     height: 100%;
     min-height: 0;
-    transform: none !important;
-    filter: none !important;
+    border-radius: inherit;
     pointer-events: none;
   }
 

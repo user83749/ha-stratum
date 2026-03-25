@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.25] - 2026-03-25
+
+### Changed
+- **Default Visual Upgrade**: Updated the default system theme to **"Draftwork"** and set the custom high-fidelity **`hue-light`** icon as the default for all light entities.
+- **Default Configurations**:
+  - Enabled **Update domain entities** in the notification panel by default.
+  - Disabled the connection status indicator in the header by default for a cleaner look.
+- **Improved Previews**: Refined the `TilePicker` preview engine to use a unified attributes helper, resulting in more accurate and consistent entity previews.
+
+### Fixed
+- **Climate Component**: Refined state tracking for Humidity and Power states in the `ClimateTile` and `ClimateMoreInfo` dialog.
+
 ## [1.1.24] - 2026-03-25
 
 ### Fixed

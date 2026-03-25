@@ -892,7 +892,7 @@ export interface DashboardConfig {
 // ─── Defaults ────────────────────────────────────────────────────────────────
 
 export const DEFAULT_THEME: ThemeConfig = {
-	themeId: 'nebula',
+	themeId: 'draftwork',
 	radius: 'lg',
 	tileRadius: 'lg',
 	popupRadius: 'lg',
@@ -914,7 +914,7 @@ export const DEFAULT_NAV: NavConfig = {
 	showMobileWeather: true,
 	showMobileAlertsButton: true,
 	showHeader: false,
-	showConnectionStatus: true,
+	showConnectionStatus: false,
 	mobileBreakpoint: 800,
 	mobileStyle: 'bottom-bar',
 	heroEntities: [],
@@ -1019,7 +1019,7 @@ export const DEFAULT_NOTIFICATIONS: NotificationConfig = {
 	showPersistent: true,
 	showAlerts: true,
 	includeAlertDomainEntities: true,
-	includeUpdateDomainEntities: false,
+	includeUpdateDomainEntities: true,
 	includeBinarySensorDomainEntities: false,
 	includeAlarmControlPanelDomainEntities: false,
 	alertEntityIds: [],

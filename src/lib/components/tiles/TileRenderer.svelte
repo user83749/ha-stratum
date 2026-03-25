@@ -41,24 +41,35 @@
 	}
 
 	function buildPreviewEntity(tile: Tile, existing: ReturnType<typeof makePreviewEntity> | null) {
-		if (existing) return existing;
-
-		const fallbackName = (tile.config?.name as string | undefined) ?? 'Preview';
+		const fallbackName =
+			(tile.config?.name as string | undefined) ??
+			(existing?.attributes?.friendly_name as string | undefined) ??
+			'Preview';
 		const entityId = tile.entity_id ?? `${tile.type}.preview`;
+		const existingIcon = typeof existing?.attributes?.icon === 'string' ? existing.attributes.icon : undefined;
+		const withCommonAttrs = (attrs: Record<string, unknown>) => ({
+			...attrs,
+			friendly_name: fallbackName,
+			...(existingIcon ? { icon: existingIcon } : {})
+		});
+
+		// Keep generic entity previews tied to the selected live entity so users see
+		// a realistic "entity tile" preview for that source.
+		if (tile.type === 'entity' && existing) {
+			return makePreviewEntity(entityId, existing.state, withCommonAttrs(existing.attributes as Record<string, unknown>));
+		}
 
 		switch (tile.type) {
 			case 'light':
-				return makePreviewEntity(entityId, 'on', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'on', withCommonAttrs({
 					brightness: 178,
 					supported_color_modes: ['brightness', 'color_temp'],
 					color_temp: 320,
 					min_mireds: 153,
 					max_mireds: 500
-				});
+				}));
 			case 'climate':
-				return makePreviewEntity(entityId, 'cool', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'cool', withCommonAttrs({
 					current_temperature: 72,
 					temperature: 70,
 					current_humidity: 44,
@@ -66,16 +77,14 @@
 					hvac_modes: ['off', 'cool', 'heat', 'heat_cool', 'auto'],
 					min_temp: 60,
 					max_temp: 82
-				});
+				}));
 			case 'cover':
-				return makePreviewEntity(entityId, 'open', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'open', withCommonAttrs({
 					current_position: 68,
 					device_class: 'blind'
-				});
+				}));
 			case 'media_player':
-				return makePreviewEntity(entityId, 'playing', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'playing', withCommonAttrs({
 					media_title: 'Now Playing',
 					media_artist: 'Preview Artist',
 					media_duration: 240,
@@ -83,106 +92,92 @@
 					media_position_updated_at: new Date().toISOString(),
 					entity_picture: PREVIEW_ART_DATA_URI,
 					volume_level: 0.52
-				});
+				}));
 			case 'media_hero':
-				return makePreviewEntity(entityId, 'playing', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'playing', withCommonAttrs({
 					media_title: 'Preview Track',
 					media_artist: 'Preview Artist',
 					media_duration: 240,
 					media_position: 74,
 					media_position_updated_at: new Date().toISOString(),
 					entity_picture: PREVIEW_ART_DATA_URI
-				});
+				}));
 			case 'camera':
-				return makePreviewEntity(entityId, 'idle', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'idle', withCommonAttrs({
 					access_token: 'preview',
 					entity_picture: PREVIEW_ART_DATA_URI,
 					motion_detection: true
-				});
+				}));
 			case 'alarm_panel':
-				return makePreviewEntity(entityId, 'disarmed', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'disarmed', withCommonAttrs({
 					code_format: 'number',
 					supported_features: 7
-				});
+				}));
 			case 'siren':
-				return makePreviewEntity(entityId, 'on', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'on', withCommonAttrs({
 					available_tones: ['Burglar', 'Fire', 'Chime'],
 					tone: 'Burglar'
-				});
+				}));
 			case 'fan':
-				return makePreviewEntity(entityId, 'on', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'on', withCommonAttrs({
 					percentage: 58,
 					preset_modes: ['auto', 'sleep', 'boost'],
 					preset_mode: 'auto',
 					oscillating: true
-				});
+				}));
 			case 'lock':
-				return makePreviewEntity(entityId, 'locked', { friendly_name: fallbackName });
+				return makePreviewEntity(entityId, 'locked', withCommonAttrs({}));
 			case 'vacuum':
-				return makePreviewEntity(entityId, 'cleaning', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'cleaning', withCommonAttrs({
 					battery_level: 74,
 					fan_speed_list: ['quiet', 'balanced', 'turbo'],
 					fan_speed: 'balanced'
-				});
+				}));
 			case 'lawn_mower':
-				return makePreviewEntity(entityId, 'mowing', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'mowing', withCommonAttrs({
 					activity: 'mowing',
 					battery_level: 82
-				});
+				}));
 			case 'humidifier':
-				return makePreviewEntity(entityId, 'on', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'on', withCommonAttrs({
 					current_humidity: 43,
 					humidity: 48,
 					mode: 'auto',
 					available_modes: ['auto', 'sleep', 'boost']
-				});
+				}));
 			case 'person':
-				return makePreviewEntity(entityId, 'home', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'home', withCommonAttrs({
 					latitude: 40.713,
 					longitude: -74.006,
 					source: 'gps'
-				});
+				}));
 			case 'slider':
-				return makePreviewEntity(entityId, '42', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, '42', withCommonAttrs({
 					min: 0,
 					max: 100,
 					step: 1,
 					unit_of_measurement: '%'
-				});
+				}));
 			case 'input_select':
-				return makePreviewEntity(entityId, 'Auto', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'Auto', withCommonAttrs({
 					options: ['Off', 'Auto', 'On']
-				});
+				}));
 			case 'remote':
-				return makePreviewEntity(entityId, 'on', { friendly_name: fallbackName });
+				return makePreviewEntity(entityId, 'on', withCommonAttrs({}));
 			case 'timer':
-				return makePreviewEntity(entityId, 'active', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'active', withCommonAttrs({
 					duration: '00:30:00',
 					remaining: '00:11:32',
 					finishes_at: new Date(Date.now() + 11 * 60 * 1000).toISOString()
-				});
+				}));
 			case 'calendar':
-				return makePreviewEntity(entityId, 'on', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'on', withCommonAttrs({
 					message: 'Upcoming event',
 					start_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
 					end_time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
-				});
+				}));
 			case 'weather':
-				return makePreviewEntity(entityId, 'partlycloudy', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'partlycloudy', withCommonAttrs({
 					temperature: 74,
 					temperature_unit: '°F',
 					humidity: 41,
@@ -193,64 +188,55 @@
 						{ datetime: new Date(Date.now() + 86400000).toISOString(), temperature: 81, templow: 67, condition: 'sunny' },
 						{ datetime: new Date(Date.now() + 172800000).toISOString(), temperature: 75, templow: 62, condition: 'rainy' }
 					]
-				});
+				}));
 			case 'history':
 			case 'gauge':
 			case 'statistic':
-				return makePreviewEntity(entityId, '42.5', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, '42.5', withCommonAttrs({
 					unit_of_measurement: tile.type === 'gauge' ? '%' : 'kWh',
 					device_class: tile.type === 'gauge' ? 'power' : 'energy'
-				});
+				}));
 			case 'logbook':
-				return makePreviewEntity(entityId, 'door_opened', {
-					friendly_name: fallbackName
-				});
+				return makePreviewEntity(entityId, 'door_opened', withCommonAttrs({}));
 			case 'energy':
-				return makePreviewEntity(entityId, '1264', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, '1264', withCommonAttrs({
 					unit_of_measurement: 'W',
 					device_class: 'power'
-				});
+				}));
 			case 'map':
-				return makePreviewEntity(entityId, 'home', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'home', withCommonAttrs({
 					latitude: 40.713,
 					longitude: -74.006
-				});
+				}));
 			case 'todo':
-				return makePreviewEntity(entityId, '2', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, '2', withCommonAttrs({
 					items: [
 						{ summary: 'Replace filter', status: 'needs_action', uid: '1' },
 						{ summary: 'Run diagnostics', status: 'needs_action', uid: '2' },
 						{ summary: 'Backup config', status: 'completed', uid: '3' }
 					]
-				});
+				}));
 			case 'update':
-				return makePreviewEntity(entityId, 'on', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'on', withCommonAttrs({
 					title: 'Firmware Update',
 					installed_version: '1.0.2',
 					latest_version: '1.1.0',
 					in_progress: false
-				});
+				}));
 			case 'water_heater':
-				return makePreviewEntity(entityId, 'heat', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'heat', withCommonAttrs({
 					current_temperature: 118,
 					temperature: 122,
 					min_temp: 95,
 					max_temp: 140,
 					operation_mode: 'heat',
 					operation_list: ['off', 'heat', 'eco']
-				});
+				}));
 			default:
-				return makePreviewEntity(entityId, 'on', {
-					friendly_name: fallbackName,
+				return makePreviewEntity(entityId, 'on', withCommonAttrs({
 					unit_of_measurement: '',
 					device_class: tile.type
-				});
+				}));
 		}
 	}
 

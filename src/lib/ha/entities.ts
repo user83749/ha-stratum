@@ -215,10 +215,12 @@ export function getEntityIcon(entity: HassEntity): string {
 		return haIcon.replace(/^mdi:/, '').replace(/_/g, '-');
 	}
 
-	switch (domain) {
-		// ── Actuators ──────────────────────────────────────────────────────
-		case 'light':
-			return active ? 'lightbulb' : 'lightbulb-off';
+		switch (domain) {
+			// ── Actuators ──────────────────────────────────────────────────────
+			case 'light':
+				// Use Stratum's custom Hue-style glyph by default for all light entities.
+				// It renders on/off + color state from the live entity context.
+				return 'hue-light';
 
 		case 'switch':
 			switch (dc) {
