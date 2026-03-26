@@ -372,6 +372,7 @@
 	const isModal  = $derived(style === 'modal');
 	const isPanel  = $derived(style === 'panel');
 	const isCameraDesktop = $derived(variant === 'camera' && !isSheet && !isPanel);
+	const isCameraSheet = $derived(variant === 'camera' && isSheet && !isPanel);
 	const isCustomDesktop = $derived(variant === 'custom' && !isSheet && !isPanel);
 	const customDesktopWidthPx = $derived.by(() => {
 		const n = Number(customDesktopWidth);
@@ -417,6 +418,7 @@
 		class:moreinfo-panel--bottom={isDrawer && side === 'bottom'}
 		class:moreinfo-panel--panel={isPanel}
 			class:moreinfo-panel--sheet={isSheet}
+			class:moreinfo-panel--camera-sheet={isCameraSheet}
 			class:moreinfo-panel--camera-desktop={isCameraDesktop}
 			class:moreinfo-panel--custom-desktop={isCustomDesktop}
 			class:moreinfo-panel--closing={closing}
@@ -666,6 +668,12 @@
 		min-height: auto;
 	}
 
+	/* For camera sheets, avoid large generic bottom reserve so multi-feed content
+	   uses vertical space and doesn't leave a dead gap above page bottom. */
+	.moreinfo-panel--sheet.moreinfo-panel--camera-sheet {
+		padding-bottom: env(safe-area-inset-bottom) !important;
+	}
+
 	@starting-style {
 		.moreinfo-panel--sheet {
 			transform: translateY(calc(100% + var(--sheet-drag, 0px))) !important;
@@ -690,7 +698,7 @@
 		right: auto !important;
 		bottom: auto !important;
 		transform: translate(-50%, -50%) !important;
-		width: min(980px, 94dvw) !important;
+		width: min(1080px, 95dvw) !important;
 		height: min(74dvh, 760px) !important;
 		max-height: 88dvh;
 		border: 1px solid var(--border) !important;

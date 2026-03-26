@@ -66,10 +66,12 @@
 		width: var(--_w);
 		height: var(--_h);
 		border-radius: calc(var(--_h) / 2);
+		border: 1px solid color-mix(in srgb, var(--fg) 26%, var(--border));
 		background-color: var(--color-off);
 		transition:
 			background-color var(--transition),
-			box-shadow var(--transition);
+			box-shadow var(--transition),
+			border-color var(--transition);
 		cursor: pointer;
 		user-select: none;
 	}
@@ -83,6 +85,7 @@
 
 	.toggle--on {
 		background-color: var(--accent);
+		border-color: color-mix(in srgb, var(--accent) 68%, var(--fg) 18%);
 	}
 
 	.toggle--disabled {
@@ -99,16 +102,18 @@
 	.toggle__thumb {
 		position: absolute;
 		left: var(--_pad);
+		top: 50%;
 		width: var(--_thumb);
 		height: var(--_thumb);
 		border-radius: 50%;
 		background-color: var(--thumb-bg);
 		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+		transform: translateY(-50%);
 		transition: transform var(--transition), box-shadow var(--transition);
 	}
 
 	.toggle--on .toggle__thumb {
-		transform: translateX(calc(var(--_w) - var(--_thumb) - var(--_pad) * 2));
+		transform: translateY(-50%) translateX(calc(var(--_w) - var(--_thumb) - var(--_pad) * 2));
 		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 	}
 </style>

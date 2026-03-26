@@ -202,6 +202,11 @@ export interface CameraFeedConfig {
 	entity_id?: string;
 	url?: string;
 	label?: string;
+	stream_mode?: 'auto' | 'hls' | 'direct';
+	object_fit?: 'cover' | 'contain';
+	muted?: boolean;
+	low_latency?: boolean;
+	retry_limit?: number;
 	popup_trigger_entity?: string;
 	popup_trigger_state?: string;
 }
@@ -329,6 +334,10 @@ export interface TileConfig {
 	ptz?: boolean;                    // show PTZ controls if camera supports it
 	camera_feeds?: CameraFeedConfig[]; // ordered feed list shown in more-info popup
 	camera_primary_feed?: string; // feed id to select first
+	camera_view_mode?: 'single' | 'grid2' | 'grid4';
+	camera_warm_standby?: boolean;
+	camera_popup_show_state?: boolean;
+	camera_popup_show_icon?: boolean;
 	popup_trigger_enabled?: boolean; // master enable for auto-popup triggers
 	popup_trigger_entity?: string;
 	popup_trigger_state?: string;

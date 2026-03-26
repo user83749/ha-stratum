@@ -223,6 +223,13 @@
 			entity_id: feed.type === 'entity' ? (feed.entity_id?.trim() || '') : undefined,
 			url: feed.type === 'url' ? (feed.url?.trim() || '') : undefined,
 			label: feed.label?.trim() || undefined,
+			stream_mode: (feed.stream_mode === 'hls' || feed.stream_mode === 'direct') ? feed.stream_mode : 'auto',
+			object_fit: feed.object_fit === 'contain' ? 'contain' : 'cover',
+			muted: feed.muted === false ? false : undefined,
+			low_latency: feed.low_latency === false ? false : undefined,
+			retry_limit: Number.isFinite(Number(feed.retry_limit))
+				? Math.max(0, Math.min(5, Math.round(Number(feed.retry_limit))))
+				: undefined,
 			popup_trigger_entity: feed.popup_trigger_entity?.trim() || undefined,
 			popup_trigger_state: feed.popup_trigger_state?.trim() || undefined
 		}));
@@ -241,7 +248,12 @@
 			id: generateId(),
 			type: 'entity',
 			entity_id: tile?.entity_id ?? '',
-			label: ''
+			label: '',
+			stream_mode: 'auto',
+			object_fit: 'cover',
+			low_latency: true,
+			muted: true,
+			retry_limit: 1
 		});
 		saveCameraFeeds(feeds);
 	}
@@ -253,7 +265,12 @@
 			id: generateId(),
 			type: 'url',
 			url: '',
-			label: ''
+			label: '',
+			stream_mode: 'auto',
+			object_fit: 'cover',
+			low_latency: true,
+			muted: true,
+			retry_limit: 1
 		});
 		saveCameraFeeds(feeds);
 	}
@@ -492,7 +509,7 @@
 				<span class="te__label">Name override</span>
 				<input class="te__input" type="text" placeholder="Entity name" bind:value={name} oninput={() => save({ name: name || undefined })} />
 				<span class="te__label">Icon override</span>
-				<input class="te__input" type="text" placeholder="e.g. mdi:lightbulb or floorlamp" bind:value={icon} oninput={() => save({ icon: icon || undefined })} />
+				<input class="te__input" type="text" placeholder="mdi:lightbulb or floorlamp" bind:value={icon} oninput={() => save({ icon: icon || undefined })} />
 				<div class="te__icon-links">
 					<a class="te__icon-finder" href="https://icon-sets.iconify.design/" target="_blank" rel="noopener noreferrer">Icon Finder ↗</a>
 					<button class="te__icon-finder te__builtin-btn" onclick={() => builtinOpen = !builtinOpen} type="button">
@@ -531,7 +548,7 @@
 					<input
 						class="te__input"
 						type="text"
-						placeholder="e.g. count"
+						placeholder="count"
 						value={(tile.config.chip_notify_attribute as string) ?? ''}
 						oninput={(e) => save({ chip_notify_attribute: (e.target as HTMLInputElement).value || undefined })}
 					/>
@@ -701,7 +718,7 @@
 										{:else}
 											<input
 												class="te__input te__input--sm"
-												placeholder="e.g. CoreELEC"
+												placeholder="CoreELEC"
 												value={entry.state}
 												oninput={(e) => updatePlayerEntry(i, { state: (e.target as HTMLInputElement).value })}
 											/>
@@ -729,7 +746,7 @@
 										<span class="te__label">Display name</span>
 										<input
 											class="te__input te__input--sm"
-											placeholder="e.g. Now Playing"
+											placeholder="Now Playing"
 											value={entry.name}
 											oninput={(e) => updatePlayerEntry(i, { name: (e.target as HTMLInputElement).value })}
 										/>
@@ -738,7 +755,7 @@
 										<span class="te__label">Icon</span>
 										<input
 											class="te__input te__input--sm"
-											placeholder="e.g. tv-2, speaker"
+											placeholder="tv-2, speaker"
 											value={entry.icon}
 											oninput={(e) => updatePlayerEntry(i, { icon: (e.target as HTMLInputElement).value })}
 										/>
@@ -777,25 +794,64 @@
 						{@const feedCount = cameraFeeds.length}
 						{@const feedsAtMax = feedCount >= 4}
 
-						<!-- ── Additional Feeds ─────────────────────────────────────────────────────── -->
-						<div class="te__group">
-							<span class="te__section-title">Camera Feeds</span>
-							<p class="te__hint">
-								Add secondary camera entities or URLs as tabs in this popup. Up to 4 feeds total.
-								{#if popupTriggersEnabled}
-									Feed-specific trigger overrides are available below.
-								{:else}
-									Enable auto-popup triggers below to configure feed-specific trigger overrides.
-								{/if}
-							</p>
+						<!-- ── Feeds ─────────────────────────────────────────────────────── -->
+						<div class="te__group te__group--boxed te__camera-settings-block">
+							<span class="te__section-title">Feeds</span>
+							<p class="te__hint">Add up to 4 feeds, drag to reorder, and configure per-feed behavior below.</p>
+							<div class="te__grid2">
+								<div>
+									<span class="te__label">Popup view mode</span>
+									<select
+										class="te__select te__select--sm"
+										value={(tile.config.camera_view_mode as string | undefined) ?? 'single'}
+										onchange={(e) => save({ camera_view_mode: (e.target as HTMLSelectElement).value })}
+									>
+										<option value="single">Single feed</option>
+										<option value="grid2">2-up grid</option>
+										<option value="grid4">4-up grid</option>
+									</select>
+								</div>
+								<div>
+									<span class="te__label">Warm standby</span>
+									<div class="te__inline-toggle">
+										<Toggle
+											checked={(tile.config.camera_warm_standby as boolean | undefined) !== false}
+											onchange={(checked) => save({ camera_warm_standby: checked })}
+											label="Enable warm standby"
+										/>
+										<span class="te__inline-toggle-label">Enable warm standby</span>
+									</div>
+								</div>
+							</div>
+							<div class="te__camera-feed-toggles">
+								<label class="te__check">
+									<input
+										type="checkbox"
+										checked={(tile.config.camera_popup_show_icon as boolean | undefined) !== false}
+										onchange={(e) => save({ camera_popup_show_icon: (e.target as HTMLInputElement).checked })}
+									/>
+									Show popup header icon
+								</label>
+								<label class="te__check">
+									<input
+										type="checkbox"
+										checked={(tile.config.camera_popup_show_state as boolean | undefined) !== false}
+										onchange={(e) => save({ camera_popup_show_state: (e.target as HTMLInputElement).checked })}
+									/>
+									Show popup state text
+								</label>
+							</div>
 							<div class="te__row te__row--gap">
 								<button class="te__add-btn te__add-btn--large" type="button" onclick={addCameraEntityFeed} disabled={feedsAtMax}>
-									<Icon name="plus" size={14} /> <span>{feedsAtMax ? 'Max 4 feeds' : 'Add camera entity'}</span>
+									<Icon name="plus" size={14} /> <span>Add camera entity</span>
 								</button>
 								<button class="te__add-btn te__add-btn--large" type="button" onclick={addCameraUrlFeed} disabled={feedsAtMax}>
-									<Icon name="plus" size={14} /> <span>{feedsAtMax ? 'Max 4 feeds' : 'Add custom URL'}</span>
+									<Icon name="plus" size={14} /> <span>Add custom URL</span>
 								</button>
 							</div>
+							{#if feedsAtMax}
+								<p class="te__hint">Maximum of 4 feeds reached.</p>
+							{/if}
 							{#if feedCount === 0}
 								<p class="te__hint">
 									No extra feeds configured. The tile entity feed is used by default.
@@ -816,7 +872,7 @@
 										}}
 										ondragend={() => { draggedCameraFeedIndex = null; }}
 									>
-										<div class="te__pm-header">
+										<div class="te__pm-header te__pm-header--feed">
 											<span class="te__pm-index">#{i + 1}</span>
 											<span class="te__feed-drag" title="Drag to reorder">
 												<Icon name="grip-vertical" size={12} />
@@ -869,7 +925,7 @@
 												/>
 											</div>
 											<div>
-												<span class="te__label">Label (optional)</span>
+												<span class="te__label">Label</span>
 												<input
 													class="te__input te__input--sm"
 													type="text"
@@ -878,23 +934,86 @@
 													oninput={(e) => updateCameraFeed(feed.id, { label: (e.target as HTMLInputElement).value })}
 												/>
 											</div>
+											{#if feed.type === 'url'}
+												<div>
+													<span class="te__label">Stream mode</span>
+													<select
+														class="te__select te__select--sm"
+														value={feed.stream_mode ?? 'auto'}
+														onchange={(e) => updateCameraFeed(feed.id, { stream_mode: (e.target as HTMLSelectElement).value as CameraFeedConfig['stream_mode'] })}
+													>
+														<option value="auto">Auto</option>
+														<option value="hls">HLS</option>
+														<option value="direct">Direct URL</option>
+													</select>
+												</div>
+											{/if}
+											<div class="te__camera-popup-full">
+												<details class="te__advanced">
+													<summary class="te__advanced-summary">Advanced</summary>
+													<div class="te__advanced-grid">
+														<div>
+															<span class="te__label">Video fit</span>
+															<select
+																class="te__select te__select--sm"
+																value={feed.object_fit ?? 'cover'}
+																onchange={(e) => updateCameraFeed(feed.id, { object_fit: (e.target as HTMLSelectElement).value as CameraFeedConfig['object_fit'] })}
+															>
+																<option value="cover">Cover</option>
+																<option value="contain">Contain</option>
+															</select>
+														</div>
+														<div>
+															<span class="te__label">Retry attempts on failure</span>
+															<input
+																class="te__input te__input--sm te__input--num"
+																type="number"
+																min="0"
+																max="5"
+																step="1"
+																value={feed.retry_limit ?? 1}
+																oninput={(e) => updateCameraFeed(feed.id, { retry_limit: Number((e.target as HTMLInputElement).value) })}
+															/>
+														</div>
+														<div class="te__camera-feed-toggles">
+															<label class="te__check">
+																<input
+																	type="checkbox"
+																	checked={feed.muted !== false}
+																	onchange={(e) => updateCameraFeed(feed.id, { muted: (e.target as HTMLInputElement).checked })}
+																/>
+																Start muted
+															</label>
+															<label class="te__check">
+																<input
+																	type="checkbox"
+																	checked={feed.low_latency !== false}
+																	onchange={(e) => updateCameraFeed(feed.id, { low_latency: (e.target as HTMLInputElement).checked })}
+																/>
+																Low latency
+															</label>
+														</div>
+													</div>
+												</details>
+											</div>
 
 											{#if popupTriggersEnabled}
 												<div class="te__camera-popup-divider">
-													<span class="te__camera-popup-heading">Feed-specific Trigger (Optional Override)</span>
+													<span class="te__camera-popup-heading">Feed-specific trigger override</span>
 												</div>
 												<div class="te__camera-popup-full">
-													<span class="te__label">Trigger entity (optional)</span>
+													<span class="te__label">Trigger entity</span>
+													<p class="te__hint">When this entity transitions to Trigger state, open popup.</p>
 													<input
 														class="te__input te__input--sm"
 														type="text"
-														placeholder="e.g. binary_sensor.front_door_motion"
+														placeholder="binary_sensor.front_door_motion"
 														value={feed.popup_trigger_entity ?? ''}
 														oninput={(e) => updateCameraFeed(feed.id, { popup_trigger_entity: (e.target as HTMLInputElement).value || undefined })}
 													/>
 												</div>
 												<div>
-													<span class="te__label">Open when state is</span>
+													<span class="te__label">Trigger state</span>
 													<input
 														class="te__input te__input--sm"
 														type="text"
@@ -916,23 +1035,23 @@
 							{/if}
 						</div>
 
-						<!-- ── Auto-popup Settings ──────────────────────────────────────────────────── -->
-						<div class="te__group te__group--boxed">
-							<span class="te__section-title">Auto-popup Settings</span>
+						<!-- ── Popup Triggers ──────────────────────────────────────────────────── -->
+						<div class="te__group te__group--boxed te__camera-settings-block">
+							<span class="te__section-title">Popup triggers</span>
 							<span class="te__label">Enable auto-popup triggers</span>
 							<Toggle
 								checked={popupTriggersEnabled}
 								onchange={(checked) => save({ popup_trigger_enabled: checked })}
 								label="Enable auto-popup triggers"
 							/>
-							<p class="te__hint">Allow automatic popup opening when the dashboard is visible and a trigger entity changes to its target state.</p>
+							<p class="te__hint">When this entity transitions to Trigger state, open popup.</p>
 
 							{#if popupTriggersEnabled}
 								<span class="te__label te__mt12">Auto-close after (seconds)</span>
 								<input
 									class="te__input te__input--sm te__input--num"
 									type="number"
-									placeholder="e.g. 15 — leave blank to keep open"
+									placeholder="15 — leave blank to keep open"
 									min={POPUP_AUTO_CLOSE_MIN_SECONDS}
 									max={POPUP_AUTO_CLOSE_MAX_SECONDS}
 									step="1"
@@ -945,18 +1064,15 @@
 										save({ popup_auto_close_time: normalized });
 									}}
 								/>
-								<p class="te__hint">Applies to all triggers — tile-level and feed-specific. Leave blank to keep the popup open indefinitely.</p>
-
-								<span class="te__label te__mt12">Tile trigger entity (optional)</span>
-								<p class="te__hint">Opens the primary camera feed when this entity transitions to the state below. Independent of per-feed triggers.</p>
+								<span class="te__label te__mt12">Default trigger entity</span>
 								<input
 									class="te__input te__input--sm te__mb4"
 									type="text"
-									placeholder="e.g. binary_sensor.front_door_motion"
+									placeholder="binary_sensor.front_door_motion"
 									value={(tile.config.popup_trigger_entity as string) ?? ''}
 									oninput={(e) => save({ popup_trigger_entity: (e.target as HTMLInputElement).value || undefined })}
 								/>
-								<span class="te__label">Open when state is</span>
+								<span class="te__label">Trigger state</span>
 								<input
 									class="te__input te__input--sm"
 									type="text"
@@ -1108,40 +1224,13 @@
 											<p class="te__hint">No entities in this section yet.</p>
 										{/if}
 
-										{#each section.entities as entry (entry.id)}
-											<div class="te__pm-grid">
-												<div>
-													<span class="te__label">Entity</span>
-													<input
-														class="te__input te__input--sm"
-														type="text"
-														list="te-custom-popup-entities"
-														placeholder="sensor.current_version"
-														value={entry.entity_id}
-														oninput={(e) => updateCustomPopupEntity(section.id, entry.id, { entity_id: (e.target as HTMLInputElement).value })}
-													/>
-												</div>
-												<div>
-													<span class="te__label">Name override (optional)</span>
-													<input
-														class="te__input te__input--sm"
-														type="text"
-														placeholder="Core"
-														value={entry.name ?? ''}
-														oninput={(e) => updateCustomPopupEntity(section.id, entry.id, { name: (e.target as HTMLInputElement).value })}
-													/>
-												</div>
-												<div>
-													<span class="te__label">Icon override (optional)</span>
-													<input
-														class="te__input te__input--sm"
-														type="text"
-														placeholder="mdi:home-assistant"
-														value={entry.icon ?? ''}
-														oninput={(e) => updateCustomPopupEntity(section.id, entry.id, { icon: (e.target as HTMLInputElement).value })}
-													/>
-												</div>
-												<div class="te__row">
+										{#each section.entities as entry, entryIndex (entry.id)}
+											{#if entryIndex > 0}
+												<div class="te__entity-divider" aria-hidden="true"></div>
+											{/if}
+											<div class="te__section-entity">
+												<div class="te__pm-header te__pm-header--entity">
+													<span class="te__pm-index">Entity #{entryIndex + 1}</span>
 													<button
 														class="te__icon-btn te__icon-btn--danger"
 														onclick={() => removeCustomPopupEntity(section.id, entry.id)}
@@ -1150,6 +1239,39 @@
 													>
 														<Icon name="trash-2" size={13} />
 													</button>
+												</div>
+												<div class="te__pm-grid">
+													<div>
+														<span class="te__label">Entity</span>
+														<input
+															class="te__input te__input--sm"
+															type="text"
+															list="te-custom-popup-entities"
+															placeholder="sensor.current_version"
+															value={entry.entity_id}
+															oninput={(e) => updateCustomPopupEntity(section.id, entry.id, { entity_id: (e.target as HTMLInputElement).value })}
+														/>
+													</div>
+													<div>
+														<span class="te__label">Name override (optional)</span>
+														<input
+															class="te__input te__input--sm"
+															type="text"
+															placeholder="Core"
+															value={entry.name ?? ''}
+															oninput={(e) => updateCustomPopupEntity(section.id, entry.id, { name: (e.target as HTMLInputElement).value })}
+														/>
+													</div>
+													<div>
+														<span class="te__label">Icon override (optional)</span>
+														<input
+															class="te__input te__input--sm"
+															type="text"
+															placeholder="mdi:home-assistant"
+															value={entry.icon ?? ''}
+															oninput={(e) => updateCustomPopupEntity(section.id, entry.id, { icon: (e.target as HTMLInputElement).value })}
+														/>
+													</div>
 												</div>
 											</div>
 										{/each}
@@ -1235,6 +1357,7 @@
 	}
 
 	.te {
+		--te-subsection-inset: 10px;
 		position: fixed;
 		top: 0;
 		right: 0;
@@ -1247,6 +1370,11 @@
 		flex-direction: column;
 		box-shadow: var(--shadow-lg);
 		overflow: hidden;
+	}
+	@media (max-width: 639px) {
+		.te {
+			--te-subsection-inset: 6px;
+		}
 	}
 
 	/* ── Header ───────────────────────────────────────────────────────────── */
@@ -1336,11 +1464,26 @@
 			);
 		box-shadow: inset 0 1px 0 color-mix(in srgb, white 6%, transparent);
 	}
+	.te__camera-settings-block {
+		gap: 12px;
+	}
+	.te__group .te__hint {
+		margin: 2px 0 0;
+	}
+	.te__group .te__label + .te__hint {
+		margin-top: 6px;
+	}
+	.te__group .te__row + .te__hint {
+		margin-top: 4px;
+	}
+	.te__group .te__hint + .te__label {
+		margin-top: 8px;
+	}
 	.te__group--boxed .te__section-title {
-		color: color-mix(in srgb, var(--fg) 72%, var(--accent));
+		color: color-mix(in srgb, var(--fg) 86%, var(--accent));
 	}
 	.te__group--boxed .te__label {
-		color: color-mix(in srgb, var(--fg) 82%, transparent);
+		color: color-mix(in srgb, var(--fg) 68%, transparent);
 	}
 	.te__group--boxed .te__hint {
 		color: color-mix(in srgb, var(--fg) 74%, transparent);
@@ -1365,13 +1508,13 @@
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
-		color: var(--fg-subtle);
+		color: color-mix(in srgb, var(--fg) 82%, var(--accent) 18%);
 	}
 
 	.te__label {
 		font-size: 0.72rem;
 		font-weight: 600;
-		color: var(--fg-subtle);
+		color: color-mix(in srgb, var(--fg) 64%, transparent);
 	}
 
 	.te__input,
@@ -1498,6 +1641,38 @@
 	}
 	.te__check input { margin: 0; }
 
+	.te__camera-feed-toggles {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px;
+		align-items: center;
+	}
+	.te__advanced {
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		padding: 8px;
+		background: color-mix(in srgb, var(--surface) 92%, transparent);
+	}
+	.te__advanced-summary {
+		cursor: pointer;
+		font-size: 0.74rem;
+		font-weight: 600;
+		color: var(--fg-muted);
+		list-style: none;
+	}
+	.te__advanced-summary::-webkit-details-marker {
+		display: none;
+	}
+	.te__advanced-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 10px;
+		margin-top: 10px;
+	}
+	.te__advanced-grid .te__camera-feed-toggles {
+		grid-column: 1 / -1;
+	}
+
 	.te__row { display: flex; align-items: center; }
 
 	.te__preset-row {
@@ -1538,6 +1713,18 @@
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 10px;
 	}
+	.te__inline-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 34px;
+	}
+	.te__inline-toggle-label {
+		font-size: 0.74rem;
+		color: var(--fg-muted);
+		font-weight: 500;
+		line-height: 1;
+	}
 
 	/* ── Camera Popup Editor ─────────────────────────────────────────────── */
 	.te__camera-popup-divider {
@@ -1555,8 +1742,16 @@
 		grid-column: 1 / -1;
 	}
 
+	/* Shared subsection alignment across editor blocks */
+	.te__group--boxed :is(.te__subgroup, .te__advanced, .te__camera-popup-divider, .te__camera-popup-full) {
+		margin-left: var(--te-subsection-inset);
+		width: calc(100% - var(--te-subsection-inset));
+		box-sizing: border-box;
+	}
+
 	.te__input--sm, .te__select--sm {
-		padding: 6px 8px;
+		height: 34px;
+		padding: 0 10px;
 		font-size: 0.75rem;
 	}
 
@@ -1637,6 +1832,13 @@
 		align-items: center;
 		gap: 4px;
 	}
+	.te__pm-header--feed {
+		gap: 8px;
+		min-height: 24px;
+	}
+	.te__pm-header--feed .te__pm-index {
+		line-height: 1;
+	}
 
 	.te__pm-index {
 		font-size: 0.65rem;
@@ -1659,6 +1861,19 @@
 		grid-template-columns: 1fr 1fr;
 		gap: 8px;
 	}
+	.te__pm-header--entity {
+		justify-content: space-between;
+		margin-bottom: 6px;
+	}
+	.te__section-entity {
+		display: flex;
+		flex-direction: column;
+	}
+	.te__entity-divider {
+		height: 1px;
+		background: color-mix(in srgb, var(--fg) 14%, var(--border));
+		margin: 4px 0 8px;
+	}
 
 	.te__row--gap { gap: 16px; }
 	.te__feed-row { cursor: grab; }
@@ -1667,24 +1882,31 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 22px;
-		height: 22px;
+		width: 24px;
+		height: 24px;
 		color: var(--fg-subtle);
 	}
 	.te__feed-primary {
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
+		height: 24px;
 		font-size: 0.72rem;
+		line-height: 1;
 		color: var(--fg-subtle);
 		margin-left: auto;
 	}
 	.te__feed-primary input {
 		margin: 0;
+		width: 14px;
+		height: 14px;
+		flex: 0 0 14px;
 	}
 
 	.te__pm-del {
 		flex-shrink: 0;
 		margin-left: 6px;
+		width: 24px;
+		height: 24px;
 	}
 </style>

@@ -74,8 +74,11 @@
 		}
 		return null;
 	});
+	const customPopupEligible = $derived(selectedTile?.type === 'entity');
 	const title = $derived.by(() => {
-		const customPopupEnabled = (selectedTile?.config?.custom_popup as { enabled?: boolean } | undefined)?.enabled === true;
+		const customPopupEnabled =
+			customPopupEligible &&
+			(selectedTile?.config?.custom_popup as { enabled?: boolean } | undefined)?.enabled === true;
 		if (customPopupEnabled) {
 			const customTitle = ((selectedTile?.config?.custom_popup as { header_title?: string } | undefined)?.header_title ?? '').trim();
 			if (customTitle) return customTitle;
@@ -95,6 +98,7 @@
 
 	const domain = $derived(entityId ? getDomain(entityId) : '');
 	const customPopupHasRenderableSections = $derived.by(() => {
+		if (!customPopupEligible) return false;
 		const sections = (selectedTile?.config?.custom_popup as { sections?: unknown[] } | undefined)?.sections;
 		if (!Array.isArray(sections) || sections.length === 0) return false;
 		return sections.some((section) => {
@@ -110,6 +114,7 @@
 		});
 	});
 	const customPopupEnabled = $derived(
+		customPopupEligible &&
 		(selectedTile?.config?.custom_popup as { enabled?: boolean; sections?: unknown[] } | undefined)?.enabled === true &&
 		customPopupHasRenderableSections
 	);

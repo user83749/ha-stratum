@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.26] - 2026-03-25
+
+### Fixed
+- **Camera Configuration Engine**: Overhauled the camera configuration schema to support advanced professional streaming features, including `stream_mode` (auto/hls/direct), `low_latency` optimization, and per-feed `object_fit` controls.
+- **Tile Editor UX**: Completely redesigned the camera management section in the editor. Features a new "Advanced" settings block and improved vertical hierarchy for managing multiple camera feeds.
+- **Toggle Performance**: Refined the `Toggle` component with improved CSS alignment and an expressive border-state system for better tactile feedback.
+- **Dialog Stability**: Improved transition lifecycle handling in the `MoreInfoShell` to prevent UI flickering during rapid state changes.
+
+### Changed
+- **Unified Editor Design**: Harmonized the visual style of Page, Section, and Tile editors with improved typography and consistent subsection insets.
+
 ## [1.1.25] - 2026-03-25
 
 ### Changed

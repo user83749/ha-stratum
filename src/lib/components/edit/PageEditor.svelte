@@ -116,7 +116,7 @@
 				<input
 					class="pe__input"
 					type="text"
-					placeholder="e.g. mdi:home or house"
+					placeholder="mdi:home or house"
 					bind:value={icon}
 					oninput={() => save({ icon: icon || undefined })}
 				/>
