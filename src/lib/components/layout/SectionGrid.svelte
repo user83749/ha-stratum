@@ -294,8 +294,12 @@
 
 		return Math.max(1, usable / cols);
 	});
-	// Row height (px) — equals column width so every base cell is square.
-	const cellH = $derived(cellW);
+	// Row height (px) — gap-compensated so 2 half-rows + 1 gap = exactly 1 column width (true square).
+	// Formula: rowH = (cellW - gap) / 2  →  2×rowH + gap = cellW  ✓
+	const cellH = $derived.by(() => {
+		const gap = Number(section.grid.gap ?? 0);
+		return Math.max(1, (cellW - gap) / 2);
+	});
 
 	const gridStyle = $derived.by(() => {
 		const cols = activeColumns;
@@ -306,7 +310,8 @@
 		parts.push(`grid-template-columns: repeat(${cols}, 1fr)`);
 		// Pure CSS: 100cqw = .section__grid-ctr width (container-type: inline-size).
 		const subtract = pad * 2 + (cols - 1) * gap;
-		parts.push(`grid-auto-rows: calc((100cqw - ${subtract}px) / ${cols})`);
+		// Subtract gap/2 so that 2 half-rows + 1 gap = exactly 1 column width (perfect visual square).
+		parts.push(`grid-auto-rows: calc((100cqw - ${subtract}px) / ${cols} / 2 - ${gap}px / 2)`);
 		parts.push(`gap: ${gap}px`);
 
 		if (pad > 0) parts.push(`padding: ${pad}px`);

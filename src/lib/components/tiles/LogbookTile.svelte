@@ -20,8 +20,8 @@
   const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const recentState = $derived(entity?.state ?? '');
   const lastChanged = $derived(entity?.last_changed ?? '');
-  const showHeader = $derived(sizePreset !== 'sm');
-  const showEntryTime = $derived(sizePreset !== 'sm');
+  const showHeader = $derived(sizePreset === 'lg' || sizePreset === 'xl');
+  const showEntryTime = $derived(sizePreset === 'lg' || sizePreset === 'xl');
   const showEntryName = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 
   // ── Helpers ───────────────────────────────────────────────────────────────

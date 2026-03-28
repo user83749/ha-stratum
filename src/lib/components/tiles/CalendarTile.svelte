@@ -22,8 +22,8 @@
   const nextEventTitle = $derived(entity?.attributes?.message as string ?? '');
   const startTime = $derived(entity?.attributes?.start_time as string ?? '');
   const allDay = $derived(entity?.attributes?.all_day as boolean ?? false);
-  const showHeader = $derived(sizePreset !== 'sm');
-  const showTimeMeta = $derived(sizePreset !== 'sm');
+  const showHeader = $derived(sizePreset === 'lg' || sizePreset === 'xl');
+  const showTimeMeta = $derived(sizePreset === 'lg' || sizePreset === 'xl');
   const showTitleLine = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 
   // ── Helpers ───────────────────────────────────────────────────────────────

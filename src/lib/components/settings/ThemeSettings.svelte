@@ -23,8 +23,7 @@
 		{ val: 'sm',   label: 'SM',   px: '4px'   },
 		{ val: 'md',   label: 'MD',   px: '8px'   },
 		{ val: 'lg',   label: 'LG',   px: '12px'  },
-		{ val: 'xl',   label: 'XL',   px: '16px'  },
-		{ val: 'full', label: 'pill', px: '999px' }
+		{ val: 'xl',   label: 'XL',   px: '16px'  }
 	];
 
 	const FONTS = ['Inter', 'Plus Jakarta Sans', 'Geist', 'DM Sans'];

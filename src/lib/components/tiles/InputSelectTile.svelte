@@ -16,8 +16,6 @@
 
   // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
-  const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
-  const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
   const sizePreset = $derived(getTileSizePreset(tile));
 
   const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');
@@ -28,8 +26,8 @@
   const iconOverride = $derived((config.icon as string | undefined)?.trim() || undefined);
   const overrideIsCustom = $derived(iconOverride ? isCustomIcon(iconOverride) : false);
   const options = $derived((attrs.options as string[]) ?? []);
-  const isTallMd = $derived(layoutW === 1 && layoutH >= 2);
-  const showCycleArrows = $derived(sizePreset !== 'sm' && !isTallMd);
+  const isTallMd = $derived(false);
+  const showCycleArrows = $derived((sizePreset === 'lg' || sizePreset === 'xl') && !isTallMd);
   const showOptionsMeta = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 
   let open = $state(false);

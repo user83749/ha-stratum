@@ -53,7 +53,7 @@
       </svg>
     </div>
   {/if}
-  {#if showName && name && sizePreset !== 'sm'}
+  {#if showName && name && (sizePreset === 'lg' || sizePreset === 'xl')}
     <div class="overlay"><span class="overlay-name">{name}</span></div>
   {/if}
 </div>

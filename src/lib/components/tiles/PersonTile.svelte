@@ -21,7 +21,7 @@
   const isHome = $derived(state === 'home');
   const statusColor = $derived(isHome ? 'var(--color-on)' : 'var(--fg-muted)');
   const locationLabel = $derived(isHome ? 'Home' : state === 'not_home' ? 'Away' : state);
-  const showName = $derived(sizePreset !== 'sm');
+  const showName = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 </script>
 
 <div class="person-tile" class:home={isHome} data-size={sizePreset} style="--pc: {statusColor};">

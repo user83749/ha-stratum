@@ -55,8 +55,10 @@
 	const sizePreset = $derived(getTileSizePreset(tile));
 	const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
 	const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
-	const shapeWide = $derived(layoutW > layoutH);
-	const shapeTall = $derived(layoutH > layoutW);
+	// Rows are half-height: compare visual proportions (visual width = w columns, visual height = h/2 columns).
+	// Equivalent to: visualWide = (w > h/2) = (2w > h), visualTall = (h/2 > w) = (h > 2w).
+	const shapeWide = $derived(layoutW * 2 > layoutH);  // visually wider than tall
+	const shapeTall = $derived(layoutH > layoutW * 2);  // visually taller than wide
 
 	const entityActive = $derived.by(() => {
 		if (!entity) return false;
@@ -781,12 +783,21 @@
 	}
 
 	.tile-wrapper.size-md {
-		--tile-size-content-scale: 0.96;
-		--tile-size-hero-scale: 0.92;
-		--tile-size-control-scale: 0.94;
-		--tile-size-icon-scale: 0.96;
-		--tile-size-padding-scale: 0.94;
-		--tile-size-gap-scale: 0.92;
+		/* Global medium contract (2x1 compact): reduce all internals so every
+		   medium tile can fit without edge overflow. */
+		--tile-size-content-scale: 0.84;
+		--tile-size-hero-scale: 0.8;
+		--tile-size-control-scale: 0.82;
+		--tile-size-icon-scale: 0.82;
+		--tile-size-padding-scale: 0.82;
+		--tile-size-gap-scale: 0.8;
+		/* Shared md geometry tokens (used by tiles with custom md branches). */
+		--tile-md-pad-x: calc(8.4% * var(--tile-padding-scale, 1));
+		--tile-md-pad-y: calc(6.8% * var(--tile-padding-scale, 1));
+		--tile-md-icon-scale: 0.8;
+		--tile-md-text-scale: 0.68;
+		--tile-md-state-scale: 0.64;
+		--tile-md-control-scale: 0.76;
 	}
 
 	.tile-wrapper.size-lg {
@@ -815,6 +826,17 @@
 		--tile-shape-icon-scale: 0.96;
 		--tile-shape-padding-scale: 0.95;
 		--tile-shape-gap-scale: 0.92;
+	}
+
+	/* Medium tiles use one shared compact contract; do not stack extra wide
+	   shape multipliers on top of medium sizing. */
+	.tile-wrapper.size-md.shape-wide {
+		--tile-shape-content-scale: 1;
+		--tile-shape-hero-scale: 1;
+		--tile-shape-control-scale: 1;
+		--tile-shape-icon-scale: 1;
+		--tile-shape-padding-scale: 1;
+		--tile-shape-gap-scale: 1;
 	}
 
 	.tile-wrapper.shape-tall {

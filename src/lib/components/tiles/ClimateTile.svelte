@@ -156,82 +156,37 @@
     </div>
 
   {:else if sizePreset === 'md'}
-    {#if isWideMd}
-      <div class="layout-md layout-md--wide2">
-        <div class="md-topline">
-          <div class="md-left">
-            <div class="md-icon" style="color: {modeColor}">
-              {#if iconOverride && overrideIsCustom}
-                <Icon name={mainIcon} entity={entity} />
-              {:else}
-                <Icon name={mainIcon} />
-              {/if}
-            </div>
-            <div class="md-status">
-              <div class="device-name" style="color: {nameTextColor}">{name}</div>
-              <div class="status-val" style="color: {stateTextColor}">{modeLabel}</div>
-            </div>
-          </div>
-
-          {#if currentTemp !== undefined}
-            <div class="md-temp md-temp--wide">
-              <span class="val">{Math.round(currentTemp)}{tempUnit}</span>
-              {#if showMdSetpoint}
-                <span class="set-inline" style="color: {setpointTextColor}">SET {Math.round(targetTemp!)}°</span>
-              {/if}
-            </div>
-          {/if}
-        </div>
-
-        {#if showMdControls}
-          <div class="md-controls md-controls--wide2">
-            <button class="adj-btn adj-btn--wide2" onclick={() => { haptic('light'); adjustTemp(-1); }} aria-label="Lower temp">
-              <Icon name="minus" />
-            </button>
-            <button class="adj-btn adj-btn--wide2" onclick={() => { haptic('light'); adjustTemp(1); }} aria-label="Raise temp">
-              <Icon name="plus" />
-            </button>
-          </div>
-        {/if}
+    <div class="cm-md" class:cm-md--tall={isTallMd} class:off={isOff}>
+      <!-- Left (or Top): state + name -->
+      <div class="cm-md__info">
+        <span class="cm-md__mode" class:off={isOff} style="color: {stateTextColor}">{modeLabel}</span>
+        <span class="cm-md__name" style="color: {nameTextColor}">{name}</span>
       </div>
-    {:else}
-      <div class="layout-md" class:is-tall-md={isTallMd}>
-        <div class="md-left">
-          <div class="md-icon" style="color: {modeColor}">
-            {#if iconOverride && overrideIsCustom}
-              <Icon name={mainIcon} entity={entity} />
-            {:else}
-              <Icon name={mainIcon} />
-            {/if}
-          </div>
-          <div class="md-status">
-            <div class="device-name" style="color: {nameTextColor}">{name}</div>
-            <div class="status-val" style="color: {stateTextColor}">{modeLabel}</div>
-          </div>
-        </div>
 
-        <div class="md-right">
-          {#if currentTemp !== undefined}
-            <div class="md-temp">
-              <span class="val">{Math.round(currentTemp)}{tempUnit}</span>
-              {#if showMdSetpoint}
-                <span class="target" style="color: {setpointTextColor}">{Math.round(targetTemp!)}°</span>
-              {/if}
-            </div>
-          {/if}
-          {#if showMdControls}
-            <div class="md-controls">
-              <button class="adj-btn" onclick={() => { haptic('light'); adjustTemp(-1); }} aria-label="Lower temp">
-                <Icon name="minus" />
-              </button>
-              <button class="adj-btn" onclick={() => { haptic('light'); adjustTemp(1); }} aria-label="Raise temp">
-                <Icon name="plus" />
-              </button>
-            </div>
-          {/if}
+      <!-- Right (or Bottom): − setpoint + -->
+      <div class="cm-md__ctrl">
+        <button
+          class="cm-md__adj"
+          onclick={(e) => { e.stopPropagation(); haptic('light'); adjustTemp(-1); }}
+          disabled={isOff || targetTemp === undefined}
+          aria-label="Lower target temperature"
+        >
+          <Icon name="minus" />
+        </button>
+        <div class="cm-md__temp-wrap">
+          <span class="cm-md__temp">{targetTemp !== undefined && !isOff ? Math.round(targetTemp) : '--'}</span>
+          <span class="cm-md__unit">&deg;</span>
         </div>
+        <button
+          class="cm-md__adj"
+          onclick={(e) => { e.stopPropagation(); haptic('light'); adjustTemp(1); }}
+          disabled={isOff || targetTemp === undefined}
+          aria-label="Raise target temperature"
+        >
+          <Icon name="plus" />
+        </button>
       </div>
-    {/if}
+    </div>
 
   {:else}
     <div class="layout-lg" class:is-xl={sizePreset === 'xl'}>
@@ -384,79 +339,39 @@
     line-height: 1.15;
   }
 
-  /* ── MD (2x1, 2x2) ────────────────────────────────────────────────────────── */
-  .layout-md {
+  /* ── MD redesign: clean layout respecting boundaries ───────────────────── */
+  .cm-md {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0;
-    gap: calc(var(--tile-padding-effective) * 1.1);
-    transition: all 0.3s ease;
+    height: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    gap: calc(var(--tile-padding-effective) * 0.6);
+    padding-left: calc(var(--tile-padding-effective) * 2.0);
+    padding-right: calc(var(--tile-padding-effective) * 1.25);
   }
 
-  .layout-md.is-wide-md {
-    gap: var(--tile-gap);
-  }
-
-  .layout-md--wide2 {
-    justify-content: flex-start;
+  .cm-md--tall {
+    flex-direction: column;
     align-items: stretch;
-    gap: calc(var(--tile-padding-effective) * 0.38);
   }
 
-  .md-topline {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    min-width: 0;
-    gap: calc(var(--tile-padding-effective) * 0.75);
-  }
-
-  .md-left {
-    background: none;
-    border: none;
-    padding: 0;
-    font: inherit;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    gap: calc(var(--tile-padding-effective) * 1.35);
-    min-width: 0;
-    cursor: default;
-    flex: 1 1 auto;
-  }
-
-  .layout-md.is-wide-md .md-left {
-    gap: calc(var(--tile-padding-effective) * 1.2);
-  }
-
-  .md-status {
+  .cm-md__info {
     display: flex;
     flex-direction: column;
+    gap: calc(var(--tile-padding-effective) * 0.18);
     min-width: 0;
-    gap: 1px;
     flex: 1;
-  }
-
-  .md-icon {
-    width: calc(var(--hero-icon-size) * 1.05);
-    height: calc(var(--hero-icon-size) * 1.05);
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
     justify-content: center;
   }
 
-  .md-icon :global(svg),
-  .md-icon :global(.icon) {
-    width: 100%;
-    height: 100%;
-  }
-
-  .status-val {
-    font-size: var(--button-card-font-size);
+  .cm-md__mode {
+    font-size: calc(var(--button-card-font-size) * 1.05);
     font-weight: 500;
+    letter-spacing: var(--button-card-letter-spacing);
     text-transform: capitalize;
     line-height: 1.15;
     white-space: nowrap;
@@ -464,190 +379,103 @@
     text-overflow: ellipsis;
   }
 
-  .status-target {
-    font-size: calc(var(--secondary-label-size) * 0.94);
+  .cm-md__mode.off { color: var(--tile-label-off, #97989c) !important; }
+
+  .cm-md__name {
+    font-size: calc(var(--button-card-font-size) * 0.9);
     font-weight: 500;
-    line-height: 1.05;
-    opacity: 0.9;
+    letter-spacing: var(--button-card-letter-spacing);
+    color: var(--tile-label-on, var(--control-active-name));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.22;
   }
 
-  .device-name {
-    font-size: var(--button-card-font-size);
-    font-weight: 500;
-    color: inherit;
-    opacity: 0.88;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.12;
-  }
+  .cm-md.off .cm-md__name { color: var(--tile-label-off, #97989c) !important; }
 
-  .md-right {
+  /* Setpoint control row: [−] temp [+] */
+  .cm-md__ctrl {
     display: flex;
     align-items: center;
-    gap: calc(var(--tile-padding-effective) * 1.15);
-    flex: 0 1 auto;
-    min-width: 0;
-  }
-
-  .layout-md.is-wide-md .md-right {
-    flex-direction: row;
-    align-items: center;
-    gap: calc(var(--tile-padding-effective) * 0.6);
-  }
-
-  .md-temp {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    justify-content: center;
-    min-width: 0;
-  }
-
-  .md-temp--wide {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: calc(var(--tile-padding-effective) * 0.42);
-  }
-
-  .md-temp .val {
-    font-size: var(--hero-text-size);
-    font-weight: 500;
-    line-height: 1;
-    color: var(--fg);
-    letter-spacing: -0.06em;
-  }
-
-  .md-temp .target {
-    font-size: var(--secondary-label-size);
-    font-weight: 500;
-    color: inherit;
-    opacity: 0.8;
-    margin-top: 1px;
-    line-height: 1.1;
-  }
-
-  .layout-md.is-wide-md .md-temp .val {
-    font-size: calc(var(--hero-text-size) * 0.86);
-    letter-spacing: -0.05em;
-  }
-
-  .layout-md.is-wide-md .md-temp .target {
-    font-size: calc(var(--secondary-label-size) * 0.94);
-    line-height: 1.05;
-    opacity: 0.9;
-    white-space: nowrap;
-  }
-
-  .md-temp--wide .set-inline {
-    font-size: calc(var(--secondary-label-size) * 0.92);
-    font-weight: 500;
-    line-height: 1.05;
-    opacity: 0.9;
-    white-space: nowrap;
-  }
-
-  .md-controls {
-    display: flex;
-    flex-direction: row;
-    gap: calc(var(--tile-padding-effective) * 0.45);
-  }
-
-  .layout-md.is-wide-md .md-controls {
-    align-self: center;
-    flex-direction: column;
-    gap: calc(var(--tile-padding-effective) * 0.28);
-  }
-
-  .md-controls--wide2 {
-    width: 100%;
     justify-content: flex-end;
-    gap: calc(var(--tile-padding-effective) * 0.4);
+    gap: calc(var(--tile-padding-effective) * 0.35);
+    flex-shrink: 0;
   }
 
-  .adj-btn {
-    width: var(--control-chip-size-compact);
-    height: var(--control-chip-size-compact);
-    border-radius: var(--control-chip-radius-compact);
-    background: color-mix(in srgb, var(--fg) 6%, transparent);
+  .cm-md--tall .cm-md__ctrl {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .cm-md__adj {
+    all: unset;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: calc(var(--button-card-font-size) * 2.3);
+    height: calc(var(--button-card-font-size) * 2.3);
+    border-radius: 50%;
     color: var(--fg-muted);
-    transition: all 0.2s;
+    background: color-mix(in srgb, var(--fg) 7%, transparent);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background var(--transition), color var(--transition), transform 80ms ease;
   }
 
-  .layout-md.is-wide-md .adj-btn {
-    width: calc(var(--control-chip-size-compact) * 0.88);
-    height: calc(var(--control-chip-size-compact) * 0.88);
+  .cm-md__adj:not(:disabled):hover {
+    background: color-mix(in srgb, var(--fg) 14%, transparent);
+    color: var(--fg);
   }
 
-  .adj-btn--wide2 {
-    width: calc(var(--control-chip-size-compact) * 1.36);
-    height: calc(var(--control-chip-size-compact) * 0.88);
+  .cm-md__adj:not(:disabled):active {
+    transform: scale(0.88);
+    background: color-mix(in srgb, var(--mc) 22%, transparent);
+    color: var(--fg);
   }
 
-  .adj-btn :global(svg),
-  .adj-btn :global(.icon) {
-    width: var(--action-icon-size);
-    height: var(--action-icon-size);
+  .cm-md__adj:disabled {
+    opacity: 0.22;
+    cursor: not-allowed;
   }
 
-  .layout-md:not(.is-wide-md) {
-    flex-direction: column;
-    align-items: stretch;
+  .cm-md__adj :global(svg) {
+    width: calc(var(--button-card-font-size) * 1.1);
+    height: calc(var(--button-card-font-size) * 1.1);
   }
 
-  .layout-md:not(.is-wide-md) .md-right {
-    justify-content: space-between;
-  }
-
-  .layout-md.is-tall-md {
-    gap: calc(var(--tile-padding-effective) * 0.9);
-  }
-
-  .layout-md.is-tall-md .md-left {
-    gap: calc(var(--tile-padding-effective) * 1.05);
-  }
-
-  .layout-md.is-tall-md .md-right {
-    gap: calc(var(--tile-padding-effective) * 0.85);
-  }
-
-  .layout-md.is-tall-md .md-temp {
+  .cm-md__temp-wrap {
+    display: flex;
     align-items: flex-start;
+    justify-content: center;
+    min-width: calc(var(--hero-text-size) * 1.2);
   }
 
-  .layout-md.is-tall-md .md-temp .val {
-    font-size: calc(var(--hero-text-size) * 0.92);
+  .cm-md__temp {
+    font-size: calc(var(--hero-text-size) * 0.84);
+    font-weight: 600;
     letter-spacing: -0.05em;
-  }
-
-  .layout-md.is-tall-md .md-temp .target {
-    font-size: calc(var(--secondary-label-size) * 1.02);
-    line-height: 1.12;
-  }
-
-  .layout-md.is-tall-md .md-controls {
-    gap: calc(var(--tile-padding-effective) * 0.4);
-  }
-
-  .layout-md.is-tall-md .adj-btn {
-    width: calc(var(--control-chip-size-compact) * 0.94);
-    height: calc(var(--control-chip-size-compact) * 0.94);
-  }
-
-  .adj-btn:hover {
-    background: color-mix(in srgb, var(--fg) 10%, transparent);
     color: var(--fg);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    transition: color var(--transition);
   }
 
-  .adj-btn:active {
-    background: color-mix(in srgb, var(--accent) 24%, transparent);
-    color: var(--fg);
+  .cm-md.off .cm-md__temp {
+    color: var(--tile-label-off, #97989c);
+  }
+
+  .cm-md__unit {
+    font-size: calc(var(--hero-text-size) * 0.42);
+    font-weight: 500;
+    color: var(--fg-muted);
+    margin-top: 0.08em;
+    margin-left: 1px;
+    line-height: 1;
+  }
+
+  .cm-md.off .cm-md__unit {
+    color: var(--tile-label-off, #97989c);
   }
 
   /* ── LG / XL (3x3+) ─────────────────────────────────────────────────── */

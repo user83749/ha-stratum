@@ -42,7 +42,7 @@
   }
   const isPositive = $derived(value >= 0);
   const flowColor = $derived(deviceClass === 'battery' ? 'var(--color-info)' : isPositive ? 'var(--color-warning)' : 'var(--color-on)');
-  const showName = $derived(sizePreset !== 'sm');
+  const showName = $derived(sizePreset === 'lg' || sizePreset === 'xl');
   const showMeta = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 
   // ── Helpers ───────────────────────────────────────────────────────────────

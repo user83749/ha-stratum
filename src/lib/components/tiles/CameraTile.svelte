@@ -62,8 +62,8 @@
 	);
 
 	const showStreamBadge  = $derived((sizePreset === 'lg' || sizePreset === 'xl') && motionDetected);
-	const showOverlayMeta  = $derived(sizePreset !== 'sm');
-	const useSnapshot = $derived(sizePreset !== 'sm' && !!snapshotUrl && !unavailable);
+	const showOverlayMeta  = $derived(sizePreset === 'lg' || sizePreset === 'xl');
+	const useSnapshot = $derived((sizePreset === 'lg' || sizePreset === 'xl') && !!snapshotUrl && !unavailable);
 
 	// ── Auto-Popup Logic ──────────────────────────────────────────────────────
 	type FeedTriggerSnapshot = { key: string; state: string };

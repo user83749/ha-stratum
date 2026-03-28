@@ -45,8 +45,8 @@
     isReturning ? 'Returning' :
     state
   );
-  const showBatteryBadge = $derived(battery !== undefined && sizePreset !== 'sm');
-  const showActionRow = $derived(sizePreset !== 'sm');
+  const showBatteryBadge = $derived(battery !== undefined && (sizePreset === 'lg' || sizePreset === 'xl'));
+  const showActionRow = $derived(sizePreset === 'lg' || sizePreset === 'xl');
   const showSpeedChips = $derived((sizePreset === 'lg' || sizePreset === 'xl') && fanSpeeds.length > 0);
   const showActionLabels = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 </script>

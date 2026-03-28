@@ -6,6 +6,7 @@
   import type { Tile } from '$lib/types/dashboard';
   import { getTileSizePreset } from '$lib/layout/tileSizing';
   import Icon from '$lib/components/ui/Icon.svelte';
+  import BaseTile from '$lib/components/tiles/BaseTile.svelte';
   import { isCustomIcon } from '$lib/icons/customIcons';
   import {
     getEntityIcon, getEntityName, getStateColor,
@@ -27,7 +28,7 @@
   const showLastChanged = $derived(cfg.show_last_changed === true);
   const showAttributes  = $derived((cfg.show_attributes ?? []) as string[]);
 
-  const icon        = $derived(entity ? (cfg.icon ?? getEntityIcon(entity)) : (cfg.icon ?? 'circle-dot'));
+  const entityIcon  = $derived(entity ? (cfg.icon ?? getEntityIcon(entity)) : (cfg.icon ?? 'circle-dot'));
   const name        = $derived(entity ? (cfg.name ?? getEntityName(entity)) : (cfg.name ?? tile.entity_id ?? ''));
   const stateText   = $derived(entity ? formatState(entity) : '—');
   const entityColor = $derived.by(() => {
@@ -38,7 +39,7 @@
   });
   const active      = $derived(entity ? isActive(entity) : false);
   const unavailable = $derived(entity ? isUnavailable(entity) : false);
-  const iconIsCustom = $derived(typeof icon === 'string' && isCustomIcon(icon));
+  const iconIsCustom = $derived(typeof entityIcon === 'string' && isCustomIcon(entityIcon));
 
   // ── Secondary / Attributes ─────────────────────────────────────────────
   const secondaryEntity = $derived(
@@ -67,142 +68,67 @@
 
   const lastChangedText = $derived.by(() => {
     if (!showLastChanged || !entity?.last_changed) return '';
-    // Keep reactive dependency so this recomputes on the shared 30s cycle only.
     $relativeNow;
     return relativeTime(entity.last_changed);
   });
+
+  const tileStyle = $derived(
+    `--tile-label-on: ${entityColor};` +
+    (unavailable ? `--tile-label-off: ${entityColor}; opacity: 0.45;` : '')
+  );
 </script>
 
-<div
-  class="entity-tile"
-  class:active
-  class:unavailable
-  class:no-icon={!showIcon}
-  style="--ec: {entityColor};"
->
-  <!-- ── Primary layout ─────────────────────────────────────────────── -->
-  {#if showIcon}
-    <div class="icon-wrap" class:active class:is-custom={iconIsCustom}>
-      {#if iconIsCustom}
-        <Icon name={icon} entity={entity} />
-      {:else}
-        <Icon name={icon} entity={entity} size="100%" />
-      {/if}
-    </div>
-  {/if}
+<BaseTile {name} state={stateText} isOn={active} {showName} {showState} style={tileStyle}>
 
-  <!-- ── Circle placeholder ──────────────────────────────────────────── -->
-  <div class="circle-placeholder"></div>
+  {#snippet icon()}
+    {#if showIcon}
+      <div class="entity-icon-wrap" class:is-custom={iconIsCustom}>
+        {#if iconIsCustom}
+          <Icon name={entityIcon} entity={entity} />
+        {:else}
+          <Icon name={entityIcon} entity={entity} size="100%" />
+        {/if}
+      </div>
+    {/if}
+  {/snippet}
 
-  {#if showName}
-    <span class="name-text">{name}</span>
-  {/if}
-  {#if showState}
-    <span class="state-text">{stateText}</span>
-  {/if}
-  {#if showExtraMeta && secondaryValue !== null}
-    <span class="secondary-val">{secondaryValue}</span>
-  {/if}
-  {#if showExtraMeta && showLastChanged && lastChangedText}
-    <span class="changed-val">{lastChangedText}</span>
-  {/if}
+  {#snippet below()}
+    {#if showExtraMeta && secondaryValue !== null}
+      <span class="secondary-val">{secondaryValue}</span>
+    {/if}
+    {#if showExtraMeta && showLastChanged && lastChangedText}
+      <span class="changed-val">{lastChangedText}</span>
+    {/if}
+    {#if showAttributeCards}
+      <div class="attr-grid">
+        {#each attributeRows as row}
+          <div class="attr-card">
+            <span class="attr-label">{row.label}</span>
+            <span class="attr-value">{row.value}</span>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  {/snippet}
 
-  <!-- ── Attribute cards ─────────────────────────────────────────────── -->
-  {#if showAttributeCards}
-    <div class="attr-grid">
-      {#each attributeRows as row}
-        <div class="attr-card">
-          <span class="attr-label">{row.label}</span>
-          <span class="attr-value">{row.value}</span>
-        </div>
-      {/each}
-    </div>
-  {/if}
-</div>
+</BaseTile>
 
 <style>
-  .entity-tile {
-    --ec: var(--fg-subtle);
+  /* ── Icon wrap (fills icon-area cell, passes color from BaseTile) ─────── */
+  .entity-icon-wrap {
     width: 100%;
-    height: 100%;
-    display: grid;
-    grid-template-areas:
-      "icon circle"
-      "n    n"
-      "s    s";
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: auto repeat(2, min-content);
-    gap: 1.3%;
-    align-items: start;
-    position: relative;
-  }
-
-  .entity-tile.no-icon {
-    grid-template-areas:
-      "n n"
-      "s s";
-    grid-template-rows: repeat(2, min-content);
-  }
-
-  /* ── Icon (grid-area: icon) ──────────────────────────────────────────── */
-  .icon-wrap {
-    grid-area: icon;
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    aspect-ratio: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--ec);
-    transition: color var(--transition);
   }
-  .icon-wrap.is-custom {
-    /* Keep a square icon box so percentage-based custom icon spacing remains stable. */
+
+  .entity-icon-wrap.is-custom {
     display: block;
     line-height: 0;
   }
 
-  /* ── Circle placeholder (grid-area: circle) — invisible spacer ──────── */
-  .circle-placeholder {
-    grid-area: circle;
-  }
-
-  /* ── Name / state grid areas ─────────────────────────────────────────── */
-  .name-text { grid-area: n; }
-  .state-text { grid-area: s; }
-
-  .name-text {
-    justify-self: start;
-    font-size: var(--button-card-font-size);
-    font-weight: var(--button-card-font-weight);
-    letter-spacing: var(--button-card-letter-spacing);
-    color: var(--tile-label-off, #97989c);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.21;
-  }
-
-  .state-text {
-    justify-self: start;
-    line-height: 1.15;
-    font-size: var(--button-card-font-size);
-    font-weight: var(--button-card-font-weight);
-    letter-spacing: var(--button-card-letter-spacing);
-    color: var(--tile-label-off, #97989c);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: color var(--transition);
-  }
-
-  .state-text::first-letter {
-    text-transform: uppercase;
-  }
-
+  /* ── Extra meta (lg/xl only) ─────────────────────────────────────────── */
   .secondary-val {
-    grid-column: 1 / -1;
     font-size: var(--secondary-label-size);
     font-weight: 500;
     color: var(--fg-muted);
@@ -212,37 +138,19 @@
   }
 
   .changed-val {
-    grid-column: 1 / -1;
     font-size: var(--secondary-label-size);
     color: var(--fg-subtle);
     opacity: 0.8;
   }
 
-
-
-  /* ── Active entity state ─────────────────────────────────────────────── */
-  .entity-tile.active .name-text  { color: var(--tile-label-on, var(--control-active-name)); }
-  .entity-tile.active .state-text { color: var(--tile-label-on, var(--control-active-name)); }
-
-  .entity-tile.unavailable .state-text {
-    line-height: 1.15;
-    color: var(--tile-label-unavailable, var(--fg-subtle));
-  }
-
-  /* ── Unavailable ─────────────────────────────────────────────────────── */
-  .entity-tile.unavailable { opacity: 0.45; }
-
-  /* ── Attribute grid — hidden by default, shown on larger tiles ────────── */
+  /* ── Attribute grid (lg/xl only) ─────────────────────────────────────── */
   .attr-grid {
     display: grid;
-    grid-column: 1 / -1;
     grid-template-columns: 1fr 1fr;
     gap: calc(var(--tile-padding-effective) * 0.45);
     position: relative;
     z-index: 1;
   }
-
-
 
   .attr-card {
     background: color-mix(in srgb, var(--fg) 5%, transparent);
@@ -271,4 +179,5 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }</style>
+  }
+</style>

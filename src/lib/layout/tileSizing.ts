@@ -24,12 +24,16 @@ export function resolvePresetToSpan(
 
 	let span: TileSize;
 	// Unified preset semantics across all tile types.
-	// sm = 1x1, md = 2x1, lg = 2x2, xl = 2x3.
+	// Grid rows are half the height of a column (double-density).
+	// sm  = {w:1,h:2} → 1 col  × 2 half-rows = 1×1 visual square
+	// md  = {w:2,h:1} → 2 cols × 1 half-row  = 2×0.5 compact bar   ← the compact preset
+	// lg  = {w:2,h:2} → 2 cols × 2 half-rows = 2×1 visual landscape
+	// xl  = {w:2,h:4} → 2 cols × 4 half-rows = 2×2 visual square
 	span =
-		preset === 'sm' ? { w: 1, h: 1 } :
+		preset === 'sm' ? { w: 1, h: 2 } :
 			preset === 'md' ? { w: 2, h: 1 } :
 				preset === 'lg' ? { w: 2, h: 2 } :
-					{ w: 2, h: 3 };
+					{ w: 2, h: 4 };
 
 	if (breakpoint === 'sm') {
 		return { w: Math.min(span.w, 4), h: span.h };
@@ -44,10 +48,12 @@ export function inferPresetFromLegacySize(type: TileType, size?: Partial<TileSiz
 	const h = Math.max(1, size?.h ?? 1);
 
 	let preset: TileSizePreset;
-	if (w <= 1 && h <= 1) preset = 'sm';
-	else if (w <= 2 && h <= 1) preset = 'md';
-	else if (w <= 2 && h <= 2) preset = 'lg';
-	else preset = 'xl';
+	// Thresholds match new double-density spans:
+	// sm={w:1,h:2}, md={w:2,h:1}, lg={w:2,h:2}, xl={w:2,h:4}
+	if (w <= 1 && h <= 2)       preset = 'sm';  // 1 col, up to 2 half-rows
+	else if (w <= 2 && h <= 1)  preset = 'md';  // 2 cols, 1 half-row (compact)
+	else if (w <= 2 && h <= 2)  preset = 'lg';  // 2 cols, up to 2 half-rows
+	else                         preset = 'xl';  // anything taller
 
 	const allowed = getAllowedPresets(type);
 	if (allowed.includes(preset)) return preset;

@@ -17,10 +17,8 @@
 
   // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
-  const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
-  const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
-  const isTallMd = $derived(layoutW === 1 && layoutH >= 2);
   const sizePreset = $derived(getTileSizePreset(tile));
+  const isTallMd = $derived(false);
 
   const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');
   const attrs = $derived(entity?.attributes ?? {});
@@ -90,9 +88,9 @@
   );
 
   const statusLabel = $derived(isActive ? 'Active' : isPaused ? 'Paused' : 'Idle');
-  const showStatus = $derived(sizePreset !== 'sm');
-  const showControls = $derived(sizePreset !== 'sm');
-  const showProgress = $derived(sizePreset !== 'sm' && totalSecs > 0 && !isTallMd);
+  const showStatus = $derived(sizePreset === 'lg' || sizePreset === 'xl');
+  const showControls = $derived(sizePreset === 'lg' || sizePreset === 'xl');
+  const showProgress = $derived((sizePreset === 'lg' || sizePreset === 'xl') && totalSecs > 0 && !isTallMd);
   const showFinishAt = $derived((sizePreset === 'lg' || sizePreset === 'xl') && !!finishesAt);
 
   const finishLabel = $derived.by(() => {

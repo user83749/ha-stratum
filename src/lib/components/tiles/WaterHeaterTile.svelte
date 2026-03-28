@@ -41,8 +41,8 @@
   const fillPct = $derived(Math.max(0, Math.min(100, (displayTemp - minTemp) / (maxTemp - minTemp) * 100)));
 
   const heaterColor = $derived(isHeating ? 'var(--color-warning)' : isOn ? 'var(--color-info)' : 'var(--fg-muted)');
-  const showCurrentBadge = $derived(currentTemp !== undefined && sizePreset !== 'sm');
-  const showSliderArea = $derived(isOn && sizePreset !== 'sm');
+  const showCurrentBadge = $derived(currentTemp !== undefined && (sizePreset === 'lg' || sizePreset === 'xl'));
+  const showSliderArea = $derived(isOn && (sizePreset === 'lg' || sizePreset === 'xl'));
   const showModeChips = $derived((sizePreset === 'lg' || sizePreset === 'xl') && modes.length > 0 && isOn);
 
   // ── Actions ───────────────────────────────────────────────────────────────

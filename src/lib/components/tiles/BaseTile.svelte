@@ -86,8 +86,87 @@
     align-items: start;
   }
 
+  /* ── Shared MD Contract (2x1) ─────────────────────────────────────────── */
+  /* Medium uses its own compact-wide contract.
+     This is dimension-aware for the 2x1 (half-row) height budget. */
+  :global(.tile-wrapper.size-md) .base-tile {
+    margin: 0;
+    padding-block: 0;
+    padding-left: calc(var(--tile-padding-effective) * 1.8);
+    padding-right: calc(var(--tile-padding-effective) * 0.9);
+    gap: calc(var(--tile-gap) * 0.7);
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  :global(.tile-wrapper.size-md) .base-tile .tile-grid {
+    grid-template-areas:
+      "icon n circle"
+      "icon s circle";
+    grid-template-columns: minmax(0, 0.78fr) minmax(0, 2.44fr) minmax(0, 0.78fr);
+    grid-template-rows: min-content min-content;
+    align-content: center;
+    align-items: center;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    column-gap: calc(var(--tile-padding-effective) * 1.2);
+    row-gap: calc(var(--tile-padding-effective) * 0.02);
+  }
+
+  :global(.tile-wrapper.size-md) .base-tile .icon-area {
+    width: 72%;
+    max-width: 72%;
+    aspect-ratio: auto;
+    justify-self: end;
+    align-self: center;
+  }
+
+  :global(.tile-wrapper.size-md) .base-tile .circle-area {
+    width: 78%;
+    margin: 0;
+    justify-self: end;
+    align-self: center;
+  }
+
+  :global(.tile-wrapper.size-md) .base-tile .name-text,
+  :global(.tile-wrapper.size-md) .base-tile .state-text {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    justify-self: start;
+    align-self: center;
+  }
+
+  :global(.tile-wrapper.size-md) .base-tile .name-text {
+    font-size: var(--button-card-font-size);
+    line-height: 1.18;
+    letter-spacing: var(--button-card-letter-spacing);
+  }
+
+  :global(.tile-wrapper.size-md) .base-tile .state-text {
+    font-size: var(--button-card-font-size);
+    line-height: 1.14;
+    letter-spacing: var(--button-card-letter-spacing);
+  }
+
+  :global(.tile-wrapper.size-md) .base-tile.no-name .tile-grid {
+    grid-template-areas: "icon s circle";
+    grid-template-columns: minmax(0, 0.88fr) minmax(0, 2.34fr) minmax(0, 0.78fr);
+    grid-template-rows: minmax(0, 1fr);
+    align-content: center;
+    row-gap: 0;
+  }
+
   /* ── Wide Layout ──────────────────────────────────────────────────────── */
-  :global(.tile-wrapper.shape-wide) .tile-grid {
+  :global(.tile-wrapper.shape-wide:not(.size-md)) .tile-grid {
     grid-template-areas:
       "icon n circle"
       "icon s circle";
@@ -107,7 +186,7 @@
     grid-template-rows: auto min-content;
   }
 
-  :global(.tile-wrapper.shape-wide) .base-tile.no-name .tile-grid {
+  :global(.tile-wrapper.shape-wide:not(.size-md)) .base-tile.no-name .tile-grid {
     grid-template-areas: "icon s circle";
     grid-template-columns: minmax(0, 0.92fr) minmax(0, 2.05fr) minmax(0, 0.95fr);
     grid-template-rows: min-content;
@@ -127,7 +206,7 @@
     overflow: visible;
   }
 
-  :global(.tile-wrapper.shape-wide) .icon-area {
+  :global(.tile-wrapper.shape-wide:not(.size-md)) .icon-area {
     width: 84%;
     justify-self: start;
     align-self: center;
@@ -153,7 +232,7 @@
     opacity: 1;
   }
 
-  :global(.tile-wrapper.shape-wide) .circle-area {
+  :global(.tile-wrapper.shape-wide:not(.size-md)) .circle-area {
     width: 82%;
     margin: 0;
     align-self: center;
@@ -174,17 +253,17 @@
     line-height: 1.21;
   }
 
-  :global(.tile-wrapper.shape-wide) .name-text,
-  :global(.tile-wrapper.shape-wide) .state-text {
+  :global(.tile-wrapper.shape-wide:not(.size-md)) .name-text,
+  :global(.tile-wrapper.shape-wide:not(.size-md)) .state-text {
     align-self: center;
     min-width: 0;
   }
 
-  :global(.tile-wrapper.shape-wide) .name-text {
+  :global(.tile-wrapper.shape-wide:not(.size-md)) .name-text {
     line-height: 1.16;
   }
 
-  :global(.tile-wrapper.shape-wide) .state-text {
+  :global(.tile-wrapper.shape-wide:not(.size-md)) .state-text {
     line-height: 1.12;
   }
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.27] - 2026-03-28
+
+### Added
+- **Media Player Component**: Introduced a brand new `MediaPlayerTile` for dedicated media playback control and artwork visualization.
+
+### Changed
+- **Grid Layout Architecture**: Migrated to a double-density grid system (v6 schema). Grid rows are now half-height to allow for finer vertical control. Existing dashboard layouts automatically migrate by doubling the heights of standard tiles to preserve their original visual proportions, while 2x1 `md` tiles naturally adapt to the new compact form factor.
+- **Tile Architecture Refactor**: Massively refactored almost all core tile components (`ClimateTile`, `CoverTile`, `EntityTile`, `FanTile`, `LightTile`, etc.) to inherit unified layout arrays directly from `BaseTile.svelte`. This removes over a thousand lines of repetitive code and optimizes the compact layout mechanics across the board.
+- **Theme Constraints**: Removed the `full` radius option in favor of an `xl` maximum to enforce design integrity. Legacy configurations are automatically normalized to the new constraints.
+
 ## [1.1.26] - 2026-03-25
 
 ### Fixed

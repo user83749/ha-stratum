@@ -371,7 +371,9 @@
   });
   const previewTileHeight = $derived.by(() => {
     const h = previewTile?.layout?.h ?? 1;
-    return h * previewCellSize + Math.max(0, h - 1) * previewGridGap;
+    // Row height = (colWidth - gap) / 2 — gap-compensated so 2 half-rows + gap = 1 col width
+    const rowH = Math.max(1, (previewCellSize - previewGridGap) / 2);
+    return h * rowH + Math.max(0, h - 1) * previewGridGap;
   });
 
   const previewGridStyle = $derived.by(() => {
@@ -382,7 +384,8 @@
 
     parts.push(`grid-template-columns: repeat(${cols}, 1fr)`);
     const subtract = pad * 2 + (cols - 1) * gap;
-    parts.push(`grid-auto-rows: calc((100cqw - ${subtract}px) / ${cols})`);
+    // Subtract gap/2 so that 2 half-rows + 1 gap = exactly 1 column width (matching SectionGrid).
+    parts.push(`grid-auto-rows: calc((100cqw - ${subtract}px) / ${cols} / 2 - ${gap}px / 2)`);
     parts.push(`gap: ${gap}px`);
     if (pad > 0) parts.push(`padding: ${pad}px`);
 

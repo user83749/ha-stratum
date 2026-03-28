@@ -103,7 +103,7 @@
 			? displayValue.toFixed(displayValue % 1 === 0 ? 0 : 1)
 			: '—'
 	);
-	let showLabel = $derived(sizePreset !== 'sm');
+	let showLabel = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 	let showMetaStats = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 	let historyMin = $derived(historyPoints.length ? Math.min(...historyPoints.map((p) => p.v)) : null);
 	let historyMax = $derived(historyPoints.length ? Math.max(...historyPoints.map((p) => p.v)) : null);

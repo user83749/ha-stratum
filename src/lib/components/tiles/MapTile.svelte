@@ -16,7 +16,7 @@
   const name = $derived(config.name ?? entity?.attributes?.friendly_name ?? 'Map');
   const lat = $derived((entity?.attributes?.latitude ?? config.latitude) as number | undefined);
   const lon = $derived((entity?.attributes?.longitude ?? config.longitude) as number | undefined);
-  const showLabel = $derived(sizePreset !== 'sm');
+  const showLabel = $derived(sizePreset === 'lg' || sizePreset === 'xl');
   const showCoords = $derived((sizePreset === 'lg' || sizePreset === 'xl') && lat !== undefined && lon !== undefined);
 
   const mapUrl = $derived.by(() => {

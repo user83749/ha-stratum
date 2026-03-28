@@ -8,17 +8,15 @@ const RADIUS_MAP: Record<string, string> = {
 	sm: '4px',
 	md: '8px',
 	lg: '12px',
-	xl: '16px',
-	full: '9999px'
+	xl: '16px'
 };
 
 const TILE_RADIUS_MAP: Record<string, string> = {
 	none: '0px',
-	sm: '6%',
-	md: '8%',
-	lg: '10%',
-	xl: '12%',
-	full: '9999px'
+	sm: '8px',
+	md: '12px',
+	lg: '16px',
+	xl: '20px'
 };
 
 const DIALOG_RADIUS_MAP: Record<string, string> = {
@@ -26,8 +24,7 @@ const DIALOG_RADIUS_MAP: Record<string, string> = {
 	sm: '4px',
 	md: '8px',
 	lg: '12px',
-	xl: '16px',
-	full: '9999px'
+	xl: '16px'
 };
 
 const FONT_SIZE_MAP: Record<string, string> = {
@@ -41,6 +38,13 @@ const FONT_SIZE_MAP: Record<string, string> = {
 function resolveTheme(cfg: ThemeConfig): ThemeDefinition {
 	const found = SYSTEM_THEMES.find((t) => t.id === cfg.themeId);
 	return found ?? SYSTEM_THEMES[0];
+}
+
+function normalizeRadiusKey(key: string | undefined, fallback: keyof typeof RADIUS_MAP): keyof typeof RADIUS_MAP {
+	// Backward compatibility for previously persisted "full" radius values.
+	if (key === 'full') return 'xl';
+	if (key && key in RADIUS_MAP) return key as keyof typeof RADIUS_MAP;
+	return fallback;
 }
 
 // ── Theme Application ───────────────────────────────────────────────────────
@@ -66,9 +70,9 @@ export function applyTheme(cfg: ThemeConfig): void {
 	// --theme-bg-css is already stamped from tokens above (it's in ThemeTokens)
 
 	// ── Shape — theme default, user can override ─────────────────────────────
-	const radiusKey = cfg.radius ?? theme.radius;
-	const tileRadiusKey = cfg.tileRadius ?? 'md';
-	const popupRadiusKey = cfg.popupRadius ?? 'xl';
+	const radiusKey = normalizeRadiusKey(cfg.radius ?? theme.radius, 'lg');
+	const tileRadiusKey = normalizeRadiusKey(cfg.tileRadius, 'md');
+	const popupRadiusKey = normalizeRadiusKey(cfg.popupRadius, 'xl');
 	const radius = RADIUS_MAP[radiusKey] ?? '12px';
 	const tileRadius = TILE_RADIUS_MAP[tileRadiusKey] ?? '8%'; // md
 	const dialogRadius = DIALOG_RADIUS_MAP[popupRadiusKey] ?? '16px'; // xl

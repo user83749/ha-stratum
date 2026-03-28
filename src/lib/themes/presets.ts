@@ -25,7 +25,7 @@ export interface ThemeTokens {
 }
 
 export type VisualStyle = 'liquid' | 'sculpted' | 'vivid';
-export type RadiusScale = 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+export type RadiusScale = 'none' | 'sm' | 'md' | 'lg' | 'xl';
 export type FontSize = 'sm' | 'md' | 'lg';
 
 export interface ThemeDefinition {

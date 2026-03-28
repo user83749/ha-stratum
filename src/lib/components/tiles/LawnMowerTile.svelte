@@ -44,8 +44,8 @@
     isError ? 'Error' :
     activity
   );
-  const showBatteryBadge = $derived(battery !== undefined && sizePreset !== 'sm');
-  const showActions = $derived(sizePreset !== 'sm');
+  const showBatteryBadge = $derived(battery !== undefined && (sizePreset === 'lg' || sizePreset === 'xl'));
+  const showActions = $derived(sizePreset === 'lg' || sizePreset === 'xl');
   const showActionLabels = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 </script>
 

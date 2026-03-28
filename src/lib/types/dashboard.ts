@@ -537,7 +537,7 @@ export interface Page {
 // ─── Theme ───────────────────────────────────────────────────────────────────
 
 export type ColorScheme = 'dark' | 'light' | 'system';
-export type RadiusScale = 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+export type RadiusScale = 'none' | 'sm' | 'md' | 'lg' | 'xl';
 export type FontSize = 'sm' | 'md' | 'lg';
 
 export interface FontConfig {
@@ -874,7 +874,7 @@ export interface UserProfile {
 
 // ─── Root Config ─────────────────────────────────────────────────────────────
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export interface DashboardConfig {
 	version: number;
@@ -903,7 +903,7 @@ export interface DashboardConfig {
 export const DEFAULT_THEME: ThemeConfig = {
 	themeId: 'draftwork',
 	radius: 'lg',
-	tileRadius: 'lg',
+	tileRadius: 'sm',
 	popupRadius: 'lg',
 	font: { family: 'Inter', size: 'md' },
 	dense: false,
@@ -1230,7 +1230,21 @@ export function migrateConfig(raw: unknown): DashboardConfig {
 			}
 		},
 		resources: { ...(input.resources ?? {}) },
-		pages: (input.pages ?? [defaultPage()]).map(migratePageV5),
+		pages: (() => {
+			const migratedPages = (input.pages ?? [defaultPage()]).map(migratePageV5);
+			// v6: double-density grid — double h for all non-md tiles to preserve visual size.
+			const rawVersion = typeof (raw as any)?.version === 'number' ? (raw as any).version : 0;
+			if (rawVersion < 6) {
+				return migratedPages.map((page) => ({
+					...page,
+					sections: page.sections.map((section) => ({
+						...section,
+						tiles: migrateGridDensityV6(section.tiles)
+					}))
+				}));
+			}
+			return migratedPages;
+		})(),
 		profiles: migratedProfiles,
 		activeProfileId: migratedProfiles.some((p) => p.id === input.activeProfileId)
 			? input.activeProfileId
@@ -1392,6 +1406,39 @@ function inferLegacyPreset(size: TileSize): TileSizePreset {
 	if ((size.w <= 2 && size.h <= 1) || (size.w <= 1 && size.h <= 2) || size.w * size.h <= 2) return 'md';
 	if (size.w * size.h <= 4 || (size.w <= 3 && size.h <= 1)) return 'lg';
 	return 'xl';
+}
+
+// ── Migration v5 → v6: double grid row density ───────────────────────────────
+// Grid rows are now half-height (2 half-rows = 1 visual square).
+// All tiles that are NOT 'md' get their h doubled so their visual size is
+// preserved. md tiles intentionally stay at h:1, becoming the new compact bar.
+function migrateGridDensityV6(tiles: Tile[]): Tile[] {
+	return tiles.map((tile) => {
+		const w = tile.layout?.w ?? tile.size?.w ?? 1;
+		const h = tile.layout?.h ?? tile.size?.h ?? 1;
+
+		// Identify the OLD preset using old thresholds (before this migration).
+		// Prefer stored sizePreset when it's one of the known values.
+		const stored = tile.sizePreset as string | undefined;
+		const oldPreset: TileSizePreset =
+			(stored === 'sm' || stored === 'md' || stored === 'lg' || stored === 'xl') ? stored as TileSizePreset
+			: (w <= 1 && h <= 1) ? 'sm'
+			: (w <= 2 && h <= 1) ? 'md'
+			: (w <= 2 && h <= 2) ? 'lg'
+			: 'xl';
+
+		// md tiles intentionally become the new compact bar — keep h as-is.
+		if (oldPreset === 'md') return tile;
+
+		// All other presets: double h to maintain visual size in the half-height grid.
+		const newH = h * 2;
+		return {
+			...tile,
+			size: { ...tile.size, w: tile.size?.w ?? w, h: newH },
+			layout: tile.layout ? { ...tile.layout, h: newH } : undefined,
+			sizePreset: oldPreset	// preserve preset label (spans updated above)
+		};
+	});
 }
 
 function packLegacyTilesForMigration(tiles: Tile[], cols: number): Tile[] {

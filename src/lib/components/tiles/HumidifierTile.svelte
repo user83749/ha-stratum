@@ -16,11 +16,9 @@
 
   // ── Derived State ─────────────────────────────────────────────────────────
   const config    = $derived(tile.config);
-  const layoutW   = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
-  const layoutH   = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
-  const isWideMd = $derived(layoutW >= 2 && layoutH === 1);
-  const isTallMd = $derived(layoutW === 1 && layoutH >= 2);
   const sizePreset = $derived(getTileSizePreset(tile));
+  const isWideMd = $derived(sizePreset === 'md');
+  const isTallMd = $derived(false);
 
   const entityId    = $derived(entity?.entity_id ?? tile.entity_id ?? '');
   const attrs       = $derived(entity?.attributes ?? {});

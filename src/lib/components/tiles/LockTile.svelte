@@ -35,7 +35,7 @@
     'var(--color-warning)'
   );
   const stateLabel = $derived(isLocked ? 'Locked' : isJammed ? 'Jammed!' : isUnlocked ? 'Unlocked' : entityState);
-  const showAction = $derived(sizePreset !== 'sm');
+  const showAction = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 
   // ── Local State ─────────────────────────────────────────────────────────
   let confirming = $state(false);

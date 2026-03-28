@@ -14,15 +14,13 @@
 
   // ── Derived State ─────────────────────────────────────────────────────────
   const config = $derived(tile.config);
-  const layoutW = $derived((tile.layout?.w ?? tile.size?.w) ?? 1);
-  const layoutH = $derived((tile.layout?.h ?? tile.size?.h) ?? 1);
-  const isTallMd = $derived(layoutW === 1 && layoutH >= 2);
   const sizePreset = $derived(getTileSizePreset(tile));
+  const isTallMd = $derived(false);
   const entityId = $derived(entity?.entity_id ?? tile.entity_id ?? '');
   const attrs = $derived(entity?.attributes ?? {});
   const name = $derived(config.name ?? attrs.friendly_name ?? 'Remote');
   const isOn = $derived(entity?.state === 'on');
-  const showHeader = $derived(sizePreset !== 'sm' && !isTallMd);
+  const showHeader = $derived((sizePreset === 'lg' || sizePreset === 'xl') && !isTallMd);
   const showAuxRows = $derived(sizePreset === 'lg' || sizePreset === 'xl');
 
   // ── Actions ───────────────────────────────────────────────────────────────
