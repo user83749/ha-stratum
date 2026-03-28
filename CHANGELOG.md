@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.28] - 2026-03-28
+
+### Fixed
+- **Publish Workflow**: Fixed a critical build failure in the GitHub Actions pipeline caused by peer-dependency mismatches from the recent NPM upgrades. `typescript` has been rolled back to `v5.9.3` to maintain strict compatibility with SvelteKit's peer-dependency requirements.
+
 ## [1.1.27] - 2026-03-28
 
 ### Added

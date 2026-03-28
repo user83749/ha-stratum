@@ -1,7 +1,7 @@
 {
 	"name": "ha-stratum",
 	"private": true,
-	"version": "1.1.27",
+	"version": "1.1.28",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -21,7 +21,7 @@
 		"svelte": "^5.55.0",
 		"svelte-check": "^4.4.5",
 		"tailwindcss": "^4.2.2",
-		"typescript": "^6.0.2",
+		"typescript": "^5.9.3",
 		"vite": "^8.0.3"
 	},
 	"dependencies": {
